@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta name="color-scheme" content="dark"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin | Orbit Games</title><meta name="robots" content="noindex,nofollow"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://ysopxengerkvbwhrdnwq.supabase.co https://qtmrtxgkisshdtqshjre.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'"><meta name="referrer" content="no-referrer"><script>if(window.top!==window.self){document.documentElement.style.display="none";try{window.top.location=window.self.location}catch(e){}}</script>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+<style>
+:root{--bg:#0b0b14;--p:#171728;--l:#2b2b44;--t:#eee;--m:#a9a8c4;--a:#ff6b8b;--ok:#8ff0a4;--bad:#ff9aa8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px "Pixelify Sans","Courier New",monospace}
+header{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;padding:.7rem 1rem;background:var(--p);border-bottom:2px solid var(--l)}
+header h1{font-size:1.2rem;margin:0;flex:1}nav{display:flex;flex-wrap:wrap;gap:.4rem;padding:.7rem 1rem}
+main{padding:0 1rem 3rem;max-width:1100px;margin:auto}
+button,input,select,textarea{font:inherit;color:var(--t);background:var(--p);border:2px solid var(--l);border-radius:8px;padding:.3rem .6rem}
+button{cursor:var(--cur-pointer,pointer)}button:hover{border-color:var(--a)}button.on,button.pri{background:var(--a);border-color:var(--a);color:#fff}button.dng{color:var(--bad)}
+.card{background:var(--p);border:2px solid var(--l);border-radius:10px;padding:.8rem;margin:.6rem 0}.row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem}.stat b{display:block;font-size:1.6rem;color:var(--a)}
+table{width:100%;border-collapse:collapse}td,th{padding:.35rem;border-bottom:1px solid var(--l);text-align:left;vertical-align:top}th{color:var(--m);font-weight:500}
+td .row{gap:.25rem}td button{padding:.1rem .45rem;font-size:.85rem}.m{color:var(--m)}.bad{color:var(--bad)}.ok{color:var(--ok)}
+.tbl{overflow-x:auto}#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--p);border:2px solid var(--a);padding:.5rem 1rem;border-radius:10px;display:none;z-index:9}
+dialog{background:var(--p);color:var(--t);border:2px solid var(--a);border-radius:12px;max-width:640px;width:92%}dialog::backdrop{background:#000a}
+#gate{max-width:420px;margin:15vh auto;text-align:center}input.w{width:100%}
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+:where(header){border-radius:var(--round,10px)}
+:where(button.on){border-radius:var(--round,10px)}
+:where(button.pri){border-radius:var(--round,10px)}
+</style><link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head><body>
+<header><h1>Orbit Games admin</h1><span id="who" class="m"></span><button id="out" hidden>Sign out</button></header>
+<div id="gate" class="card"><h2>Staff sign-in</h2><p class="m">Sign in with the Google account an owner added as staff.</p><button class="pri" id="in">Sign in with Google</button><p id="gmsg" class="bad"></p></div>
+<nav id="nav" hidden></nav><main id="v"></main><div id="toast"></div><dialog id="dlg"></dialog>
+<script>
+'use strict';
+const H='https://ysopxengerkvbwhrdnwq.supabase.co',K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzb3B4ZW5nZXJrdmJ3aHJkbndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM5MDIsImV4cCI6MjEwNzMyOTkwMn0.7jOqjsJ2yAsRVThEuIyK6KI6D3cgs5SrxHg79nXlDBM',SK='admin-session';
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LV={moderator:1,admin:2,owner:3},NEED={mod:1,admin:2,owner:3};let RL=0,ROLE='',EMAIL='',tab='dash',cache={};
+const ls=(k,v)=>{try{return v===undefined?JSON.parse(localStorage.getItem(k)):v===null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
+let OWN=false;
+const has=l=>l==='orbitowner'?OWN:RL>=NEED[l];
+function toast(t,bad){const e=$('#toast');e.textContent=t;e.style.display='block';e.style.borderColor=bad?'var(--bad)':'var(--a)';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3500)}
+async function tok(){let s=ls(SK);if(!s)return null;if(s.expires_at*1000>Date.now()+60000)return s.access_token;
+ const r=await fetch(H+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:K,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+ if(!r.ok){ls(SK,null);return null}const j=await r.json();s={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at};ls(SK,s);return s.access_token}
+async function api(p,o={}){const t=await tok();if(!t)throw new Error('Signed out');
+ const r=await fetch(H+'/rest/v1/'+p,{method:o.m||'GET',headers:{apikey:K,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:o.pref||'return=representation'},body:o.b?JSON.stringify(o.b):undefined});
+ const x=await r.text();if(!r.ok){let e=x;try{e=JSON.parse(x).message||x}catch(_){}throw new Error(e)}return x?JSON.parse(x):null}
+const rpc=(n,a={})=>api('rpc/'+n,{m:'POST',b:a});
+const upsert=(t,key,b)=>api(t+'?on_conflict='+key,{m:'POST',pref:'resolution=merge-duplicates,return=minimal',b});
+const q=s=>encodeURIComponent(String(s).replace(/[%*_]/g,''));
+const sure=(t,word)=>word?prompt(t+'\nType '+word+' to confirm.')===word:confirm(t);
+async function run(fn,msg){try{await fn();if(msg)toast(msg);show(tab)}catch(e){toast(e.message,1)}}
+
+/* ---- front door: only the Orbit account @30yua may open the admin panel (the database still checks the staff list on every request) ---- */
+const OH='https://qtmrtxgkisshdtqshjre.supabase.co',OK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0bXJ0eGdraXNzaGR0cXNoanJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTQyMDEsImV4cCI6MjEwNzY3MDIwMX0.CROrmFcFvrVEzKi-qFGagmm3TapDN2PSh6KPtBkEV5A',OSK='sb-qtmrtxgkisshdtqshjre-auth-token',OWNER='30yua';
+async function orbitOwner(){
+ let s=null;try{s=JSON.parse(localStorage.getItem(OSK)||'null')}catch(e){}
+ if(!s||!s.access_token||!s.user)return 'Log in to Orbit as @'+OWNER+' first, then reopen this page.';
+ if(s.expires_at&&s.expires_at*1000<Date.now())return 'Your Orbit session has expired. Open Orbit once so it refreshes, then reopen this page.';
+ try{const r=await fetch(OH+'/rest/v1/profiles?id=eq.'+encodeURIComponent(s.user.id)+'&select=username',{headers:{apikey:OK,Authorization:'Bearer '+s.access_token}});
+  const j=await r.json();if(j&&j[0]&&String(j[0].username).toLowerCase()===OWNER)return '';}catch(e){return 'Could not check your Orbit account. Try again.'}
+ return 'The admin panel is only available to the Orbit account @'+OWNER+'.';
+}
+/* ---- Payouts: the owner (Orbit account that is the server owner) sets what percent of a final score each game pays in Orbits.
+   The Orbit database re-checks is_owner() on every change, so hiding this tab is only a convenience. ---- */
+async function orbitRpc(n,a={}){let s=null;try{s=JSON.parse(localStorage.getItem(OSK)||'null')}catch(e){}
+ if(!s||!s.access_token)throw new Error('Log in to Orbit first.');
+ const r=await fetch(OH+'/rest/v1/rpc/'+n,{method:'POST',headers:{apikey:OK,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(a)});
+ const x=await r.text();let j=null;try{j=x?JSON.parse(x):null}catch(e){}
+ if(!r.ok)throw new Error((j&&j.message)||'Request failed ('+r.status+')');return j}
+const GN={blockblast:'Block Blast',game2048:'2048',breakout:'Block Breaker',dino:'Dino Run',flappy:'Flappy Bird',geodash:'Geometry Dash',minesweeper:'Minesweeper',pacman:'Pac-Man',slope:'Slope',snake:'Snake',tetris:'Tetris',girder:'Girder Gorilla',sudoku:'Sudoku'};
+const pctText=pm=>String(Math.round(pm)/10);
+/* ---- sign in ---- */
+$('#in').onclick=()=>location.href=H+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname);
+$('#out').onclick=()=>{ls(SK,null);location.reload()};
+const TABS=[['dash','Dashboard','mod'],['users','Users','mod'],['chat','Chat','mod'],['games','Games','admin'],['scores','Scores & MVP','admin'],['feed','Suggestions & bugs','admin'],['ann','Announcements','admin'],['set','Settings','admin'],['log','Logs & security','admin'],['staff','Staff roles','owner'],['pay','Payouts','orbitowner']];
+async function boot(){
+ const h=new URLSearchParams(location.hash.slice(1));
+ if(h.get('access_token')){ls(SK,{access_token:h.get('access_token'),refresh_token:h.get('refresh_token'),expires_at:+h.get('expires_at')||Math.floor(Date.now()/1000)+3600});history.replaceState(null,'',location.pathname)}
+ if(!ls(SK))return;
+ try{ROLE=await rpc('staff_role');const u=JSON.parse(atob((ls(SK).access_token.split('.')[1]).replace(/-/g,'+').replace(/_/g,'/')));EMAIL=u.email||''}catch(e){$('#gmsg').textContent=e.message;return}
+ if(!ROLE){$('#gmsg').textContent='This account ('+EMAIL+') is not staff.';ls(SK,null);return}
+ RL=LV[ROLE];try{OWN=(await orbitRpc('is_owner'))===true}catch(e){OWN=false}$('#gate').hidden=true;$('#out').hidden=false;$('#nav').hidden=false;$('#who').textContent=EMAIL+' ('+ROLE+')';
+ $('#nav').innerHTML=TABS.filter(t=>has(t[2])).map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
+ $('#nav').onclick=e=>{const b=e.target.closest('[data-t]');if(b)show(b.dataset.t)};show('dash');
+}
+async function show(t){tab=t;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ try{$('#v').innerHTML=await VIEWS[t]()}catch(e){$('#v').innerHTML='<p class="bad">'+esc(e.message)+'</p>'}}
+const when=d=>d?new Date(d).toLocaleString([],{dateStyle:'short',timeStyle:'short'}):'-';
+const tbl=(h,rows)=>`<div class="tbl"><table><tr>${h.map(x=>'<th>'+x+'</th>').join('')}</tr>${rows.join('')||'<tr><td class="m" colspan="9">Nothing here.</td></tr>'}</table></div>`;
+const btn=(a,d,l,c='')=>`<button class="${c}" data-a="${a}" data-d="${esc(d)}">${l}</button>`;
+const setP=(name,o)=>upsert('player_status','name',{name:name.toLowerCase(),display:name,updated_at:new Date().toISOString(),...o});
+
+const VIEWS={
+ async dash(){const d=await rpc('admin_dashboard');
+  const st=[['Players seen',d.players],['Google accounts',d.accounts],['Scores submitted',d.scores],['Chat msgs (24h)',d.msgs],['Pending feedback',d.pending],['Restricted players',d.restricted]];
+  return `<div class="grid">${st.map(s=>`<div class="card stat"><span class="m">${s[0]}</span><b>${s[1]}</b></div>`).join('')}</div>
+  <p class="m">Online-now and games-played counts are not tracked by the site yet.</p><h3>Recent activity</h3>`+tbl(['When','Who','Action','Target'],d.log.map(l=>`<tr><td>${when(l.at)}</td><td>${esc(l.actor)}</td><td>${esc(l.action)}</td><td>${esc(l.target)}</td></tr>`))},
+ async users(){const s=cache.uq||'';const r=await rpc('admin_players',{q:s});
+  return `<form class="row" data-f="uq"><input name="q" placeholder="Search by name" value="${esc(s)}"><button class="pri">Search</button></form>`+
+  tbl(['Player','Login','Status','Msgs','Scores','Joined / last seen',''],r.map(u=>`<tr><td><b>${esc(u.name)}</b><br><span class="m">${esc(u.avatar||'')}</span></td><td>${u.login?esc(u.login):'<span class="m">unknown</span>'}${u.email?'<br><span class="m">'+esc(u.email)+'</span>':''}</td>
+  <td class="${u.state==='ok'?'ok':'bad'}">${u.state}${u.chat_banned?' + chat-banned':''}${u.until?'<br>until '+when(u.until):''}</td><td>${u.msgs}</td><td>${u.scores}</td><td>${when(u.created)}<br>${when(u.last_seen)}</td>
+  <td><div class="row">${btn('view',u.name,'Details')}${btn('mute',u.name,'Mute 1h')}${btn('mutef',u.name,'Mute')}${btn('unmute',u.name,'Unmute')}${btn('cban',u.name,u.chat_banned?'Chat unban':'Chat ban')}
+  ${has('admin')?btn('ban',u.name,'Ban','dng')+btn('susp',u.name,'Suspend','dng')+(u.state==='suspended'?btn('unsusp',u.name,'Cancel suspension','pri'):'')+btn('unban',u.name,'Unban')+btn('name',u.name,'Rename')+btn('avatar',u.name,'Remove avatar','dng')+btn('rmplayer',u.name,'Remove player','dng'):''}</div></td></tr>`));},
+ async chat(){const [r,ch]=await Promise.all([api('chat_messages?select=id,name,message,created_at,pinned,channel,kind&order=id.desc&limit=100'),api('chat_channels?order=sort_order')]);
+  return `<div class="row">${btn('refresh','','Refresh')}${has('admin')?btn('clear','','Clear chat','dng'):''}<span class="m">Chat on/off, slow mode and length limits are in Settings.</span></div>`+
+  tbl(['Time','Player','Message',''],r.map(m=>`<tr><td>${when(m.created_at)}</td><td>${esc(m.name)}<br><span class="m">${esc((m.channel||'general').startsWith('dm:')?'direct message':'#'+(m.channel||'general'))}</span></td><td>${m.pinned?'📌 ':''}${m.kind&&m.kind!=='text'?'['+m.kind+'] ':''}${esc(m.message)}</td>
+  <td><div class="row">${btn('delmsg',m.id,'Delete','dng')}${btn('pin',m.id+'|'+!m.pinned,m.pinned?'Unpin':'Pin')}${btn('mute',m.name,'Mute 1h')}${btn('cban',m.name,'Chat ban')}</div></td></tr>`))+
+  `<h3>Channels</h3>`+tbl(['Channel','Title','Rules',''],ch.map(c=>`<tr><td>#${esc(c.id)}</td><td>${esc(c.title)}<br><span class="m">${esc(c.blurb||'')}</span></td><td>${c.score_only?'high scores only':c.staff_only?'staff only':'everyone'}</td><td>${btn('chdel',c.id,'Remove','dng')}</td></tr>`))+
+  `<form class="card row" data-f="chadd"><b>Add channel</b><input name="id" placeholder="id (a-z, 0-9, -)" maxlength="24" required><input name="title" placeholder="Title" required><label><input type="checkbox" name="score_only"> high scores only</label><label><input type="checkbox" name="staff_only"> staff only</label><button class="pri">Add</button></form>
+  <p class="m">Each game also has its own channel automatically. Direct messages are switched on in Settings.</p>`},
+ async games(){const r=await api('games_config?order=sort_order');const f=['enabled','featured','is_new','is_popular'],fl=['On','Featured','New','Popular'];
+  return `<p class="m">Changes apply to the home page after reload. Adding a game here lists it; upload its .html file to your host yourself.</p>`+
+  tbl(['Game','Title / description / icon / category','Flags','Order',''],r.map(g=>`<tr data-g="${esc(g.id)}"><td>${esc(g.id)}<br><span class="m">${esc(g.page)}</span></td>
+  <td><input name="title" value="${esc(g.title)}"> <input name="icon" placeholder="icon" size="6" value="${esc(g.icon)}"> <input name="category" placeholder="category" size="8" value="${esc(g.category)}"><br><input class="w" name="description" placeholder="description (blank = site default)" value="${esc(g.description)}"></td>
+  <td>${f.map((k,i)=>`<label><input type="checkbox" name="${k}" ${g[k]?'checked':''}> ${fl[i]}</label>`).join('<br>')}</td><td><input name="sort_order" type="number" size="3" style="width:4.5rem" value="${g.sort_order}"></td>
+  <td><div class="row">${btn('gsave',g.id,'Save','pri')}${btn('gdel',g.id,'Remove','dng')}</div></td></tr>`))+
+  `<form class="card row" data-f="gadd"><b>Add game</b><input name="id" placeholder="id (e.g. chess)" required><input name="title" placeholder="Title" required><input name="page" placeholder="chess.html" required><button class="pri">Add</button></form>`},
+ async scores(){const g=cache.sg||'blockblast',gs=await api('games_config?select=id&order=sort_order');
+  const [r,m]=await Promise.all([api('scores?select=id,name,score,created_at&game=eq.'+g+'&order=score.desc&limit=50'),import('../chatter/config.js').then(c=>fetch(c.SUPABASE_URL+'/rest/v1/rpc/orbit_mvp',{method:'POST',headers:{apikey:c.SUPABASE_ANON_KEY,Authorization:'Bearer '+c.SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_limit:15})}).then(x=>x.ok?x.json():[])).catch(()=>[])]);
+  return `<div class="row"><select data-s="sg">${gs.map(x=>`<option ${x.id===g?'selected':''}>${esc(x.id)}</option>`).join('')}</select>${btn('rs',g,'Reset this leaderboard','dng')}${has('owner')?btn('rall','','Reset ALL leaderboards','dng'):''}</div>`+
+  tbl(['#','Player','Score','When',''],r.map((s,i)=>{const nx=r[i+1]?r[i+1].score:0,fl=s.score>=1e6||(nx>0&&s.score>3*nx);return `<tr><td>${i+1}</td><td>${esc(s.name)}</td><td>${s.score}${fl?' <span class="bad">⚠ unusually high</span>':''}</td><td>${when(s.created_at)}</td><td>${btn('delsc',s.id,'Remove','dng')}</td></tr>`}))+
+  `<h3>MVP rankings (Orbits right now)</h3><p class="muted">The MVP is whoever has the most Orbits at the moment. Spending Orbits lowers a player's place. Change someone's Orbits from Orbit (award Orbits).</p>`+tbl(['Player','Orbits'],m.map(x=>`<tr><td>${esc(x.display_name)}</td><td>${Number(x.total).toLocaleString()}</td></tr>`))+
+  `<form class="card row" data-f="mvp"><b>Adjust old total-score MVP</b><input name="name" placeholder="player name" required><input name="delta" type="number" placeholder="+/- points" required><input name="reason" placeholder="reason"><button class="pri">Apply</button></form>`},
+ async pay(){if(!OWN)return '<p class="bad">Only the owner can change payouts.</p>';
+  const r=await orbitRpc('get_game_rates'),m=Object.fromEntries(r.map(x=>[x.game,x.permille]));
+  const ids=Object.keys(GN).filter(g=>m[g]!=null);
+  return `<p class="m">What each game pays in Orbits, as a percent of the final score of a round. 100% = 1 Orbit per point, 50% = 1 Orbit per 2 points, 1000% = 10 Orbits per point. Allowed: 0.1% to 10000%. A round pays at most 100,000 Orbits. Changes apply to the next round anyone finishes; the Orbit Games page and the Orbit leaderboard text update on reload. Only the owner can change these.</p>`+
+  tbl(['Game','Pays (% of final score)','Example: score 1,000 pays',''],ids.map(g=>`<tr data-p="${g}"><td><b>${esc(GN[g])}</b><br><span class="m">${g}</span></td><td><input name="pct" type="number" min="0.1" max="10000" step="0.1" style="width:8rem" value="${pctText(m[g])}"> %</td><td>${Math.min(Math.round(1000*m[g]/1000),100000).toLocaleString()} Orbits</td><td>${btn('psave',g,'Save','pri')}</td></tr>`))},
+ async feed(){const r=await api('suggestions?order=id.desc&limit=100'),S={suggestion:['pending','approved','rejected'],bug:['open','in_progress','fixed'],player_report:['open','reviewing','resolved','dismissed']};
+  return tbl(['When','Message','Type / status / note',''],r.map(s=>`<tr data-g="${s.id}"><td>${when(s.created_at)}</td><td>${esc(s.message)}</td><td><div class="row"><select name="kind"><option ${s.kind==='suggestion'?'selected':''}>suggestion</option><option ${s.kind==='bug'?'selected':''}>bug</option><option ${s.kind==='player_report'?'selected':''}>player_report</option></select>
+  <select name="status">${(S[s.kind]||S.suggestion).map(x=>`<option ${x===s.status?'selected':''}>${x}</option>`).join('')}</select><input name="note" placeholder="note / update" value="${esc(s.note)}"></div></td>
+  <td><div class="row">${btn('fsave',s.id,'Save','pri')}${s.kind==='player_report'?'':btn('fpost',s.id,'Post update')}${btn('fdel',s.id,'Delete','dng')}</div></td></tr>`))},
+ async ann(){const r=await api('announcements?order=id.desc&limit=50');
+  return `<form class="card" data-f="ann"><div class="row"><input name="title" placeholder="Title" required><select name="kind"><option>info</option><option>maintenance</option><option>new_game</option><option>event</option></select><label><input type="checkbox" name="pinned"> Pin</label></div>
+  <p><textarea name="body" class="w" rows="2" placeholder="Message"></textarea></p><div class="row"><label>Show from <input type="datetime-local" name="starts_at"></label><label>until <input type="datetime-local" name="ends_at"></label><button class="pri">Publish</button></div></form>`+
+  tbl(['Title','Type','Window','Live',''],r.map(a=>`<tr><td><b>${esc(a.title)}</b>${a.pinned?' 📌':''}<br>${esc(a.body)}</td><td>${a.kind}</td><td>${when(a.starts_at)} → ${when(a.ends_at)}</td><td>${a.active?'<span class="ok">on</span>':'off'}</td><td><div class="row">${btn('atog',a.id+'|'+!a.active,a.active?'Remove':'Restore')}${btn('adel',a.id,'Delete','dng')}</div></td></tr>`))},
+ async set(){const r=Object.fromEntries((await api('site_settings')).map(x=>[x.key,x.value])),own=has('owner');
+  const D=[['maintenance','b','Maintenance mode (blocks the site)',1],['maintenance_msg','t','Maintenance message',1],['registration_enabled','b','Allow new players',1],['chat_enabled','b','Global chat',0],['chat_voice_enabled','b','Voice chat',0],['chat_dms_enabled','b','Direct messages (not private: admins can read them)',0],['chat_slow_seconds','n','Chat slow mode, seconds (0 = off)',0],['chat_max_len','n','Max chat message length',0],['suggestions_enabled','b','Suggestion box',1]];
+  return `<form data-f="set">`+D.map(([k,t,l,o])=>{const v=r[k],dis=o&&!own?'disabled':'';return `<div class="card row"><label style="flex:1">${l}${o&&!own?' <span class="m">(owner only)</span>':''}</label>`+
+  (t==='b'?`<input type="checkbox" name="${k}" data-t="b" ${v===true?'checked':''} ${dis}>`:`<input name="${k}" data-t="${t}" value="${esc(v)}" ${dis}>`)+`</div>`}).join('')+`<button class="pri">Save settings</button></form>`},
+ async log(){const r=await api('admin_log?order=id.desc&limit=200'),c={};
+  r.forEach(l=>{if(l.target==='player_status'&&l.detail&&l.detail.state!=='ok'){const n=l.detail.display||l.detail.name;c[n]=(c[n]||0)+1}});const rep=Object.entries(c).filter(x=>x[1]>=2);
+  return `<h3>Repeat offenders</h3><p>${rep.map(x=>`<b>${esc(x[0])}</b> (${x[1]} actions)`).join(', ')||'<span class="m">None yet.</span>'}</p><h3>Admin action log</h3>`+
+  tbl(['When','Staff','Action','On','Details'],r.map(l=>`<tr><td>${when(l.at)}</td><td>${esc(l.actor)}</td><td>${esc(l.action)}</td><td>${esc(l.target)}</td><td class="m">${esc(JSON.stringify(l.detail||'').slice(0,140))}</td></tr>`))},
+ async staff(){const r=await api('staff?order=created_at');
+  return tbl(['Email','Role','Chat badge name',''],r.map(s=>`<tr><td>${esc(s.email)}</td><td>${s.role}</td><td>${esc(s.chat_name||'')}</td><td>${s.email.toLowerCase()===EMAIL.toLowerCase()?'':btn('sdel',s.email,'Remove','dng')}</td></tr>`))+
+  `<form class="card row" data-f="staff"><b>Add staff</b><input name="email" type="email" placeholder="Google email" required><select name="role"><option>moderator</option><option>admin</option><option>owner</option></select><input name="chat_name" maxlength="12" placeholder="Chat name for badge (optional)"><button class="pri">Add / update</button></form>
+  <div class="card m">A chat badge name shows an OWNER / ADMIN / MOD tag in chat and reserves that name: only that person, signed in with Google on the site, can chat under it. Owner: everything. Admin: users, games, chat, MVP, feedback, reports. Moderator: chat, mutes, reports. User: normal site.</div>`}
+};
+
+/* ---- actions ---- */
+const ask=t=>prompt(t)||'';
+const A={
+ psave:async g=>{if(!OWN)throw new Error('Only the owner can change payouts.');const r=document.querySelector(`[data-p="${g}"]`),v=parseFloat(r.querySelector('[name=pct]').value);
+  if(!(v>=0.1&&v<=10000))throw new Error('Enter a percent from 0.1 to 10000.');const pm=Math.round(v*10);
+  if(!sure('Set '+GN[g]+' to pay '+v+'% of the final score?'))return;await orbitRpc('set_game_rate',{p_game:g,p_permille:pm})},
+ view:async n=>{const[m,s]=await Promise.all([api('chat_messages?select=message,created_at&order=id.desc&limit=15&name=ilike.'+q(n)),api('scores?select=game,score,created_at&order=created_at.desc&limit=15&name=ilike.'+q(n))]);
+  const d=$('#dlg');d.innerHTML=`<h3>${esc(n)}</h3><b>Recent chat</b>${tbl(['When','Message'],m.map(x=>`<tr><td>${when(x.created_at)}</td><td>${esc(x.message)}</td></tr>`))}<b>Recent scores</b>${tbl(['Game','Score','When'],s.map(x=>`<tr><td>${x.game}</td><td>${x.score}</td><td>${when(x.created_at)}</td></tr>`))}<p><button onclick="dlg.close()">Close</button></p>`;d.showModal()},
+ mute:n=>setP(n,{state:'muted',until:new Date(Date.now()+36e5).toISOString(),reason:ask('Reason?')}),
+ mutef:n=>setP(n,{state:'muted',until:null,reason:ask('Reason?')}),
+ unmute:n=>setP(n,{state:'ok',until:null}),unban:n=>setP(n,{state:'ok',until:null}),
+ cban:async n=>{const c=(await api('player_status?name=eq.'+q(n.toLowerCase()))||[])[0];return setP(n,{chat_banned:!(c&&c.chat_banned)})},
+ ban:n=>sure('Ban '+n+'? They can no longer post scores or chat.')&&setP(n,{state:'banned',until:null,reason:ask('Reason?')}),
+ unsusp:n=>sure('Cancel '+n+"'s suspension?")&&setP(n,{state:'ok',until:null}),
+ susp:n=>{const d=+ask('Suspend for how many days?');return d>0&&setP(n,{state:'suspended',until:new Date(Date.now()+d*864e5).toISOString()})},
+ name:async n=>{const nn=prompt('Enter a new username for '+n+' (1–12 characters):',n);if(nn===null)return;if(!nn.trim())throw new Error('Username cannot be empty');if(nn.trim().length>12)throw new Error('Username must be 12 characters or fewer');if(!sure('Rename '+n+' to '+nn.trim()+' everywhere?'))return;return rpc('admin_rename_player',{old_name:n,new_name:nn.trim()})},
+ rmplayer:n=>sure('Remove player "'+n+'" completely? This deletes all of their scores, chat messages, MVP adjustments and ban/mute record from the site. It cannot be undone.','REMOVE')&&rpc('admin_remove_player',{player_name:n}),
+ avatar:n=>sure('Reset '+n+"'s avatar to the default?")&&Promise.all(['scores','chat_messages'].map(t=>api(t+'?name=ilike.'+q(n),{m:'PATCH',pref:'return=minimal',b:{avatar:'gamer'}}))),
+ refresh:()=>0,clear:()=>sure('Delete ALL chat messages?','CLEAR')&&rpc('admin_clear_chat'),
+ chdel:id=>sure('Remove the #'+id+' channel? Its messages stay in the database but nobody can open them.')&&api('chat_channels?id=eq.'+encodeURIComponent(id),{m:'DELETE',pref:'return=minimal'}),
+ delmsg:id=>sure('Delete this message?')&&api('chat_messages?id=eq.'+id,{m:'DELETE',pref:'return=minimal'}),
+ pin:d=>{const[i,v]=d.split('|');return api('chat_messages?id=eq.'+i,{m:'PATCH',pref:'return=minimal',b:{pinned:v==='true'}})},
+ gsave:id=>{const r=document.querySelector(`[data-g="${id}"]`),b={};r.querySelectorAll('input').forEach(i=>b[i.name]=i.type==='checkbox'?i.checked:i.type==='number'?+i.value:(i.value||null));return api('games_config?id=eq.'+id,{m:'PATCH',pref:'return=minimal',b})},
+ gdel:id=>sure('Remove '+id+' from the site list?')&&api('games_config?id=eq.'+id,{m:'DELETE',pref:'return=minimal'}),
+ rs:g=>sure('Delete every score for '+g+'?','RESET')&&rpc('admin_reset_scores',{g}),rall:()=>sure('Delete EVERY score in EVERY game?','RESET ALL')&&rpc('admin_reset_scores',{g:null}),
+ delsc:id=>sure('Remove this score?')&&api('scores?id=eq.'+id,{m:'DELETE',pref:'return=minimal'}),
+ fsave:id=>{const r=document.querySelector(`[data-g="${id}"]`),g=n=>r.querySelector(`[name=${n}]`).value;return api('suggestions?id=eq.'+id,{m:'PATCH',pref:'return=minimal',b:{kind:g('kind'),status:g('status'),note:g('note')||null}})},
+ fpost:async id=>{const s=(await api('suggestions?id=eq.'+id))[0];return api('announcements',{m:'POST',pref:'return=minimal',b:{title:'Update: '+s.message.slice(0,60),body:s.note||'Status: '+s.status,kind:'info'}})},
+ fdel:id=>sure('Delete this submission?')&&api('suggestions?id=eq.'+id,{m:'DELETE',pref:'return=minimal'}),
+ atog:d=>{const[i,v]=d.split('|');return api('announcements?id=eq.'+i,{m:'PATCH',pref:'return=minimal',b:{active:v==='true'}})},
+ adel:id=>sure('Delete announcement?')&&api('announcements?id=eq.'+id,{m:'DELETE',pref:'return=minimal'}),
+ sdel:e=>sure('Remove staff '+e+'?')&&api('staff?email=eq.'+encodeURIComponent(e),{m:'DELETE',pref:'return=minimal'})
+};
+const F={
+ uq:f=>{cache.uq=f.q.value},
+ gadd:f=>api('games_config',{m:'POST',pref:'return=minimal',b:{id:f.id.value.trim().toLowerCase(),title:f.title.value,page:f.page.value,sort_order:99}}),
+ chadd:f=>api('chat_channels',{m:'POST',pref:'return=minimal',b:{id:f.id.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-'),title:f.title.value.trim(),score_only:f.score_only.checked,staff_only:f.staff_only.checked,sort_order:50}}),
+ mvp:f=>sure('Adjust '+f.name.value+' by '+f.delta.value+' MVP points?')&&api('mvp_adjustments',{m:'POST',pref:'return=minimal',b:{name:f.name.value.trim(),delta:+f.delta.value,reason:f.reason.value||null}}),
+ ann:f=>api('announcements',{m:'POST',pref:'return=minimal',b:{title:f.title.value,body:f.body.value||null,kind:f.kind.value,pinned:f.pinned.checked,starts_at:f.starts_at.value?new Date(f.starts_at.value).toISOString():null,ends_at:f.ends_at.value?new Date(f.ends_at.value).toISOString():null}}),
+ set:async f=>{for(const i of f.querySelectorAll('input:not([disabled])')){const v=i.dataset.t==='b'?i.checked:i.dataset.t==='n'?+i.value:i.value;await upsert('site_settings','key',{key:i.name,value:v,updated_at:new Date().toISOString()})}},
+ staff:f=>sure('Give '+f.email.value+' the '+f.role.value+' role?')&&upsert('staff','email',{email:f.email.value.trim().toLowerCase(),role:f.role.value,chat_name:f.chat_name.value.trim()||null})
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&A[b.dataset.a])run(()=>A[b.dataset.a](b.dataset.d),'Done')});
+document.addEventListener('submit',e=>{const f=e.target.closest('[data-f]');if(f){e.preventDefault();run(()=>F[f.dataset.f](f),f.dataset.f==='uq'?'':'Saved')}});
+document.addEventListener('change',e=>{if(e.target.dataset.s){cache[e.target.dataset.s]=e.target.value;show(tab)}});
+orbitOwner().then(m=>{if(m){ls(SK,null);$('#gate').innerHTML='<h2>Admin only</h2><p class="bad">'+esc(m)+'</p>';return}boot()});
+</script></body></html>

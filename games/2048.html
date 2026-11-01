@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>2048</title>
+  <meta name="theme-color" content="#fbf6ee">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap">
+  <style>
+    :root {
+      --vh: 100vh;
+      --font: "Montserrat", "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+      --page: #fbf6ee;
+      --ink: #776e65;
+      --brown: #8f7a66;
+      --panel: #bbada0;
+      --board: #baab9d;
+      --cell-bg: #cdbfb2;
+    }
+    @supports (height: 100dvh) { :root { --vh: 100dvh; } }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: var(--vh);
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: var(--page);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;           /* swipes move tiles instead of scrolling the page */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    :focus-visible { outline: 3px solid #f67c5f; outline-offset: 2px; }
+    .hidden { display: none !important; }
+
+    /* ---------- layout: the board is always square and always fits the window ---------- */
+    .app {
+      --chrome: 230px;              /* room needed above and below the board */
+      --size: max(220px, min(500px, calc(100vw - 32px), calc(var(--vh) - var(--chrome))));
+      --gap: calc(var(--size) * 0.03);
+      --cell: calc((var(--size) - var(--gap) * 5) / 4);
+      width: var(--size);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px 0;
+    }
+
+    .top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .scores { display: flex; gap: 6px; }
+    .box {
+      position: relative;
+      min-width: 66px;
+      padding: 7px 14px 8px;
+      border-radius: 3px;
+      background: var(--panel);
+      text-align: center;
+      line-height: 1;
+    }
+    .box .lbl {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #eee4da;
+    }
+    .box .val {
+      display: block;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .plus {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 6px;
+      z-index: 20;
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1;
+      color: rgba(119, 110, 101, 0.9);
+      pointer-events: none;
+    }
+
+    .btn {
+      display: inline-block;
+      border: 0;
+      border-radius: 3px;
+      background: var(--brown);
+      color: #f9f6f2;
+      font: 700 0.95rem/1 var(--font);
+      padding: 12px 20px;
+      text-decoration: none;
+      text-align: center;
+      cursor:var(--cur-pointer,pointer);
+      white-space: nowrap;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(1px); }
+    .btn.ghost { background: transparent; color: var(--brown); box-shadow: inset 0 0 0 2px var(--brown); }
+    .btn.ghost:hover { background: var(--brown); color: #f9f6f2; filter: none; }
+
+    /* ---------- board ---------- */
+    .board-wrap { position: relative; width: var(--size); height: var(--size); }
+    #board {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      background: var(--board);
+    }
+    .cell, .tile {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: var(--cell);
+      height: var(--cell);
+      transform: translate(
+        calc(var(--x) * (var(--cell) + var(--gap)) + var(--gap)),
+        calc(var(--y) * (var(--cell) + var(--gap)) + var(--gap)));
+    }
+    .cell { border-radius: calc(var(--cell) * 0.05); background: var(--cell-bg); }
+    .tile { z-index: 1; transition: transform 100ms ease-in-out; }
+    .tile.absorb { z-index: 3; }
+    .tile.popping { z-index: 5; }       /* the new merged tile sits above the two it came from */
+    .tile .in {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: calc(var(--cell) * 0.05);
+      background: var(--tbg);
+      color: var(--tfg, #f9f6f2);
+      font-family: var(--font);
+      font-weight: 700;
+      line-height: 1;
+      font-size: calc(var(--cell) * var(--fs, 0.5));
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    /* one colour per value, with a soft glow from 128 up (same scheme as the original) */
+    .v-2    { --tbg: #eee4da; --tfg: #776e65; }
+    .v-4    { --tbg: #ede0c8; --tfg: #776e65; }
+    .v-8    { --tbg: #f2b179; }
+    .v-16   { --tbg: #f59563; }
+    .v-32   { --tbg: #f67c5f; }
+    .v-64   { --tbg: #f65e3b; }
+    .v-128  { --tbg: #edcf72; }
+    .v-256  { --tbg: #edcc61; }
+    .v-512  { --tbg: #edc850; }
+    .v-1024 { --tbg: #edc53f; }
+    .v-2048 { --tbg: #edc22e; }
+    .v-super { --tbg: #3c3a32; }
+    .v-128 .in  { box-shadow: 0 0 calc(var(--cell) * 0.28) calc(var(--cell) * 0.09) rgba(243, 215, 116, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+    .v-256 .in  { box-shadow: 0 0 calc(var(--cell) * 0.28) calc(var(--cell) * 0.09) rgba(243, 215, 116, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.19); }
+    .v-512 .in  { box-shadow: 0 0 calc(var(--cell) * 0.28) calc(var(--cell) * 0.09) rgba(243, 215, 116, 0.40), inset 0 0 0 1px rgba(255, 255, 255, 0.24); }
+    .v-1024 .in { box-shadow: 0 0 calc(var(--cell) * 0.28) calc(var(--cell) * 0.09) rgba(243, 215, 116, 0.48), inset 0 0 0 1px rgba(255, 255, 255, 0.29); }
+    .v-2048 .in { box-shadow: 0 0 calc(var(--cell) * 0.28) calc(var(--cell) * 0.09) rgba(243, 215, 116, 0.56), inset 0 0 0 1px rgba(255, 255, 255, 0.33); }
+    .v-super .in { box-shadow: 0 0 calc(var(--cell) * 0.28) calc(var(--cell) * 0.09) rgba(243, 215, 116, 0.56), inset 0 0 0 1px rgba(255, 255, 255, 0.33); }
+
+    /* ---------- win / game over overlays ---------- */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--size) * 0.02);
+      padding: 1rem;
+      border-radius: 6px;
+      text-align: center;
+      animation: fadeIn 0.6s ease 0.25s both;
+    }
+    .overlay.over { background: rgba(238, 228, 218, 0.78); color: var(--ink); }
+    .overlay.win  { background: rgba(237, 194, 46, 0.55); color: #f9f6f2; }
+    .overlay h2 { font-size: calc(var(--size) * 0.12); font-weight: 800; line-height: 1.1; }
+    .overlay .line { font-size: calc(var(--size) * 0.05); font-weight: 700; }
+    .overlay .row { display: flex; gap: 10px; margin-top: calc(var(--size) * 0.03); flex-wrap: wrap; justify-content: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .hint { text-align: center; font-size: 0.95rem; line-height: 1.4; color: var(--ink); }
+    .hint b { font-weight: 800; }
+    .bottom { display: flex; justify-content: center; gap: 8px; }
+    .btn.ghost[aria-pressed="false"] { opacity: 0.55; text-decoration: line-through; }
+
+    /* short windows (phones held sideways): drop the hint so the board stays big */
+    @media (max-height: 520px) {
+      .app { --chrome: 140px; gap: 8px; padding: 8px 0; }
+      .hint { display: none; }
+      .box { padding: 5px 12px 6px; }
+      .btn { padding: 9px 16px; }
+    }
+    @media (max-width: 380px) {
+      .box { min-width: 58px; padding: 7px 10px 8px; }
+      .btn { padding: 12px 14px; font-size: 0.9rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .overlay { animation: none; }
+    }
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+:where(.btn.ghost){border-radius:var(--round,10px)}
+:where(.v-128 .in){border-radius:var(--round,10px)}
+:where(.v-256 .in){border-radius:var(--round,10px)}
+:where(.v-512 .in){border-radius:var(--round,10px)}
+:where(.v-1024 .in){border-radius:var(--round,10px)}
+:where(.v-2048 .in){border-radius:var(--round,10px)}
+:where(.v-super .in){border-radius:var(--round,10px)}
+:where(.overlay.over){border-radius:var(--round,10px)}
+:where(.overlay.win){border-radius:var(--round,10px)}
+</style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <div class="app" id="app">
+    <header class="top">
+      <div class="scores">
+        <div class="box" id="scoreBox">
+          <span class="lbl">Score</span>
+          <span class="val" id="score" aria-live="polite">0</span>
+        </div>
+        <div class="box">
+          <span class="lbl">Best</span>
+          <span class="val" id="best">0</span>
+        </div>
+      </div>
+      <button class="btn" id="newBtn" type="button">New Game</button>
+    </header>
+
+    <main class="board-wrap">
+      <div id="board" role="application" aria-label="2048 board. Use the arrow keys or W A S D to slide the tiles."></div>
+
+      <div id="winBox" class="overlay win hidden" role="dialog" aria-label="You win">
+        <h2>You win!</h2>
+        <div class="line" id="winScore"></div>
+        <div class="row">
+          <button class="btn" id="keepGoing" type="button">Continue</button>
+          <button class="btn" id="winNew" type="button">Try Again</button>
+        </div>
+      </div>
+
+      <div id="overBox" class="overlay over hidden" role="dialog" aria-label="Game over">
+        <h2>Game over!</h2>
+        <div class="line" id="finalScore"></div>
+        <div class="line" id="finalBest"></div>
+        <div class="row">
+          <button class="btn" id="again" type="button">Try Again</button>
+        </div>
+      </div>
+    </main>
+
+    <p class="hint">Join the numbers and get to the <b>2048 tile!</b></p>
+    <div class="bottom">
+      <a class="btn ghost" id="backBtn" href="index.html">&lsaquo; Back</a>
+      <button class="btn ghost" id="musicBtn" type="button" aria-pressed="true" title="Music (M)">&#9834; Music</button>
+      <button class="btn ghost" id="sfxBtn" type="button" aria-pressed="true" title="Sound effects">FX</button>
+    </div>
+  </div>
+
+  <script src="recorder.js" data-area="#board" data-game="game2048" data-grace="2500"></script>
+  <script src="pause.js"></script>
+  <script src="leaderboard.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const N = 4;
+      const GOAL = 2048;
+      const BEST_KEY = 'game2048-best';      // its own key, so Tetris and Block Blast records are untouched
+      const reduce = false;                  // the tiles always slide, even when the system asks for less motion (it is only a 100ms slide)
+      const SLIDE_MS = reduce ? 0 : 105;     // just over the 100ms CSS transition on .tile, so tiles fully arrive
+
+      const $ = id => document.getElementById(id);
+      const boardEl = $('board');
+      const scoreEl = $('score');
+      const scoreBox = $('scoreBox');
+      const bestEl = $('best');
+      const winBox = $('winBox');
+      const overBox = $('overBox');
+
+      // the empty background cells
+      for (let i = 0; i < N * N; i++) {
+        const d = document.createElement('div');
+        d.className = 'cell';
+        d.style.setProperty('--x', i % N);
+        d.style.setProperty('--y', Math.floor(i / N));
+        boardEl.appendChild(d);
+      }
+
+      /* ---------- sound: music and effects synthesised with Web Audio (no audio files) ---------- */
+      const Snd = (() => {
+        let ctx = null, sfxBus, musBus, timer = null, track = null, step = 0, next = 0, tempo = 1, held = false;
+        let sfxOn = true, musicOn = true;
+        try { sfxOn = localStorage.getItem('game2048-sfx') !== 'off'; musicOn = localStorage.getItem('game2048-music') !== 'off'; } catch (e) { /* storage unavailable */ }
+        const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+        function v(dest, type, f, t, dur, vol, to) {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = type;
+          o.frequency.setValueAtTime(f, t);
+          if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.linearRampToValueAtTime(vol, t + 0.006);
+          g.gain.setValueAtTime(vol, t + dur * 0.55);
+          g.gain.linearRampToValueAtTime(0.0001, t + dur);
+          o.connect(g); g.connect(dest);
+          o.start(t); o.stop(t + dur + 0.02);
+        }
+        const fx = (type, f, d, vol, to, when) => { if (ctx && sfxOn) v(sfxBus, type, f, ctx.currentTime + (when || 0), d, vol, to); };
+        const note = (type, m, t, dur, vol) => v(musBus, type, hz(m), t, dur, vol);   // one music note (MIDI number)
+        const TRACKS = {
+          main: (s, t) => {
+            const i = s % 32, bar = i >> 3, st = i & 7, sl = 0.3;
+            const ch = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]][bar];
+            if (st === 0) { ch.forEach(m => note('triangle', m - 12, t, sl * 7, 0.06)); note('sine', ch[0] - 24, t, sl * 3, 0.3); }
+            note('sine', ch[[0, 1, 2, 1, 2, 1, 0, 1][st]] + 12, t, sl * 1.6, 0.09);
+            return sl;
+          }
+        };
+        function pump() { while (next < ctx.currentTime + 0.15) next += TRACKS[track](step++, next, tempo); }
+        function begin() {
+          clearInterval(timer); timer = null;
+          if (!ctx || !track) return;
+          step = 0; next = ctx.currentTime + 0.05;
+          timer = setInterval(pump, 40);
+        }
+        return {
+          init() {
+            if (!ctx) {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              if (!AC) return;
+              ctx = new AC();
+              const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
+              sfxBus = ctx.createGain(); sfxBus.gain.value = sfxOn ? 0.9 : 0; sfxBus.connect(comp);
+              musBus = ctx.createGain(); musBus.gain.value = musicOn ? 0.5 : 0; musBus.connect(comp);
+              begin();
+            } else if (ctx.state === 'suspended' && !held) ctx.resume();
+          },
+          hold(on) { held = on; if (ctx) { if (on) ctx.suspend(); else ctx.resume(); } },
+          music(n) { if (n !== track) { track = n; begin(); } },
+          tempo(t) { tempo = t; },
+          get musicOn() { return musicOn; },
+          get sfx() { return sfxOn; },
+          setMusic(on) { musicOn = on; if (musBus) musBus.gain.value = on ? 0.5 : 0; try { localStorage.setItem('game2048-music', on ? 'on' : 'off'); } catch (e) { /* ignore */ } },
+          setSfx(on) { sfxOn = on; if (sfxBus) sfxBus.gain.value = on ? 0.9 : 0; try { localStorage.setItem('game2048-sfx', on ? 'on' : 'off'); } catch (e) { /* ignore */ } },
+          slide() { fx('sine', 300, 0.09, 0.12, 180); },
+          merge(val) {
+            const k = Math.min(11, Math.log2(val)), m = 55 + k * 2;
+            fx('triangle', hz(m), 0.16, 0.3);
+            fx('sine', hz(m + 12), 0.2, 0.12, 0, 0.05);
+            if (k >= 7) fx('triangle', hz(m + 19), 0.25, 0.15, 0, 0.1);
+          },
+          win() { [60, 64, 67, 72, 76, 79, 84].forEach((m, i) => fx('triangle', hz(m), 0.2, 0.3, 0, i * 0.1)); },
+          over() { [67, 64, 60, 55].forEach((m, i) => fx('triangle', hz(m), 0.3, 0.3, 0, i * 0.26)); }
+        };
+      })();
+
+      let grid, tiles;
+      let score = 0, best = 0, bestAtStart = 0;
+      let won = false;          // the 2048 message has been shown for this game
+      let ended = false;        // game over
+      // save this round's score if the player pauses, quits or leaves before dying
+      const bank = (window.Leaderboard && Leaderboard.track) ? Leaderboard.track('game2048', () => ended ? 0 : score) : () => {};
+      let pending = null;       // the move that is still animating
+      let lingering = [];       // the two tiles under a fresh merge; they stay until its pop is over
+      let settleTimer = null;
+      let queued = null;        // one swipe/key pressed mid-slide, played as soon as the slide ends
+
+      try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { best = 0; }
+
+      /* ---------- tiles ---------- */
+      function fontScale(v) {
+        const n = String(v).length;
+        return n <= 2 ? 0.5 : n === 3 ? 0.4 : n === 4 ? 0.32 : n === 5 ? 0.26 : 0.21;
+      }
+      function paint(t) {
+        t.el.className = 'tile ' + (t.v <= GOAL ? 'v-' + t.v : 'v-super');
+        t.el.style.setProperty('--fs', fontScale(t.v));
+        t.in.textContent = t.v;
+      }
+      function place(t) {
+        t.el.style.setProperty('--x', t.c);
+        t.el.style.setProperty('--y', t.r);
+      }
+      // A tile is logical data first: a stable id, its value, its current cell and the cell it started
+      // this move from (pr, pc). It only gets a DOM element when mounted, so a spawned tile can already
+      // be part of the board state while the slide is still playing.
+      let nextId = 1;
+      function makeTile(v, r, c, animate, defer) {
+        const t = { id: nextId++, v, r, c, pr: r, pc: c, el: null, in: null, merged: false };
+        grid[r][c] = t;
+        if (!defer) mount(t, animate);
+        return t;
+      }
+      function mount(t, animate) {
+        const el = document.createElement('div');
+        const inner = document.createElement('div');
+        inner.className = 'in';
+        el.appendChild(inner);
+        t.el = el; t.in = inner;
+        place(t);
+        paint(t);
+        boardEl.appendChild(el);
+        if (animate && !reduce) {
+          inner.animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }],
+            { duration: 200, easing: 'ease' });
+        }
+        tiles.push(t);
+      }
+      function clearBoard() {
+        if (pending) { clearTimeout(pending.timer); pending = null; }
+        queued = null;
+        clearTimeout(settleTimer);
+        lingering = [];
+        boardEl.querySelectorAll('.tile').forEach(el => el.remove());
+        grid = Array.from({ length: N }, () => Array(N).fill(null));
+        tiles = [];
+      }
+      function addRandomTile(defer) {
+        const empty = [];
+        for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!grid[r][c]) empty.push([r, c]);
+        if (!empty.length) return null;
+        const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+        return makeTile(Math.random() < 0.9 ? 2 : 4, r, c, true, defer);   // 2 is common, 4 is rare
+      }
+
+      /* ---------- score ---------- */
+      function renderScore(gained) {
+        scoreEl.textContent = score;
+        bestEl.textContent = best;
+        if (gained > 0 && !reduce) {
+          const p = document.createElement('div');
+          p.className = 'plus';
+          p.textContent = '+' + gained;
+          scoreBox.appendChild(p);
+          p.animate([
+            { transform: 'translateY(0)', opacity: 1 },
+            { transform: 'translateY(-42px)', opacity: 0 }
+          ], { duration: 600, easing: 'ease-out' }).finished.then(() => p.remove(), () => p.remove());
+        }
+      }
+      function addScore(n) {
+        score += n;
+        if (score > best) {                 // the record updates the instant it is beaten
+          best = score;
+          try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* storage unavailable */ }
+        }
+        renderScore(n);
+      }
+
+      /* ---------- game logic ---------- */
+      // maps (line, position-along-line) to a cell, so one routine handles all four directions
+      const POS = {
+        left:  (i, q) => [i, q],
+        right: (i, q) => [i, N - 1 - q],
+        up:    (i, q) => [q, i],
+        down:  (i, q) => [N - 1 - q, i]
+      };
+
+      function canMove() {
+        for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+          const t = grid[r][c];
+          if (!t) return true;
+          if (c + 1 < N && grid[r][c + 1] && grid[r][c + 1].v === t.v) return true;
+          if (r + 1 < N && grid[r + 1][c] && grid[r + 1][c].v === t.v) return true;
+        }
+        return false;
+      }
+
+      const locked = () => ended || !winBox.classList.contains('hidden');
+
+      // finishes the last move: removes absorbed tiles, shows merged values, spawns the new tile
+      function flush() {
+        if (!pending) return;
+        const p = pending;
+        pending = null;
+        clearTimeout(p.timer);
+        if (p.merges.length) Snd.merge(Math.max(...p.merges.map(t => t.v)));
+        // Like the original: the two tiles that merged stay put underneath, and the new, doubled tile
+        // pops in on top of them (0 -> 1.2 -> 1) while the spawned tile grows at the same moment.
+        if (reduce) {
+          p.removed.forEach(t => t.el.remove());
+          p.merges.forEach(t => { t.merged = false; paint(t); });
+        } else {
+          p.removed.forEach(t => lingering.push(t.el));
+          p.merges.forEach(t => {
+            const under = t.el.cloneNode(true);          // keeps the old value and position
+            t.el.parentNode.insertBefore(under, t.el);
+            lingering.push(under);
+            t.merged = false;
+            paint(t);                                    // the real tile now shows the doubled value
+            t.el.classList.add('popping');
+            t.in.animate([
+              { transform: 'scale(0)', opacity: 0, easing: 'ease' },
+              { transform: 'scale(1.2)', opacity: 1, offset: 0.5, easing: 'ease' },
+              { transform: 'scale(1)', opacity: 1 }
+            ], { duration: 200 });
+          });
+          clearTimeout(settleTimer);
+          settleTimer = setTimeout(settle, 210);
+        }
+        if (p.spawn) mount(p.spawn, true);  // shown only now, after sliding and merging are done
+        if (p.win) showWin();
+        else if (p.over) gameOver();
+        const q = queued;
+        queued = null;
+        if (q) move(q);
+      }
+
+      // removes the tiles left under a merge (when its pop ends, or as soon as the next move starts)
+      function settle() {
+        clearTimeout(settleTimer);
+        lingering.forEach(el => el.remove());
+        lingering = [];
+        tiles.forEach(t => t.el && t.el.classList.remove('popping'));
+      }
+
+      function move(dir) {
+        if (locked()) return false;
+        // like the original: a new key press never waits. The slide still playing is wrapped up on the spot
+        // (merges shown, new tile placed) and the tiles carry on from where they are toward their next cell.
+        if (pending) { flush(); if (locked()) return false; }
+        settle();
+        tiles.forEach(t => { t.pr = t.r; t.pc = t.c; });   // where every tile starts this move
+        const next = Array.from({ length: N }, () => Array(N).fill(null));
+        const merges = [], removed = [];
+        let moved = false, gained = 0;
+
+        for (let i = 0; i < N; i++) {
+          const line = [];
+          for (let q = 0; q < N; q++) {
+            const [r, c] = POS[dir](i, q);
+            if (grid[r][c]) line.push(grid[r][c]);
+          }
+          let p = 0, last = null;
+          line.forEach(t => {
+            if (last && !last.merged && last.v === t.v) {
+              // each tile can merge only once per move: `merged` blocks a second merge
+              last.v *= 2;
+              last.merged = true;
+              gained += last.v;
+              t.r = last.r; t.c = last.c;   // the absorbed tile slides onto the survivor
+              merges.push(last);
+              removed.push(t);
+              moved = true;
+            } else {
+              const [r, c] = POS[dir](i, p++);
+              if (t.r !== r || t.c !== c) moved = true;
+              t.r = r; t.c = c;
+              next[r][c] = t;
+              last = t;
+            }
+          });
+        }
+
+        if (!moved) {                       // invalid move: nothing changes, nothing spawns, nothing animates
+          tiles.forEach(t => { t.r = t.pr; t.c = t.pc; t.merged = false; });
+          return false;
+        }
+
+        grid = next;
+        tiles = tiles.filter(t => !removed.includes(t));
+        tiles.forEach(place);
+        removed.forEach(t => { place(t); t.el.classList.add('absorb'); });
+
+        // the logical board is finished here, spawn included; everything below is only presentation
+        const spawn = addRandomTile(true);
+        const over = !canMove();
+        const win = !won && merges.some(t => t.v >= GOAL);
+        if (win) won = true;
+        if (gained) addScore(gained);
+        saveGame();
+
+        Snd.slide();
+        pending = { merges, removed, win, over, spawn };
+        pending.timer = setTimeout(flush, SLIDE_MS);
+        if (SLIDE_MS === 0) flush();
+        return true;
+      }
+
+      /* ---------- screens ---------- */
+      function showWin() {
+        Snd.win();
+        $('winScore').textContent = 'Score: ' + score;
+        winBox.classList.remove('hidden');
+        $('keepGoing').focus({ preventScroll: true });
+      }
+      /* ---------- saved game: so a player can carry on later, or on another device ---------- */
+      const SAVE_KEY = 'game2048-save';
+      function saveGame() {
+        try {
+          const g = grid.map(row => row.map(t => t ? t.v : 0));
+          localStorage.setItem(SAVE_KEY, JSON.stringify({ t: Date.now(), g, score, won }));
+        } catch (e) { /* storage unavailable */ }
+      }
+      function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
+      // carry on from the saved game; false if there is none (or it can no longer be played)
+      function resumeGame() {
+        let sv = null;
+        try { sv = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { sv = null; }
+        const okTile = v => Number.isInteger(v) && (v === 0 || (v >= 2 && v <= 1048576 && (v & (v - 1)) === 0));
+        if (!sv || !Array.isArray(sv.g) || sv.g.length !== N || !sv.g.every(row => Array.isArray(row) && row.length === N && row.every(okTile)) ||
+            !Number.isInteger(sv.score) || sv.score < 0 || sv.score > 100000000) { if (sv) clearSave(); return false; }
+        clearBoard();
+        sv.g.forEach((row, r) => row.forEach((v, c) => { if (v) makeTile(v, r, c, false); }));
+        if (!tiles.length || !canMove()) { clearSave(); return false; }
+        score = sv.score;
+        won = !!sv.won;
+        ended = false;
+        bestAtStart = best;
+        overBox.classList.add('hidden');
+        winBox.classList.add('hidden');
+        Snd.music('main');
+        renderScore(0);
+        return true;
+      }
+
+      function gameOver() {
+        clearSave();
+        ended = true;
+        if (window.Leaderboard) Leaderboard.submit('game2048', score);
+        Snd.music(null);
+        Snd.over();
+        $('finalScore').textContent = 'Score: ' + score;
+        $('finalBest').textContent = score > bestAtStart && score > 0 ? 'New best score!' : 'Best: ' + best;
+        overBox.classList.remove('hidden');
+        $('again').focus({ preventScroll: true });
+      }
+      function continueAfterWin() {
+        winBox.classList.add('hidden');
+        if (!canMove()) gameOver();         // the board may already be stuck
+      }
+
+      function newGame() {
+        bank();
+        clearSave();
+        clearBoard();
+        score = 0;
+        won = false;
+        ended = false;
+        bestAtStart = best;
+        overBox.classList.add('hidden');
+        winBox.classList.add('hidden');
+        Snd.music('main');
+        addRandomTile();
+        addRandomTile();
+        renderScore(0);
+      }
+
+      /* ---------- input: keyboard ---------- */
+      const KEYS = {
+        ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+        a: 'left', d: 'right', w: 'up', s: 'down'
+      };
+      function isTyping(el) {
+        if (!el || !el.tagName) return false;
+        return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
+      }
+      window.addEventListener('keydown', e => {
+        if (isTyping(e.target)) return;                  // never steal keys from a text field
+        if (e.ctrlKey || e.metaKey || e.altKey) return;  // leave browser shortcuts alone
+        const dir = KEYS[e.key] || KEYS[e.key.toLowerCase()];
+        if (!dir) return;
+        e.preventDefault();                              // stop the arrow keys from scrolling the page
+        if (e.repeat) return;
+        move(dir);
+      });
+
+      /* ---------- input: swipe (touch and pen) ---------- */
+      let sx = 0, sy = 0, sid = null;
+      document.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse' || !e.isPrimary) return;
+        if (e.target.closest && e.target.closest('button, a')) { sid = null; return; }
+        sid = e.pointerId; sx = e.clientX; sy = e.clientY;
+      });
+      document.addEventListener('pointerup', e => {
+        if (e.pointerId !== sid) return;
+        sid = null;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;   // too short: a tap, not a swipe
+        move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+      });
+      document.addEventListener('pointercancel', () => { sid = null; });
+      document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+      /* ---------- buttons ---------- */
+      // blur after a mouse or touch click so a later Enter or Space can't restart by accident
+      const onClick = fn => (e) => { fn(); if (e.detail > 0 && e.currentTarget.blur) e.currentTarget.blur(); };
+      $('newBtn').addEventListener('click', onClick(newGame));
+      $('again').addEventListener('click', onClick(newGame));
+      $('winNew').addEventListener('click', onClick(newGame));
+      $('keepGoing').addEventListener('click', onClick(continueAfterWin));
+
+      // another tab (or another visit) may have raised the record
+      window.addEventListener('storage', e => {
+        if (e.key === BEST_KEY) {
+          best = Math.max(best, parseInt(e.newValue, 10) || 0);
+          bestEl.textContent = best;
+        }
+      });
+
+      /* ---------- sound buttons ---------- */
+      const musicBtn = $('musicBtn'), sfxBtn = $('sfxBtn');
+      function paintSnd() {
+        musicBtn.setAttribute('aria-pressed', String(Snd.musicOn));
+        sfxBtn.setAttribute('aria-pressed', String(Snd.sfx));
+      }
+      musicBtn.addEventListener('click', e => { Snd.setMusic(!Snd.musicOn); paintSnd(); musicBtn.blur(); });
+      sfxBtn.addEventListener('click', e => { Snd.setSfx(!Snd.sfx); paintSnd(); sfxBtn.blur(); });
+      paintSnd();
+      // browsers only allow sound after a click or key press, so the audio starts on the first one
+      ['keydown', 'pointerdown'].forEach(ev => window.addEventListener(ev, () => Snd.init(), true));
+      window.addEventListener('keydown', e => {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'm' || e.key === 'M')) { Snd.setMusic(!Snd.musicOn); paintSnd(); }
+      });
+      document.addEventListener('visibilitychange', () => { Snd.hold(document.hidden); });
+
+      GamePause.init({ autoPause: false, playing: () => !ended, onPause: () => bank() });
+      if (!resumeGame()) newGame();
+    })();
+  </script>
+</body>
+</html>

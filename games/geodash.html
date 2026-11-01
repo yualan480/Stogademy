@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Geometry Dash | Gamer4school</title>
+  <meta name="description" content="Jump over spikes and blocks in an endless dash. No levels: the track never ends, so see how far you get before you crash.">
+  <meta name="theme-color" content="#1b2a8f">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+  <style>
+    :root { --pixel: "Pixelify Sans", "Courier New", monospace; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #0b1240; overflow: hidden; overscroll-behavior: none; }
+    body { color: #fff; font-family: var(--pixel); -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #home {
+      position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 10px; z-index: 10;
+      padding: 0.35em 1em; border-radius: 99px; text-decoration: none; color: #fff;
+      background: rgba(10, 6, 28, 0.6); border: 2px solid rgba(255, 255, 255, 0.45); font-weight: 600; font-size: 15px;
+    }
+    #home:hover { background: rgba(10, 6, 28, 0.85); }
+    .embed #home { display: none; }
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+</style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <a id="home" href="index.html">&lsaquo; Home</a>
+  <script src="recorder.js" data-game="geodash" data-canvas="#c" data-grace="1500"></script>
+  <script src="pause.js"></script>
+  <canvas id="c" aria-label="Geometry Dash game. Press Space or the up arrow, click, or tap the screen to jump. Hold to keep jumping."></canvas>
+
+  <script>
+    /* ---------- the rules of the game (no drawing in here): physics, the endless track and its patterns ---------- */
+var GD = (function () {
+  var GRAV = 58, JUMP = 16, DT = 1 / 240;       // tiles per second: a jump rises about 2.2 tiles and lasts about 0.55 s
+  var PX0 = 0.12, PX1 = 0.88, PH = 0.94;        // the cube's hitbox inside its 1 x 1 tile
+
+  function speedAt(t) { return Math.min(13.6, 9.2 + 0.028 * t); }   // tiles per second, speeds up slowly
+
+  /* ---- the track: blocks {x,y,w,h} and spikes {x,y}, always sorted by x, built a little ahead of the cube ---- */
+  function Track(rnd) { this.rnd = rnd; this.blocks = []; this.spikes = []; this.next = 20; this.dFixed = -1; this.last = ''; }
+  Track.prototype.diff = function (x) { return this.dFixed >= 0 ? this.dFixed : Math.min(1, x / 2000); };
+  Track.prototype.fill = function (to, v) { while (this.next < to) this.place(v); };
+  Track.prototype.cull = function (x) {
+    while (this.blocks.length && this.blocks[0].x + this.blocks[0].w < x - 8) this.blocks.shift();
+    while (this.spikes.length && this.spikes[0].x < x - 8) this.spikes.shift();
+  };
+  Track.prototype.place = function (v) {
+    var r = this.rnd, x = this.next, d = this.diff(x), B = this.blocks, S = this.spikes, end = x, extra = 0, k;
+    var pool = [['single', 4], ['double', 3]];
+    if (d > 0.10) pool.push(['twin', 2], ['plat', 3]);
+    if (d > 0.20) pool.push(['triple', 2]);
+    if (d > 0.30) pool.push(['stairs', 2], ['wall', 2]);
+    var tot = 0, i; for (i = 0; i < pool.length; i++) if (pool[i][0] !== this.last) tot += pool[i][1];
+    var pick = r() * tot; k = pool[0][0];
+    for (i = 0; i < pool.length; i++) { if (pool[i][0] === this.last) continue; pick -= pool[i][1]; if (pick <= 0) { k = pool[i][0]; break; } }
+    if (this.only) k = this.only;
+    this.last = k;
+    x += k === 'stairs' ? 0.30 * v : k === 'plat' ? 0.20 * v : k === 'wall' ? 0.15 * v : 0;   // these need a run-up so the cube can land early before them
+    if (k === 'single') { S.push({ x: x, y: 0 }); end = x + 1; }
+    else if (k === 'double') { S.push({ x: x, y: 0 }, { x: x + 1, y: 0 }); end = x + 2; }
+    else if (k === 'triple') { S.push({ x: x, y: 0 }, { x: x + 1, y: 0 }, { x: x + 2, y: 0 }); end = x + 3; }
+    else if (k === 'twin') { var sp = Math.round(0.6 * v); S.push({ x: x, y: 0 }, { x: x + sp, y: 0 }); end = x + sp + 1; }   // two spikes: jump, land, jump again
+    else if (k === 'plat') {          // a low platform to hop onto, with a spike on top of it
+      var w = 7 + Math.floor(r() * 3);
+      B.push({ x: x, y: 0, w: w, h: 1 }); S.push({ x: x + 4 + Math.floor(r() * (w - 6)), y: 1 }); end = x + w; extra = 1;
+    } else if (k === 'stairs') {      // up two steps and back down
+      B.push({ x: x, y: 0, w: 5, h: 1 }, { x: x + 5, y: 0, w: 4, h: 2 }); end = x + 9; extra = 1.5;
+    } else if (k === 'wall') {        // a block with a spike on top of it
+      B.push({ x: x, y: 0, w: 1, h: 1 }); S.push({ x: x, y: 1 }); end = x + 1;
+    }
+    this.next = end + (0.40 - 0.07 * d) * v + 1.0 + r() * 0.2 * v + extra;
+  };
+
+  /* ---- the cube: x is how far it has run, y how high it is above the ground ---- */
+  function newPlayer() { return { x: 0, y: 0, vy: 0, v: 9.2, ground: true, dead: false }; }
+  function copy(p) { return { x: p.x, y: p.y, vy: p.vy, v: p.v, ground: p.ground, dead: p.dead }; }
+
+  function step(p, tr, held) {
+    if (held && p.ground) { p.vy = JUMP; p.ground = false; }
+    var py0 = p.y;
+    p.x += p.v * DT; p.vy -= GRAV * DT; p.y += p.vy * DT; p.ground = false;
+    if (p.y <= 0) { p.y = 0; if (p.vy < 0) p.vy = 0; p.ground = true; }
+    var hx0 = p.x + PX0, hx1 = p.x + PX1, top = p.y + PH, i;
+    var B = tr.blocks;
+    for (i = 0; i < B.length; i++) {
+      var b = B[i]; if (b.x >= hx1) break;
+      if (b.x + b.w <= hx0) continue;
+      var bt = b.y + b.h;
+      if (p.y < bt - 1e-9 && top > b.y) {
+        if (py0 >= bt - 0.2 && p.vy <= 0) { p.y = bt; p.vy = 0; p.ground = true; top = p.y + PH; }   // landed on top (a small slip is forgiven)
+        else { p.dead = true; return; }                                                              // ran into the side or hit it from below
+      }
+    }
+    var S = tr.spikes;
+    for (i = 0; i < S.length; i++) {
+      var s = S[i]; if (s.x + 0.32 >= hx1) break;
+      if (s.x + 0.68 > hx0 && p.y + 0.04 < s.y + 0.5 && top > s.y) { p.dead = true; return; }
+    }
+  }
+
+  return { GRAV: GRAV, JUMP: JUMP, DT: DT, speedAt: speedAt, Track: Track, newPlayer: newPlayer, copy: copy, step: step };
+})();
+if (typeof module !== 'undefined') module.exports = GD;
+
+    (function () {
+      'use strict';
+      var framed = false; try { framed = window.self !== window.top; } catch (e) { framed = true; }
+      if (framed || /[?&]embed=1/.test(location.search)) document.body.classList.add('embed');
+
+      var cv = document.getElementById('c'), g = cv.getContext('2d'), W, H, U, GY, PXS;
+      function size() {
+        var r = Math.min(2, window.devicePixelRatio || 1);
+        W = window.innerWidth; H = window.innerHeight;
+        cv.width = W * r; cv.height = H * r; g.setTransform(r, 0, 0, r, 0, 0);
+        U = Math.max(26, Math.min(H / 9.2, W / 15, 86));      // pixels per tile
+        GY = Math.round(H * 0.74);                             // the ground line
+        PXS = Math.round(Math.min(W * 0.3, U * 5));            // where the cube sits on the screen
+      }
+      window.addEventListener('resize', size); size();
+
+      /* ---------- game state ---------- */
+      var state = 'ready', p, tr, t, attempts = 0, best, newBest, sent, hint, rot, parts, trail, overAt = 0, shake = 0, acc, lastMark, wasGround;
+      var held = false, ptr = false;
+      try { best = parseInt(localStorage.getItem('geodash-best'), 10) || 0; } catch (e) { best = 0; }
+      function score() { return Math.max(0, Math.floor(p.x)); }
+
+      function reset(go) {
+        tr = new GD.Track(Math.random); p = GD.newPlayer(); t = 0; rot = 0; parts = []; trail = []; shake = 0; acc = 0;
+        newBest = false; sent = false; hint = ''; lastMark = 0; wasGround = true;
+        tr.fill(80, p.v);
+        state = go ? 'play' : 'ready';
+        if (go) attempts++;
+      }
+      reset(false);
+
+      /* ---------- sound (follows the site's sound setting) ---------- */
+      var ac = null;
+      function tone(f1, f2, dur, type, vol) {
+        try {
+          if (localStorage.getItem('sfx-muted') === '1') return;
+          ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+          var o = ac.createOscillator(), v = ac.createGain(), tm = ac.currentTime;
+          o.type = type; o.frequency.setValueAtTime(f1, tm); o.frequency.exponentialRampToValueAtTime(f2, tm + dur);
+          v.gain.setValueAtTime(vol, tm); v.gain.exponentialRampToValueAtTime(0.001, tm + dur);
+          o.connect(v); v.connect(ac.destination); o.start(tm); o.stop(tm + dur);
+        } catch (e) { /* no audio */ }
+      }
+
+      /* ---------- end of a run ---------- */
+      function report() {
+        var s = score();
+        if (s > best) { best = s; newBest = true; try { localStorage.setItem('geodash-best', String(s)); } catch (e) { /* ignore */ } }
+        var L = window.Leaderboard;
+        if (L && s > 0) {
+          if (!L.getName()) hint = 'Set a player name on the home page to join the leaderboard.';
+          else L.submit('geodash', s);
+        }
+      }
+      function die() {
+        state = 'dead'; overAt = performance.now(); shake = 0.5;
+        tone(150, 40, 0.35, 'sawtooth', 0.2);
+        for (var i = 0; i < 24; i++) parts.push({ x: p.x + 0.5, y: p.y + 0.5, vx: (Math.random() - 0.35) * 9, vy: Math.random() * 11 - 1, s: 0.12 + Math.random() * 0.2, r: Math.random() * 6, vr: (Math.random() - 0.5) * 12 });
+        report();
+      }
+      // leaving the page in the middle of a run still counts
+      var bank = (window.Leaderboard && window.Leaderboard.track) ? window.Leaderboard.track('geodash', function () { return state === 'play' ? score() : 0; }) : function () {};
+
+      /* ---------- one frame of the game ---------- */
+      function update(dt) {
+        if (shake > 0) shake = Math.max(0, shake - dt);
+        for (var i = parts.length - 1; i >= 0; i--) {
+          var q = parts[i]; q.vy -= 32 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.r += q.vr * dt;
+          if (q.y < -2) parts.splice(i, 1);
+        }
+        for (i = trail.length - 1; i >= 0; i--) { trail[i].a -= dt * 3; trail[i].y += dt * 1.2; if (trail[i].a <= 0) trail.splice(i, 1); }
+        if (state !== 'play') return;
+        acc += dt;
+        var hold = held || ptr;
+        while (acc >= GD.DT) {
+          acc -= GD.DT; p.v = GD.speedAt(t); GD.step(p, tr, hold); t += GD.DT;
+          if (p.dead) { p.dead = false; die(); break; }
+        }
+        tr.fill(p.x + 75, p.v); tr.cull(p.x);
+        if (state !== 'play') return;
+        if (wasGround && !p.ground && p.vy > 0) tone(420, 800, 0.09, 'square', 0.06);
+        wasGround = p.ground;
+        if (!p.ground) rot += dt * 5.7;
+        else {
+          var snap = Math.round(rot / (Math.PI / 2)) * (Math.PI / 2);
+          rot += (snap - rot) * Math.min(1, dt * 22);
+          trail.push({ x: p.x + 0.1, y: p.y + 0.08 + Math.random() * 0.2, s: 0.1 + Math.random() * 0.1, a: 0.8 });
+        }
+        var mark = Math.floor(score() / 100);
+        if (mark > lastMark) { lastMark = mark; tone(880, 1320, 0.14, 'square', 0.07); }
+      }
+
+      /* ---------- drawing ---------- */
+      var PAR = []; for (var k = 0; k < 14; k++) PAR.push({ fx: (k * 0.6180339) % 1, fy: ((k * 0.41421) % 1) * 0.85, sz: 1.5 + ((k * 0.7071) % 1) * 3.5, sp: 0.12 + ((k * 0.3333) % 1) * 0.22 });
+      function wx(x) { return PXS + (x - p.x) * U; }
+      function wy(y) { return GY - y * U; }
+      function txt(s, x, y, size, col, stroke) {
+        g.font = '700 ' + size + 'px "Pixelify Sans","Courier New",monospace'; g.textAlign = 'center';
+        var tw = g.measureText(s).width; if (tw > W - 24) { size = size * (W - 24) / tw; g.font = '700 ' + size + 'px "Pixelify Sans","Courier New",monospace'; }   // shrink to fit narrow phone screens
+        if (stroke) { g.lineWidth = size / 6; g.strokeStyle = stroke; g.lineJoin = 'round'; g.strokeText(s, x, y); }
+        g.fillStyle = col; g.fillText(s, x, y);
+      }
+      function draw() {
+        var h = Math.round((215 + p.x * 0.07) % 360), sx = 0, sy = 0;
+        if (shake > 0) { sx = (Math.random() - 0.5) * 14 * shake; sy = (Math.random() - 0.5) * 14 * shake; }
+        g.save(); g.translate(sx, sy);
+        var bg = g.createLinearGradient(0, 0, 0, GY);
+        bg.addColorStop(0, 'hsl(' + h + ',70%,16%)'); bg.addColorStop(1, 'hsl(' + ((h + 25) % 360) + ',75%,34%)');
+        g.fillStyle = bg; g.fillRect(-20, -20, W + 40, GY + 22);
+        // faint shapes drifting by, slower than the track
+        g.fillStyle = 'hsla(' + h + ',80%,75%,0.07)';
+        var span = W + 8 * U;
+        for (var i = 0; i < PAR.length; i++) {
+          var a = PAR[i], x = (((a.fx * span - p.x * U * a.sp) % span) + span) % span - 4 * U;
+          g.fillRect(x, a.fy * GY, a.sz * U, a.sz * U);
+        }
+        // ground
+        g.fillStyle = 'hsl(' + h + ',55%,9%)'; g.fillRect(-20, GY, W + 40, H - GY + 20);
+        g.fillStyle = 'hsla(' + h + ',100%,75%,0.14)';
+        var off = -((p.x * U) % U) - U;
+        for (var gx = off; gx < W + U; gx += U) g.fillRect(Math.round(gx), GY + 4, 2, H - GY);
+        g.fillStyle = 'hsl(' + h + ',100%,74%)'; g.fillRect(-20, GY - 1, W + 40, 4);
+
+        // blocks
+        var edge = 'hsl(' + h + ',100%,80%)', tile = 'hsla(' + h + ',90%,70%,0.35)', body = 'hsl(' + h + ',60%,8%)';
+        g.lineJoin = 'round';
+        for (i = 0; i < tr.blocks.length; i++) {
+          var b = tr.blocks[i], x0 = wx(b.x), bw = b.w * U, bh = b.h * U;
+          if (x0 > W + 5) break; if (x0 + bw < -5) continue;
+          var y0 = wy(b.y + b.h);
+          g.fillStyle = body; g.fillRect(x0, y0, bw, bh);
+          g.strokeStyle = tile; g.lineWidth = 2;
+          for (var tx = 0; tx < b.w; tx++) for (var ty = 0; ty < b.h; ty++) g.strokeRect(x0 + tx * U + U * 0.14, y0 + ty * U + U * 0.14, U * 0.72, U * 0.72);
+          g.strokeStyle = edge; g.lineWidth = 3; g.strokeRect(x0 + 1.5, y0 + 1.5, bw - 3, bh - 3);
+        }
+        // spikes
+        for (i = 0; i < tr.spikes.length; i++) {
+          var s = tr.spikes[i], sx0 = wx(s.x);
+          if (sx0 > W + 5) break; if (sx0 + U < -5) continue;
+          var by = wy(s.y);
+          g.fillStyle = '#04060d'; g.strokeStyle = edge; g.lineWidth = 3;
+          g.beginPath(); g.moveTo(sx0 + 2, by - 1); g.lineTo(sx0 + U / 2, by - U * 0.96); g.lineTo(sx0 + U - 2, by - 1); g.closePath(); g.fill(); g.stroke();
+          g.strokeStyle = tile; g.lineWidth = 2;
+          g.beginPath(); g.moveTo(sx0 + U * 0.28, by - U * 0.14); g.lineTo(sx0 + U / 2, by - U * 0.62); g.lineTo(sx0 + U * 0.72, by - U * 0.14); g.closePath(); g.stroke();
+        }
+        // "Attempt N" painted on the track near the start
+        if (attempts > 0 || state === 'ready') txt(state === 'ready' ? '' : 'Attempt ' + attempts, wx(2.5), wy(3.2), U * 0.9, 'rgba(255,255,255,0.55)', null);
+
+        // trail and cube
+        for (i = 0; i < trail.length; i++) { var tq = trail[i]; g.fillStyle = 'rgba(255,214,74,' + Math.max(0, tq.a * 0.6) + ')'; g.fillRect(wx(tq.x) - 0, wy(tq.y), tq.s * U, tq.s * U); }
+        if (state !== 'dead') {
+          var cx = wx(p.x) + U / 2, cy = wy(p.y) - U / 2;
+          if (p.y > 0.05) { g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(cx, GY + 3, U * 0.42 / (1 + p.y * 0.25), U * 0.07, 0, 0, 7); g.fill(); }
+          g.save(); g.translate(cx, cy); g.rotate(rot);
+          var cg = g.createLinearGradient(-U / 2, -U / 2, U / 2, U / 2); cg.addColorStop(0, '#fff07a'); cg.addColorStop(1, '#ffb21a');
+          g.fillStyle = cg; g.fillRect(-U / 2, -U / 2, U, U);
+          g.fillStyle = 'rgba(255,255,255,0.28)'; g.fillRect(-U / 2, -U / 2, U, U * 0.14);
+          g.strokeStyle = '#4a2c00'; g.lineWidth = Math.max(2, U * 0.07); g.strokeRect(-U / 2, -U / 2, U, U);
+          g.fillStyle = '#16100a'; g.fillRect(-U * 0.26, -U * 0.2, U * 0.18, U * 0.2); g.fillRect(U * 0.08, -U * 0.2, U * 0.18, U * 0.2);
+          g.fillRect(-U * 0.22, U * 0.14, U * 0.44, U * 0.1);
+          g.restore();
+        }
+        // pieces of the cube after a crash
+        g.fillStyle = '#ffd23f';
+        for (i = 0; i < parts.length; i++) { var pq = parts[i]; g.save(); g.translate(wx(pq.x), wy(pq.y)); g.rotate(pq.r); g.fillRect(-pq.s * U / 2, -pq.s * U / 2, pq.s * U, pq.s * U); g.restore(); }
+        g.restore();
+        hud();
+      }
+      function hud() {
+        var u = Math.min(W, H * 1.2) / 700 + 0.5;
+        if (state === 'ready') {
+          txt('GEOMETRY', W / 2, H * 0.17, 54 * u, '#fff', '#1b2a8f');
+          txt('DASH', W / 2, H * 0.17 + 58 * u, 66 * u, '#ffd23f', '#4a2c00');
+          txt('No levels. The track never ends.', W / 2, H * 0.17 + 98 * u, 18 * u, '#cfe4ff', '#0b1240');
+          txt('Space, Up arrow, click or tap to jump. Hold to keep jumping.', W / 2, GY + (H - GY) * 0.38, 17 * u, '#fff', '#0b1240');
+          txt('Press a key or tap to start', W / 2, GY + (H - GY) * 0.38 + 34 * u, 22 * u, '#ffd166', '#0b1240');
+        } else {
+          txt(String(score()), W / 2, 62 * u, 52 * u, '#fff', '#1b2a8f');
+          g.textAlign = 'right'; g.font = '600 ' + 18 * u + 'px "Pixelify Sans",monospace'; g.fillStyle = '#cfe4ff'; g.fillText('Best ' + best, W - 14, 30 * u);
+        }
+        if (state === 'dead' && performance.now() - overAt > 500) {
+          g.fillStyle = 'rgba(8,12,40,0.7)'; g.fillRect(0, 0, W, H);
+          txt('Crashed!', W / 2, H * 0.3, 54 * u, '#fff', '#b8162b');
+          txt('Score ' + score(), W / 2, H * 0.3 + 62 * u, 36 * u, '#fff', '#0b1240');
+          txt(newBest ? 'New best!' : 'Best ' + best, W / 2, H * 0.3 + 100 * u, 22 * u, newBest ? '#ffd166' : '#cfe4ff', '#0b1240');
+          if (hint) txt(hint, W / 2, H * 0.3 + 134 * u, 15 * u, '#ff9aa5', '#0b1240');
+          txt('Press Space or tap to try again', W / 2, H * 0.3 + 176 * u, 22 * u, '#ffd166', '#0b1240');
+        }
+      }
+
+      /* ---------- controls ---------- */
+      function begin() {
+        if (state === 'ready') reset(true);
+        else if (state === 'dead' && performance.now() - overAt > 350) reset(true);
+      }
+      function isJumpKey(k) { return k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W' || k === 'Enter'; }
+      window.addEventListener('keydown', function (e) {
+        if (isJumpKey(e.key)) { held = true; begin(); }
+        if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) !== -1) e.preventDefault();
+      }, { passive: false });
+      window.addEventListener('keyup', function (e) { if (isJumpKey(e.key)) held = false; });
+      window.addEventListener('pointerdown', function (e) { if (e.target.closest && e.target.closest('#home')) return; ptr = true; begin(); });
+      window.addEventListener('pointerup', function () { ptr = false; });
+      window.addEventListener('pointercancel', function () { ptr = false; });
+      window.addEventListener('blur', function () { held = ptr = false; });
+
+      /* ---------- the loop ---------- */
+      var last = performance.now();
+      function frame(now) {
+        var dt = Math.min(0.05, (now - last) / 1000); last = now;
+        if (!GamePause.paused) update(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+      GamePause.init({ playing: function () { return state === 'play'; }, onPause: function () { held = ptr = false; bank(); } });
+      requestAnimationFrame(frame);
+    })();
+  </script>
+  <script src="leaderboard.js"></script>
+  <script src="site-config.js"></script>
+</body>
+</html>

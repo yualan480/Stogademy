@@ -1,0 +1,10 @@
+orbitcraft/node_modules/
+orbitcraft/data/
+orbitcraft/test-results/
+orbitcraft/playwright-report/
+.env
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+orbitcraft/.site/
+orbitcraft/.wrangler/

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sudoku | Orbit Games</title>
+  <meta name="description" content="Play Sudoku in your browser. Fill every row, column and 3x3 box with the numbers 1 to 9. Easy, Medium and Hard, with notes and hints.">
+  <meta name="theme-color" content="#1d2b53">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <style>
+    :root {
+      --vh: 100vh;
+      --bar: #1d2b53;
+      --bg: #141c3a;
+      --cell: #f4f6ff;
+      --given: #1d2b53;
+      --mine: #2f5bd6;
+      --peer: #dfe6ff;
+      --same: #bccaff;
+      --sel: #8fb0ff;
+      --err: #e53d4f;
+      --line: #7c88b8;
+      --thick: #1d2b53;
+    }
+    @supports (height: 100dvh) { :root { --vh: 100dvh; } }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: var(--vh);
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: var(--bg);
+      color: #fff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+    button { font-family: inherit; }
+
+    .app { height: var(--vh); display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+
+    /* ---------- top bar ---------- */
+    .bar { flex: none; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--bar); }
+    .stat { display: flex; align-items: center; gap: 6px; min-width: 3.4em; font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat small { font-size: 0.7rem; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat.bad { color: #ff8a96; }
+    .tools { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .tools button, .tools select, .back {
+      padding: 8px 10px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, 0.14); color: #fff;
+      font: 700 0.9rem system-ui, sans-serif; cursor: var(--cur-pointer, pointer); text-decoration: none;
+    }
+    .tools select { padding-right: 4px; }
+    .tools select option { color: #222; }
+    .tools button:hover, .tools select:hover, .back:hover { background: rgba(255, 255, 255, 0.26); }
+    .tools button[aria-pressed="true"].mode { background: #2f5bd6; }
+    .tools button:disabled { opacity: 0.45; cursor: default; }
+    #sfxBtn[aria-pressed="false"] { opacity: 0.55; text-decoration: line-through; }
+    @media (max-width: 520px) {
+      .bar { flex-wrap: wrap; row-gap: 6px; padding: 6px 10px; }
+      .tools { gap: 5px; }
+      .tools button, .tools select, .back { padding: 8px; font-size: 0.82rem; }
+      .stat { min-width: 0; font-size: 1.05rem; }
+    }
+
+    /* ---------- board ---------- */
+    .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 8px; }
+    .boardwrap { position: relative; width: var(--bs, 320px); height: var(--bs, 320px); }
+    .board {
+      width: 100%; height: 100%; display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr);
+      background: var(--thick); border: 3px solid var(--thick); border-radius: 8px; overflow: hidden; gap: 1px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    }
+    .cell {
+      position: relative; display: flex; align-items: center; justify-content: center; background: var(--cell); color: var(--mine);
+      cursor: var(--cur-pointer, pointer); min-width: 0; min-height: 0;
+    }
+    .cell.rb { margin-right: 2px; }
+    .cell.bb { margin-bottom: 2px; }
+    .cell.given { color: var(--given); font-weight: 800; }
+    .cell.peer { background: var(--peer); }
+    .cell.same { background: var(--same); }
+    .cell.sel { background: var(--sel); }
+    .cell.err { color: var(--err); background: #ffe1e5; }
+    .cell.err.sel { background: #ffb8c1; }
+    .cell .v { font-size: calc(var(--bs, 320px) / 15); font-weight: 700; line-height: 1; }
+    .cell.given .v { font-weight: 800; }
+    .cell .n { position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+      font-size: calc(var(--bs, 320px) / 42); line-height: 1; color: #4a5a99; font-weight: 700; text-align: center; align-items: center; pointer-events: none; }
+    .cell .v:not(:empty) ~ .n { display: none; }
+
+    .overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
+      padding: 1rem; text-align: center; background: rgba(14, 20, 50, 0.9); border-radius: 8px;
+    }
+    .overlay.hidden { display: none; }
+    .overlay h2 { font-size: clamp(1.5rem, 7vmin, 2.4rem); line-height: 1.1; }
+    .overlay p { font-size: clamp(0.85rem, 3vmin, 1.05rem); max-width: 32ch; line-height: 1.35; }
+    .overlay .note { font-size: 0.85rem; opacity: 0.8; }
+    .play, .alt {
+      margin-top: 0.3rem; border: 0; border-radius: 8px; padding: 0.7rem 1.6rem; background: #4674e9; color: #fff;
+      font: 700 clamp(1rem, 3.4vmin, 1.2rem) system-ui, sans-serif; cursor: var(--cur-pointer, pointer); box-shadow: 0 3px 0 #2c4cae;
+    }
+    .play:hover { background: #5a86f5; }
+    .play:active { transform: translateY(2px); box-shadow: 0 1px 0 #2c4cae; }
+    .alt { background: rgba(255, 255, 255, 0.16); box-shadow: none; padding: 0.55rem 1.2rem; font-size: 0.95rem; }
+    .alt:hover { background: rgba(255, 255, 255, 0.26); }
+    .alt[hidden] { display: none; }
+
+    /* ---------- number pad ---------- */
+    .pad { width: var(--bs, 320px); display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+    .pad button {
+      position: relative; padding: 0; aspect-ratio: 1 / 1.25; border: 0; border-radius: 8px; background: #2f3f7a; color: #fff;
+      font-weight: 800; font-size: calc(var(--bs, 320px) / 17); cursor: var(--cur-pointer, pointer);
+    }
+    .pad button small { position: absolute; right: 3px; bottom: 2px; font-size: calc(var(--bs, 320px) / 42); font-weight: 600; opacity: 0.7; }
+    .pad button:hover { background: #3d51a0; }
+    .pad button:active { transform: translateY(1px); }
+    .pad button.done { opacity: 0.3; }
+    .pad button.erase { background: #5b2f4a; font-size: calc(var(--bs, 320px) / 24); }
+    .pad button.erase:hover { background: #7a3c63; }
+    .toastmsg { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: rgba(10, 6, 28, 0.92);
+      border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 0.95rem; z-index: 50; display: none; max-width: 90vw; text-align: center; }
+  </style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <div class="app">
+    <header class="bar">
+      <div class="stat" aria-label="Time"><small>Time</small><span id="time">0:00</span></div>
+      <div class="stat" id="mistWrap" aria-label="Mistakes"><small>Mistakes</small><span id="mist">0/3</span></div>
+      <div class="tools">
+        <select id="diff" aria-label="Difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+        <button id="notesBtn" class="mode" type="button" aria-pressed="false" title="Notes (N)">Notes</button>
+        <button id="hintBtn" type="button" title="Hint (H): fills in one cell, costs points">Hint</button>
+        <button id="sfxBtn" type="button" aria-pressed="true" aria-label="Sound effects" title="Sound effects">FX</button>
+        <a class="back" href="index.html">&lsaquo; Back</a>
+      </div>
+    </header>
+
+    <main class="stage" id="stage">
+      <div class="boardwrap" id="boardwrap">
+        <div class="board" id="board" role="grid" aria-label="Sudoku board. Arrow keys move, number keys fill in, Backspace erases, N toggles notes."></div>
+        <div class="overlay" id="overlay">
+          <h2 id="ovTitle">Sudoku</h2>
+          <p id="ovText">Fill every row, column and 3x3 box with the numbers 1 to 9. Three mistakes and the round is over.</p>
+          <p class="note" id="ovNote"></p>
+          <button class="play" id="playBtn" type="button">Play</button>
+          <button class="alt" id="newBtn" type="button" hidden>New game</button>
+        </div>
+      </div>
+      <div class="pad" id="pad" aria-label="Number pad"></div>
+    </main>
+  </div>
+  <div class="toastmsg" id="toast" role="status"></div>
+
+  <script src="pause.js"></script>
+  <script src="leaderboard.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      /* score = base for the difficulty minus seconds, mistakes and hints (never below 1), like Minesweeper: a win on Hard always beats a win on Easy */
+      const DIFFS = {
+        easy:   { clues: 40, base: 1000 },
+        medium: { clues: 32, base: 2000 },
+        hard:   { clues: 26, base: 3000 }
+      };
+      const MAX_MISTAKES = 3, MAX_HINTS = 3, HINT_COST = 60, MISTAKE_COST = 50;
+      const BEST_KEY = 'sudoku-best', DIFF_KEY = 'sudoku-diff', SAVE_KEY = 'sudoku-save', SFX_KEY = 'sudoku-sfx';
+
+      const $ = id => document.getElementById(id);
+      const boardEl = $('board'), wrapEl = $('boardwrap'), stage = $('stage'), padEl = $('pad');
+      const overlay = $('overlay'), ovTitle = $('ovTitle'), ovText = $('ovText'), ovNote = $('ovNote'), playBtn = $('playBtn'), newBtn = $('newBtn');
+      const timeEl = $('time'), mistEl = $('mist'), mistWrap = $('mistWrap'), diffEl = $('diff'), notesBtn = $('notesBtn'), hintBtn = $('hintBtn'), sfxBtn = $('sfxBtn');
+      const toastEl = $('toast');
+
+      let diffKey = 'easy';
+      try { const d = localStorage.getItem(DIFF_KEY); if (DIFFS[d]) diffKey = d; } catch (e) { /* storage unavailable */ }
+      diffEl.value = diffKey;
+      let best = 0;
+      try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { best = 0; }
+
+      /* ---------- helpers ---------- */
+      const BOX = i => ((i / 27) | 0) * 3 + (((i % 9) / 3) | 0);
+      const PEERS = [];
+      for (let i = 0; i < 81; i++) {
+        const r = (i / 9) | 0, c = i % 9, s = new Set();
+        for (let k = 0; k < 9; k++) { s.add(r * 9 + k); s.add(k * 9 + c); }
+        const br = r - (r % 3), bc = c - (c % 3);
+        for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) s.add((br + a) * 9 + bc + b);
+        s.delete(i);
+        PEERS.push([...s]);
+      }
+      const POP = new Uint8Array(1024);
+      for (let i = 1; i < 1024; i++) POP[i] = POP[i >> 1] + (i & 1);
+      function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+      const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+      /* ---------- puzzle maker: a random full grid, then take numbers out while the puzzle keeps exactly one solution ---------- */
+      function solve(grid, limit, randomize) {
+        const rows = new Int16Array(9), cols = new Int16Array(9), boxes = new Int16Array(9), g = grid.slice();
+        for (let i = 0; i < 81; i++) if (g[i]) { const b = 1 << g[i]; rows[(i / 9) | 0] |= b; cols[i % 9] |= b; boxes[BOX(i)] |= b; }
+        let count = 0, first = null;
+        function rec() {
+          let best = -1, bestMask = 0, bestN = 10;
+          for (let i = 0; i < 81; i++) {
+            if (g[i]) continue;
+            const m = ~(rows[(i / 9) | 0] | cols[i % 9] | boxes[BOX(i)]) & 0x3FE;
+            const n = POP[m];
+            if (n < bestN) { best = i; bestMask = m; bestN = n; if (n <= 1) break; }
+          }
+          if (best < 0) { count++; if (!first) first = g.slice(); return count >= limit; }
+          if (bestN === 0) return false;
+          const digits = [];
+          for (let d = 1; d <= 9; d++) if (bestMask & (1 << d)) digits.push(d);
+          if (randomize) shuffle(digits);
+          const r = (best / 9) | 0, c = best % 9, b = BOX(best);
+          for (const d of digits) {
+            const bit = 1 << d;
+            g[best] = d; rows[r] |= bit; cols[c] |= bit; boxes[b] |= bit;
+            const stop = rec();
+            g[best] = 0; rows[r] &= ~bit; cols[c] &= ~bit; boxes[b] &= ~bit;
+            if (stop) return true;
+          }
+          return false;
+        }
+        rec();
+        return { count, sol: first };
+      }
+      function makePuzzle(clues) {
+        const full = solve(new Array(81).fill(0), 1, true).sol;
+        const puz = full.slice(), order = shuffle([...Array(81).keys()]);
+        let left = 81;
+        const t0 = Date.now();
+        for (const i of order) {
+          if (left <= clues || Date.now() - t0 > 1500) break;
+          const keep = puz[i];
+          puz[i] = 0;
+          if (solve(puz, 2, false).count !== 1) puz[i] = keep; else left--;
+        }
+        return { puz, sol: full };
+      }
+
+      /* ---------- sound ---------- */
+      const Snd = (() => {
+        let ctx = null, on = true;
+        try { on = localStorage.getItem(SFX_KEY) !== 'off'; } catch (e) { /* storage unavailable */ }
+        function tone(f, d, type, vol, when) {
+          if (!on) return;
+          try {
+            if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ctx.state === 'suspended') ctx.resume();
+            const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + (when || 0);
+            o.type = type || 'sine'; o.frequency.value = f;
+            g.gain.setValueAtTime(vol || 0.08, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+            o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + d + 0.02);
+          } catch (e) { /* audio unavailable */ }
+        }
+        return {
+          get on() { return on; },
+          set(v) { on = v; try { localStorage.setItem(SFX_KEY, v ? 'on' : 'off'); } catch (e) { /* ignore */ } },
+          init() { if (on && !ctx) tone(1, 0.01, 'sine', 0.0001); },
+          put() { tone(660, 0.08, 'triangle'); },
+          note() { tone(520, 0.04, 'square', 0.03); },
+          bad() { tone(160, 0.22, 'sawtooth', 0.09); },
+          hint() { tone(880, 0.1, 'sine'); tone(1175, 0.14, 'sine', 0.08, 0.09); },
+          win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.09, i * 0.13)); }
+        };
+      })();
+      function setSfxBtn() { sfxBtn.setAttribute('aria-pressed', String(Snd.on)); }
+      setSfxBtn();
+      sfxBtn.addEventListener('click', () => { Snd.set(!Snd.on); setSfxBtn(); Snd.init(); });
+
+      /* ---------- game state ---------- */
+      let puz = [], sol = [], cur = [], notes = [], mistakes = 0, hints = 0, sel = -1, notesMode = false;
+      let state = 'ready';           // ready | play | won | lost
+      let elapsed = 0, startedAt = 0, ticker = 0, wasOn = false;
+
+      function secs() { return Math.floor((elapsed + (ticker ? Date.now() - startedAt : 0)) / 1000); }
+      function drawTime() { timeEl.textContent = fmt(secs()); }
+      function startClock() { if (ticker) return; startedAt = Date.now(); ticker = setInterval(drawTime, 250); }
+      function stopClock() { if (!ticker) return; elapsed += Date.now() - startedAt; clearInterval(ticker); ticker = 0; drawTime(); }
+
+      function save() {
+        if (state !== 'play') return;
+        try { localStorage.setItem(SAVE_KEY, JSON.stringify({ d: diffKey, puz, sol, cur, notes, mistakes, hints, ms: elapsed + (ticker ? Date.now() - startedAt : 0) })); } catch (e) { /* storage unavailable */ }
+      }
+      function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
+      function readSave() {
+        try {
+          const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+          if (s && DIFFS[s.d] && s.puz && s.puz.length === 81 && s.sol && s.sol.length === 81 && s.cur && s.cur.length === 81 && s.notes && s.notes.length === 81) return s;
+        } catch (e) { /* unreadable */ }
+        return null;
+      }
+
+      /* ---------- drawing ---------- */
+      const cells = [];
+      for (let i = 0; i < 81; i++) {
+        const el = document.createElement('div');
+        el.className = 'cell' + (i % 9 === 2 || i % 9 === 5 ? ' rb' : '') + (((i / 9) | 0) === 2 || ((i / 9) | 0) === 5 ? ' bb' : '');
+        el.setAttribute('role', 'gridcell');
+        el.dataset.i = i;
+        el.innerHTML = '<span class="v"></span><span class="n"></span>';
+        boardEl.appendChild(el);
+        cells.push(el);
+      }
+      const padBtns = [];
+      for (let d = 1; d <= 9; d++) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.d = d; b.setAttribute('aria-label', 'Number ' + d);
+        b.innerHTML = d + '<small></small>';
+        padEl.appendChild(b); padBtns.push(b);
+      }
+      const eraseBtn = document.createElement('button');
+      eraseBtn.type = 'button'; eraseBtn.className = 'erase'; eraseBtn.textContent = '\u232B'; eraseBtn.setAttribute('aria-label', 'Erase');
+      padEl.appendChild(eraseBtn);
+
+      function paint() {
+        const sv = sel >= 0 ? cur[sel] : 0;
+        const counts = new Array(10).fill(0);
+        for (let i = 0; i < 81; i++) {
+          const el = cells[i], v = cur[i] || 0, given = puz[i] !== 0;
+          const wrong = v !== 0 && v !== sol[i];
+          let cls = 'cell' + (i % 9 === 2 || i % 9 === 5 ? ' rb' : '') + (((i / 9) | 0) === 2 || ((i / 9) | 0) === 5 ? ' bb' : '');
+          if (given) cls += ' given';
+          if (wrong) cls += ' err';
+          if (sel >= 0) {
+            if (i === sel) cls += ' sel';
+            else if (sv && v === sv) cls += ' same';
+            else if (PEERS[sel].indexOf(i) >= 0) cls += ' peer';
+          }
+          if (el.className !== cls) el.className = cls;
+          const vEl = el.firstChild, nEl = el.lastChild, txt = v ? String(v) : '';
+          if (vEl.textContent !== txt) vEl.textContent = txt;
+          let ns = '';
+          if (!v && notes[i]) for (let d = 1; d <= 9; d++) ns += '<span>' + ((notes[i] & (1 << d)) ? d : '') + '</span>';
+          if (nEl.dataset.k !== ns) { nEl.innerHTML = ns; nEl.dataset.k = ns; }
+          if (v && !wrong) counts[v]++;
+        }
+        padBtns.forEach((b, k) => {
+          const left = 9 - counts[k + 1];
+          b.classList.toggle('done', left <= 0);
+          b.lastChild.textContent = left > 0 ? left : '';
+        });
+        mistEl.textContent = mistakes + '/' + MAX_MISTAKES;
+        mistWrap.classList.toggle('bad', mistakes > 0);
+        hintBtn.textContent = 'Hint ' + (MAX_HINTS - hints);
+        hintBtn.disabled = hints >= MAX_HINTS || state !== 'play';
+        notesBtn.setAttribute('aria-pressed', String(notesMode));
+        drawTime();
+      }
+
+      function fit() {
+        const sw = stage.clientWidth, sh = stage.clientHeight;
+        /* the board is square and the number pad under it is about 0.13 of the board's height, plus the gaps around them */
+        const bs = Math.max(200, Math.floor(Math.min(sw - 16, (sh - 32) / 1.15)));
+        wrapEl.style.setProperty('--bs', bs + 'px');
+        stage.style.setProperty('--bs', bs + 'px');
+      }
+      addEventListener('resize', fit);
+      addEventListener('orientationchange', () => setTimeout(fit, 150));
+
+      let toastT = 0;
+      function toast(t) {
+        toastEl.textContent = t; toastEl.style.display = 'block';
+        clearTimeout(toastT); toastT = setTimeout(() => { toastEl.style.display = 'none'; }, 2600);
+      }
+
+      /* ---------- overlay ---------- */
+      function showOverlay(title, text, btn, note, showNew) {
+        ovTitle.textContent = title; ovText.textContent = text; ovNote.textContent = note || '';
+        playBtn.textContent = btn; newBtn.hidden = !showNew;
+        overlay.classList.remove('hidden');
+        setTimeout(() => { try { playBtn.focus(); } catch (e) { /* ignore */ } }, 0);
+      }
+      function hideOverlay() { overlay.classList.add('hidden'); }
+
+      /* ---------- playing ---------- */
+      function newGame() {
+        diffKey = diffEl.value;
+        try { localStorage.setItem(DIFF_KEY, diffKey); } catch (e) { /* storage unavailable */ }
+        stopClock();
+        showOverlay('Making a puzzle...', 'One moment.', 'Play', '', false);
+        playBtn.hidden = true;
+        setTimeout(() => {
+          const p = makePuzzle(DIFFS[diffKey].clues);
+          puz = p.puz; sol = p.sol; cur = p.puz.slice(); notes = new Array(81).fill(0);
+          mistakes = 0; hints = 0; sel = -1; notesMode = false; elapsed = 0; state = 'play';
+          playBtn.hidden = false;
+          hideOverlay();
+          paint(); startClock(); save();
+        }, 30);
+      }
+      function resumeGame(s) {
+        diffKey = s.d; diffEl.value = diffKey;
+        puz = s.puz; sol = s.sol; cur = s.cur; notes = s.notes;
+        mistakes = s.mistakes | 0; hints = s.hints | 0; elapsed = Math.max(0, +s.ms || 0); sel = -1; notesMode = false; state = 'play';
+        hideOverlay(); paint(); startClock();
+      }
+
+      function score() { return Math.max(1, DIFFS[diffKey].base - secs() - mistakes * MISTAKE_COST - hints * HINT_COST); }
+
+      function solved() { for (let i = 0; i < 81; i++) if (cur[i] !== sol[i]) return false; return true; }
+
+      function win() {
+        stopClock(); state = 'won'; clearSave();
+        const s = score(), t = secs(), isBest = s > best;
+        if (isBest) { best = s; try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* storage unavailable */ } }
+        let note = '';
+        const L = window.Leaderboard;
+        if (L) {
+          if (L.getName && !L.getName()) note = 'Open Orbit and sign in to join the leaderboard and earn Orbits.';
+          else L.submit('sudoku', s);
+        }
+        Snd.win();
+        paint();
+        showOverlay('Solved!', 'Time ' + fmt(t) + ', ' + mistakes + ' mistake' + (mistakes === 1 ? '' : 's') + ', ' + hints + ' hint' + (hints === 1 ? '' : 's') + '. Score: ' + s.toLocaleString() + (isBest ? ' (new best!)' : '. Best: ' + best.toLocaleString()), 'Play again', note, false);
+      }
+      function lose() {
+        stopClock(); state = 'lost'; clearSave(); Snd.bad(); paint();
+        showOverlay('Game over', 'Too many mistakes. Time ' + fmt(secs()) + '. Try again, you can do it.', 'Play again', '', false);
+      }
+
+      function clearPeerNotes(i, d) {
+        const bit = 1 << d;
+        PEERS[i].forEach(p => { if (notes[p] & bit) notes[p] &= ~bit; });
+      }
+      function put(n) {
+        if (state !== 'play' || sel < 0 || puz[sel]) return;
+        if (cur[sel] && cur[sel] === sol[sel]) return;           // a correct number stays put
+        if (notesMode) {
+          if (cur[sel]) return;
+          notes[sel] ^= (1 << n); Snd.note(); paint(); save(); return;
+        }
+        cur[sel] = n; notes[sel] = 0;
+        if (n === sol[sel]) { clearPeerNotes(sel, n); Snd.put(); }
+        else { mistakes++; Snd.bad(); }
+        paint(); save();
+        if (mistakes >= MAX_MISTAKES) { lose(); return; }
+        if (solved()) win();
+      }
+      function erase() {
+        if (state !== 'play' || sel < 0 || puz[sel]) return;
+        if (cur[sel] && cur[sel] === sol[sel]) return;
+        cur[sel] = 0; notes[sel] = 0; paint(); save();
+      }
+      function hint() {
+        if (state !== 'play') return;
+        if (hints >= MAX_HINTS) { toast('No hints left.'); return; }
+        let i = sel;
+        if (i < 0 || puz[i] || cur[i] === sol[i]) {
+          const open = [];
+          for (let k = 0; k < 81; k++) if (cur[k] !== sol[k]) open.push(k);
+          if (!open.length) return;
+          i = open[(Math.random() * open.length) | 0];
+        }
+        hints++; sel = i; cur[i] = sol[i]; notes[i] = 0; clearPeerNotes(i, sol[i]);
+        Snd.hint(); toast('Hint used: -' + HINT_COST + ' points'); paint(); save();
+        if (solved()) win();
+      }
+      function move(dx, dy) {
+        if (sel < 0) { sel = 40; } else {
+          const x = Math.max(0, Math.min(8, (sel % 9) + dx)), y = Math.max(0, Math.min(8, ((sel / 9) | 0) + dy));
+          sel = y * 9 + x;
+        }
+        paint();
+      }
+
+      /* ---------- input ---------- */
+      boardEl.addEventListener('click', e => {
+        const c = e.target.closest('.cell'); if (!c) return;
+        Snd.init(); sel = +c.dataset.i; paint();
+      });
+      padEl.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        Snd.init();
+        if (b === eraseBtn) erase(); else put(+b.dataset.d);
+      });
+      notesBtn.addEventListener('click', () => { notesMode = !notesMode; paint(); });
+      hintBtn.addEventListener('click', () => { Snd.init(); hint(); });
+      diffEl.addEventListener('change', () => {
+        if (state === 'play' && !confirm('Start a new ' + diffEl.value + ' game? Your current game will be lost.')) { diffEl.value = diffKey; return; }
+        newGame();
+      });
+      playBtn.addEventListener('click', () => {
+        Snd.init();
+        const s = state === 'ready' ? readSave() : null;
+        if (s) resumeGame(s); else newGame();
+      });
+      newBtn.addEventListener('click', () => { Snd.init(); clearSave(); newGame(); });
+
+      document.addEventListener('keydown', e => {
+        if (e.target === diffEl || e.ctrlKey || e.metaKey || e.altKey) return;
+        Snd.init();
+        const k = e.key;
+        if (!overlay.classList.contains('hidden')) return;
+        if (k >= '1' && k <= '9') { put(+k); return; }
+        if (k === 'Backspace' || k === 'Delete' || k === '0') { e.preventDefault(); erase(); return; }
+        if (k === 'n' || k === 'N') { notesMode = !notesMode; paint(); return; }
+        if (k === 'h' || k === 'H') { hint(); return; }
+        const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+        if (arrows[k]) { e.preventDefault(); move(arrows[k][0], arrows[k][1]); }
+      });
+
+      /* pause button / auto pause when the tab is hidden: stop the clock and keep the game */
+      GamePause.init({
+        playing: () => state === 'play',
+        onPause: () => { wasOn = !!ticker; stopClock(); save(); },
+        onResume: () => { if (wasOn && state === 'play') startClock(); wasOn = false; }
+      });
+      addEventListener('pagehide', save);
+
+      /* ---------- start ---------- */
+      fit();
+      puz = new Array(81).fill(0); sol = new Array(81).fill(0); cur = new Array(81).fill(0); notes = new Array(81).fill(0);
+      paint();
+      const saved = readSave();
+      if (saved) {
+        showOverlay('Sudoku', 'You have a ' + saved.d + ' game in progress.', 'Continue', 'Time so far ' + fmt(Math.floor((+saved.ms || 0) / 1000)), true);
+      } else {
+        showOverlay('Sudoku', 'Fill every row, column and 3x3 box with the numbers 1 to 9. Three mistakes and the round is over.', 'Play', best ? 'Best score: ' + best.toLocaleString() : '', false);
+      }
+      requestAnimationFrame(fit);
+    })();
+  </script>
+  <script src="site-config.js"></script>
+</body>
+</html>

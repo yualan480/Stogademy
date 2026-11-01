@@ -1,0 +1,18 @@
+Orbitcraft is included in this updated site.
+
+It is a real multiplayer game and needs the included Cloudflare Worker backend.
+Uploading only the static files will show the game, but will not start its server.
+
+Open orbitcraft/README.md for the full instructions.
+
+Quick deployment from the extracted orbitcraft folder, with Node.js 24 installed:
+
+  npm ci
+  npx wrangler login
+  npm run deploy:cloudflare
+
+Sign in to the Cloudflare account that owns study.stogademy.workers.dev.
+The deployment includes your supplied static site and the new game backend.
+It reuses your existing Supabase Orbit accounts; no new Supabase key is required.
+
+Then sign in to Orbit and choose Orbit Fun -> Orbitcraft (under Orbit Casino).

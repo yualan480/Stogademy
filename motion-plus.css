@@ -1,0 +1,99 @@
+/* ===== Motion+ : extra polish for Stogademy and Orbit =====
+   Fast, lightweight, transform/opacity only. Loaded after motion.css (site) and style.css (Orbit).
+   Everything lives inside no-preference so reduced-motion users get none of it. */
+@media (prefers-reduced-motion:no-preference){
+:root{--mp-ease:cubic-bezier(.22,.68,.2,1)}
+
+/* ---- Cards: quick fade-in + stagger (only while a page/view is entering, so live refreshes never replay it) ---- */
+@keyframes mpCardIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard){animation:mpCardIn .42s var(--mp-ease) backwards}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard):nth-child(2){animation-delay:.04s}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard):nth-child(3){animation-delay:.08s}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard):nth-child(4){animation-delay:.12s}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard):nth-child(5){animation-delay:.16s}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard):nth-child(6){animation-delay:.2s}
+.pg-in :is(.card,.feats a,.qrow,.orow,.bdcard,.lbrow,.qlink,.tkrow,.rolecard,.gcard):nth-child(n+7){animation-delay:.24s}
+
+/* ---- Hover lift for cards that did not have one ---- */
+.orow,.bdcard,.lbrow,.tkrow,.rolecard,.gcard,.hero{transition:transform .22s var(--mp-ease),box-shadow .25s,border-color .2s,background-color .2s}
+.orow:hover,.bdcard:hover,.tkrow:hover,.rolecard:hover,.gcard:hover{transform:translateY(-3px);box-shadow:0 10px 26px #0007,0 0 18px #2f6bff33}
+
+/* ---- Glowing button borders (soft pulse; hover brightens and stops the pulse so hover styles show) ---- */
+@keyframes mpGlow{0%,100%{box-shadow:0 0 0 1px #3a63e0aa,0 0 10px #2f6bff40}50%{box-shadow:0 0 0 1px #7aa6ff,0 0 22px #2f6bff88}}
+.h2btn .pri,.h2btn .sec,.start,.signin,.apri,#installBtn,.obtn{animation:mpGlow 3.4s ease-in-out infinite}
+.h2btn .pri:hover,.h2btn .sec:hover,.start:hover,.signin:hover,.apri:hover,#installBtn:hover,.obtn:hover{animation:none}
+.h2btn .pri:hover,.start:hover,.apri:hover,#installBtn:hover{box-shadow:0 0 0 1px #9bbcff,0 0 30px #3f7bffcc}
+
+/* ---- Click: subtle press scale on every kind of button ---- */
+button,.btn,.ib,.otb,.obtn,.cbtn,.signin,.start,.apri,.pri,.sec,.qlink,.owelcome,a.card,.feats a,.tl a,.qrow{-webkit-tap-highlight-color:transparent}
+.btn:active,.ib:active,.otb:active,.obtn:active,.cbtn:active,.signin:active,.start:active,.apri:active,.pri:active,.sec:active,.qlink:active,.owelcome:active,a.card:active,.feats a:active,.qrow:active,.tabs button:active,.sbox:active,#installBtn:active{transform:scale(.96)!important;transition-duration:.09s!important}
+
+/* ---- Animated gradients ---- */
+@keyframes mpShift{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+.mtxt h1 span,.orbithome .ohero h1.owt{background-size:220% 100%;animation:mpShift 7s ease-in-out infinite alternate}
+.obtn{background-size:200% 200%;animation:mpGlow 3.4s ease-in-out infinite,mpShift 6s ease-in-out infinite alternate}
+.obtn:hover{animation:mpShift 3s ease-in-out infinite alternate}
+.mbanner{border-color:#2a4db8;animation:mpBorder 6s ease-in-out infinite alternate}
+@keyframes mpBorder{from{box-shadow:0 0 40px #2f4bff22}to{box-shadow:0 0 60px #7a4cff44}}
+.orbithome:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(120deg,#2f6bff14,#7a4cff18,#19c3ff12,#2f6bff14);background-size:300% 300%;animation:mpShift 18s ease-in-out infinite alternate}
+
+/* ---- Smooth dropdowns: menus, search results, suggestions, pickers fade + slide in ---- */
+@keyframes mpDrop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+.ores:not([hidden]),.sres:not([hidden]),.ac:not([hidden]),.emoji:not([hidden]),#mmenu:not([hidden]),[role=listbox]:not([hidden]),[role=menu]:not([hidden]){animation:mpDrop .18s var(--mp-ease) both;transform-origin:top center}
+details>*:not(summary){animation:mpDrop .2s var(--mp-ease) both}
+select{transition:border-color .2s,box-shadow .25s,background-color .2s}
+select:focus{box-shadow:0 0 0 3px #4f8cff33}
+
+/* ---- Modals and toasts ---- */
+@keyframes mpModal{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.modal{animation:mpModal .26s var(--mp-ease) both}
+.modalbg{animation:mpFade .2s ease both}
+@keyframes mpFade{from{opacity:0}to{opacity:1}}
+
+/* ---- Route / page-change progress line ---- */
+#mp-bar{position:fixed;left:0;top:0;height:2px;width:100%;z-index:400;pointer-events:none;opacity:0;transform:scaleX(0);transform-origin:left center;background:linear-gradient(90deg,#37e0ff,#7a5cff,#37e0ff);box-shadow:0 0 10px #37e0ffaa}
+#mp-bar.go{animation:mpBar .6s var(--mp-ease) both}
+@keyframes mpBar{0%{opacity:1;transform:scaleX(0)}70%{opacity:1;transform:scaleX(.9)}100%{opacity:0;transform:scaleX(1)}}
+
+/* ---- Sleek loading screen (Stogademy): spinning dual ring around the logo + shimmering bar ---- */
+#boot .bring{position:relative;display:grid;place-items:center;width:136px;height:136px}
+#boot .bring:before,#boot .bring:after{content:"";position:absolute;border-radius:50%;border:2px solid transparent}
+#boot .bring:before{inset:0;border-top-color:#37e0ff;border-right-color:#37e0ff44;animation:mpSpin 1.1s cubic-bezier(.5,.1,.5,.9) infinite}
+#boot .bring:after{inset:12px;border-bottom-color:#7a5cff;border-left-color:#7a5cff44;animation:mpSpin 1.7s linear infinite reverse}
+@keyframes mpSpin{to{transform:rotate(360deg)}}
+#boot .bar i{background:linear-gradient(90deg,#37e0ff,#7a5cff,#37e0ff);background-size:200% 100%;animation:bootBar 1.4s var(--ease,var(--mp-ease)) forwards,mpShift 1.2s linear infinite}
+}
+
+/* ---- Search results dropdown in the chat header (Orbit) ---- */
+.sbar{position:relative;display:flex;align-items:center}
+.sbox.sin{justify-content:flex-start;gap:8px;cursor:text;transition:width .25s cubic-bezier(.22,.68,.2,1),border-color .2s,box-shadow .25s}
+.sbox.sin svg{flex:none;order:0}
+.sbox.sin input{flex:1;min-width:0;width:100%;padding:0;border:0;outline:0;background:none;box-shadow:none;color:var(--text);font:inherit}
+.sbox.sin:focus-within{width:min(360px,calc(42vw / var(--pz,1)));border-color:var(--accent);box-shadow:0 0 0 3px #4f8cff33}
+.sres{position:absolute;right:0;top:calc(100% + 8px);width:min(460px,calc(92vw / var(--pz,1)));max-height:calc(60vh / var(--pz,1));overflow:auto;padding:6px;border:1px solid var(--line);border-radius:14px;background:var(--side);box-shadow:0 14px 40px #000a;z-index:40}
+.sres[hidden]{display:none}
+.sres .ores-i{display:flex;width:100%;padding:8px 10px;border:0;border-radius:10px;background:none;color:var(--text);text-align:left;cursor:var(--cur-pointer,pointer)}
+.sres .ores-i:hover,.sres .ores-i:focus-visible{background:var(--hover,#ffffff14)}
+.sres .ores-i small,.ores-i small{display:block;color:var(--muted,#8fa6e8);font-size:12px}
+.ores-i mark,.sres mark{background:#4f8cff55;color:inherit;border-radius:3px;padding:0 1px}
+.sres .ores-none{margin:0;padding:12px;color:var(--muted)}
+@media(max-width:760px){.sbox.sin{width:120px}.sbox.sin:focus-within{width:180px}.sres{right:-8px}}
+/* the message you jumped to */
+.msg.jump-hl{animation:jumpHl 2.2s ease-out both}
+@keyframes jumpHl{0%,55%{background:#4f8cff38;box-shadow:inset 3px 0 0 #4f8cff}100%{background:transparent;box-shadow:inset 3px 0 0 transparent}}
+@media(prefers-reduced-motion:no-preference){
+/* ---- Performance pass: the same glow / shimmer / breathing effects, but drawn by the GPU (opacity + filter) instead of repainting every frame ---- */
+@keyframes mpGlowLite{0%,100%{filter:brightness(1)}50%{filter:brightness(1.16)}}
+@keyframes mpBreathe{from{opacity:.3}to{opacity:1}}
+.h2btn .pri,.h2btn .sec,.start,.signin,.apri,#installBtn{box-shadow:0 0 0 1px #5d89f0,0 0 16px #2f6bff66;animation:mpGlowLite 3.4s ease-in-out infinite}
+.obtn{animation:mpGlowLite 3.4s ease-in-out infinite}
+.h2btn .pri:hover,.h2btn .sec:hover,.start:hover,.signin:hover,.apri:hover,#installBtn:hover,.obtn:hover{animation:none;filter:brightness(1.1)}
+.mbanner{animation:none;box-shadow:0 0 50px #5a3cff33}
+.orbithome .ohero h1.owt{animation:none}
+.orbithome:before{background-size:100% 100%;animation:mpBreathe 14s ease-in-out infinite alternate;will-change:opacity}
+.orbithome .oquick{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.orbithome .owelcome{-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.app:has(.orbithome) .side{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.orbithome>.ostars{mix-blend-mode:normal;opacity:.8}
+.ologo .op{left:0;top:0;will-change:transform,opacity}
+}

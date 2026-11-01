@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Slope | Gamer4school</title>
+  <meta name="description" content="Roll a ball down an endless neon slope. Steer, dodge the red blocks and don't fall off.">
+  <meta name="theme-color" content="#050a1a">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+  <style>
+    :root { --pixel: "Pixelify Sans", "Courier New", monospace; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #050a1a; overflow: hidden; overscroll-behavior: none; }
+    body { color: #fff; font-family: var(--pixel); -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #home {
+      position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 10px; z-index: 10;
+      padding: 0.35em 1em; border-radius: 99px; text-decoration: none; color: #fff;
+      background: rgba(10, 6, 28, 0.6); border: 2px solid rgba(255, 255, 255, 0.45); font-weight: 600; font-size: 15px;
+    }
+    #home:hover { background: rgba(10, 6, 28, 0.85); }
+    .embed #home { display: none; }
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+</style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <a id="home" href="index.html">&lsaquo; Home</a>
+  <script src="recorder.js" data-game="slope" data-canvas="#c" data-grace="1500"></script>
+  <script src="pause.js"></script>
+  <canvas id="c" aria-label="Slope game. Steer with the left and right arrow keys, or touch the left or right side of the screen."></canvas>
+
+  <script>
+    (function () {
+      'use strict';
+      var framed = false; try { framed = window.self !== window.top; } catch (e) { framed = true; }
+      if (framed || /[?&]embed=1/.test(location.search)) document.body.classList.add('embed');
+
+      var cv = document.getElementById('c'), g = cv.getContext('2d'), W, H;
+      function size() {
+        var r = Math.min(2, window.devicePixelRatio || 1);
+        W = window.innerWidth; H = window.innerHeight;
+        cv.width = W * r; cv.height = H * r; g.setTransform(r, 0, 0, r, 0, 0);
+      }
+      window.addEventListener('resize', size); size();
+
+      /* ---------- the track: a winding strip with red blocks; row i is one unit long ---------- */
+      var BALL = 0.45, BACK = 6, CAMH = 5, VIEW = 70;
+      function ctr(i) { var k = Math.min(1, i / 700); return k * (3.2 * Math.sin(i * 0.037) + 1.8 * Math.sin(i * 0.0113 + 2)); }   // where the middle of the track is
+      function hw(i) { return 3.6 - Math.min(1, i / 1800); }                                                                          // half width, narrows slowly
+      function lerp(f, a, b) { return a + (b - a) * f; }
+      function ctrAt(z) { var i = Math.floor(z); return lerp(z - i, ctr(i), ctr(i + 1)); }
+      function hwAt(z) { var i = Math.floor(z); return lerp(z - i, hw(i), hw(i + 1)); }
+
+      var obs, nextO, free, genTo;      // blocks per row (x relative to the track middle); a clear lane is always left open
+      function gen(n) {
+        while (genTo < n) {
+          if (genTo === nextO) {
+            var w = hw(genTo) - 0.7, a = [], cnt = 1 + (Math.random() < Math.min(0.6, genTo / 1500) ? 1 : 0) + (Math.random() < Math.min(0.4, genTo / 2500) ? 1 : 0);
+            free = Math.max(-w + 0.2, Math.min(w - 0.2, free + Math.random() * 4.4 - 2.2));
+            for (var k = 0; k < cnt; k++) {
+              for (var t = 0, o = 0; t < 8; t++) { o = (Math.random() * 2 - 1) * w; if (Math.abs(o - free) > 1.8) { a.push(o); break; } }
+            }
+            obs[genTo] = a;
+            nextO += Math.max(11, Math.floor(24 - genTo / 60)) + Math.floor(Math.random() * 6);
+          }
+          genTo++;
+        }
+      }
+
+      /* ---------- game state ---------- */
+      var state = 'ready', d, bx, vx, by, vy, speed, tm, dir, camX, shake, overAt, best, newBest, sent, hint;
+      var keys = { l: false, r: false }, touch = 0;
+      try { best = parseInt(localStorage.getItem('slope-best'), 10) || 0; } catch (e) { best = 0; }
+
+      function reset(go) {
+        obs = {}; nextO = 30; free = 0; genTo = 0; gen(VIEW + 20);
+        d = 0; bx = 0; vx = 0; by = BALL; vy = 0; speed = 16; tm = 0; dir = 0; camX = 0; shake = 0; newBest = false; sent = false; hint = '';
+        state = go ? 'play' : 'ready';
+      }
+      reset(false);
+      var score = function () { return Math.floor(d / 2); };
+
+      /* ---------- sound (follows the site's sound setting) ---------- */
+      var ac = null;
+      function tone(f1, f2, dur, type, vol) {
+        try {
+          if (localStorage.getItem('sfx-muted') === '1') return;
+          ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+          var o = ac.createOscillator(), v = ac.createGain(), t = ac.currentTime;
+          o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+          v.gain.setValueAtTime(vol, t); v.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          o.connect(v); v.connect(ac.destination); o.start(t); o.stop(t + dur);
+        } catch (e) { /* no audio */ }
+      }
+
+      /* ---------- end of a run ---------- */
+      function finish(why) {
+        if (state !== 'play') return;
+        state = why; overAt = performance.now();
+        if (why === 'crash') { shake = 0.6; tone(140, 40, 0.4, 'sawtooth', 0.2); } else { vy = 0; tone(600, 120, 0.7, 'triangle', 0.15); }
+      }
+      function report() {
+        var s = score();
+        if (s > best) { best = s; newBest = true; try { localStorage.setItem('slope-best', String(s)); } catch (e) { /* ignore */ } }
+        var L = window.Leaderboard;
+        if (L && s > 0) {
+          if (!L.getName()) hint = 'Set a player name on the home page to join the leaderboard.';
+          else L.submit('slope', s);
+        }
+      }
+
+      /* ---------- one step of the game ---------- */
+      function step(dt) {
+        if (state === 'ready') return;
+        if (shake > 0) shake = Math.max(0, shake - dt);
+        if (state === 'crash') { speed = Math.max(0, speed - 60 * dt); d += speed * dt; }
+        else if (state === 'fall') { d += speed * 0.5 * dt; bx += vx * dt; vy -= 30 * dt; by += vy * dt; }
+        else {
+          tm += dt; speed = Math.min(42, 16 + tm * 0.35); d += speed * dt;
+          var want = (keys.r || touch > 0 ? 1 : 0) - (keys.l || touch < 0 ? 1 : 0), top = 8 + speed * 0.15;
+          vx += (want * top - vx) * Math.min(1, dt * 10); bx += vx * dt;
+          if (Math.abs(bx - ctrAt(d)) > hwAt(d) + 0.05) { finish('fall'); }
+          for (var i = Math.floor(d) - 1; i <= Math.floor(d) + 1 && state === 'play'; i++) {
+            var a = obs[i]; if (!a) continue;
+            for (var k = 0; k < a.length; k++) {
+              var dx = Math.max(Math.abs(bx - (ctr(i) + a[k])) - 0.5, 0), dz = Math.max(Math.abs(d - (i + 0.5)) - 0.5, 0);
+              if (dx * dx + dz * dz < BALL * BALL) { finish('crash'); break; }
+            }
+          }
+          if (state === 'play' && Math.floor(d / 2) % 500 === 0 && Math.floor(d / 2) > 0 && Math.floor((d - speed * dt) / 2) % 500 !== 0) tone(880, 1320, 0.15, 'square', 0.08);
+        }
+        gen(Math.floor(d) + VIEW + 20);
+        if (state !== 'play' && !sent && (performance.now() - overAt > 900 || state === 'crash')) { sent = true; report(); }
+        camX += (bx - camX) * Math.min(1, dt * 6);
+      }
+
+      /* ---------- drawing (a simple 3D look: z is how far ahead of the camera) ---------- */
+      function draw() {
+        var hy = H * 0.28, f = (H * 0.5) * BACK / CAMH, cz = d - BACK;
+        var sx = shake > 0 ? (Math.random() - 0.5) * 14 * shake : 0, sy = shake > 0 ? (Math.random() - 0.5) * 14 * shake : 0;
+        g.save(); g.translate(sx, sy);
+        var bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b1a3a'); bg.addColorStop(0.3, '#16345f'); bg.addColorStop(0.31, '#050a1a'); bg.addColorStop(1, '#050a1a');
+        g.fillStyle = bg; g.fillRect(-20, -20, W + 40, H + 40);
+        function P(x, y, z) { var s = f / z; return [W / 2 + (x - camX) * s, hy + (CAMH - y) * s]; }
+        function quad(a, b, c, e, col) { g.fillStyle = col; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(c[0], c[1]); g.lineTo(e[0], e[1]); g.closePath(); g.fill(); }
+        var bi = Math.floor(d), drawnBall = false;
+        for (var i = bi + VIEW; i >= bi - 4; i--) {
+          var z0 = i - cz, z1 = i + 1 - cz;
+          if (z0 > 0.6) {
+            var fog = Math.max(0, 1 - Math.pow(z0 / VIEW, 2)); g.globalAlpha = fog;
+            var c0 = ctr(i), c1 = ctr(i + 1), h0 = hw(i), h1 = hw(i + 1);
+            var L0 = P(c0 - h0, 0, z0), R0 = P(c0 + h0, 0, z0), R1 = P(c1 + h1, 0, z1), L1 = P(c1 - h1, 0, z1);
+            quad(L0, R0, R1, L1, i % 2 ? '#0e8f78' : '#13a88c');
+            g.strokeStyle = '#a8ffe6'; g.lineWidth = Math.max(1, 3 * f / z0 / 60);
+            g.beginPath(); g.moveTo(L0[0], L0[1]); g.lineTo(L1[0], L1[1]); g.moveTo(R0[0], R0[1]); g.lineTo(R1[0], R1[1]); g.stroke();
+            var a = obs[i];
+            if (a) for (var k = 0; k < a.length; k++) {
+              var ox = c0 + a[k], xl = ox - 0.5, xr = ox + 0.5;
+              var s = ox < camX ? xr : xl;
+              quad(P(s, 0, z0), P(s, 0, z1), P(s, 1, z1), P(s, 1, z0), '#b8162b');
+              quad(P(xl, 1, z0), P(xr, 1, z0), P(xr, 1, z1), P(xl, 1, z1), '#ff9aa5');
+              quad(P(xl, 0, z0), P(xr, 0, z0), P(xr, 1, z0), P(xl, 1, z0), '#ff3b4e');
+            }
+            g.globalAlpha = 1;
+          }
+          if (i === bi) { drawBall(P, f); drawnBall = true; }
+        }
+        if (!drawnBall) drawBall(P, f);
+        g.restore();
+        hud();
+      }
+      function drawBall(P, f) {
+        var p = P(bx, by, BACK), r = BALL * f / BACK, onTrack = state !== 'fall';
+        if (onTrack) { var sh = P(bx, 0, BACK); g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(sh[0], sh[1], r * 1.05, r * 0.35, 0, 0, 7); g.fill(); }
+        var gr = g.createRadialGradient(p[0] - r * 0.35, p[1] - r * 0.4, r * 0.1, p[0], p[1], r);
+        gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#8fa6ff');
+        g.fillStyle = gr; g.beginPath(); g.arc(p[0], p[1], r, 0, 7); g.fill();
+        var a = d / BALL; g.fillStyle = 'rgba(40,60,160,0.55)';
+        g.beginPath(); g.arc(p[0] + Math.sin(a) * r * 0.55, p[1] + Math.cos(a) * r * 0.2, r * 0.18, 0, 7); g.fill();
+      }
+      function txt(t, x, y, size, col, stroke) {
+        g.font = '700 ' + size + 'px "Pixelify Sans","Courier New",monospace'; g.textAlign = 'center';
+        var tw = g.measureText(t).width; if (tw > W - 24) { size = size * (W - 24) / tw; g.font = '700 ' + size + 'px "Pixelify Sans","Courier New",monospace'; }   // shrink to fit narrow phone screens
+        if (stroke) { g.lineWidth = size / 6; g.strokeStyle = stroke; g.lineJoin = 'round'; g.strokeText(t, x, y); }
+        g.fillStyle = col; g.fillText(t, x, y);
+      }
+      function hud() {
+        var u = Math.min(W, H * 1.2) / 700 + 0.5;
+        if (state === 'ready') {
+          txt('SLOPE', W / 2, H * 0.2, 64 * u, '#fff', '#0f6b5a');
+          txt('Left / right arrows or A / D to steer', W / 2, H * 0.62, 20 * u, '#fff', '#050a1a');
+          txt('Touch the left or right side on a phone', W / 2, H * 0.62 + 28 * u, 16 * u, '#9ffbe0', '#050a1a');
+          txt('Press any arrow key or tap to start', W / 2, H * 0.62 + 64 * u, 22 * u, '#ffd166', '#050a1a');
+        } else {
+          txt(String(score()), W / 2, 62 * u, 52 * u, '#fff', '#0f6b5a');
+          g.textAlign = 'right'; g.font = '600 ' + 18 * u + 'px "Pixelify Sans",monospace'; g.fillStyle = '#9ffbe0'; g.fillText('Best ' + best, W - 14, 30 * u);
+        }
+        if (state === 'crash' || state === 'fall') {
+          if (performance.now() - overAt < 700) return;
+          g.fillStyle = 'rgba(5,10,26,0.72)'; g.fillRect(0, 0, W, H);
+          txt(state === 'fall' ? 'You fell off!' : 'Crash!', W / 2, H * 0.3, 54 * u, '#fff', '#b8162b');
+          txt('Score ' + score(), W / 2, H * 0.3 + 62 * u, 36 * u, '#fff', '#050a1a');
+          txt(newBest ? 'New best!' : 'Best ' + best, W / 2, H * 0.3 + 100 * u, 22 * u, newBest ? '#ffd166' : '#9ffbe0', '#050a1a');
+          if (hint) txt(hint, W / 2, H * 0.3 + 134 * u, 15 * u, '#ff9aa5', '#050a1a');
+          txt('Press Space or tap to play again', W / 2, H * 0.3 + 176 * u, 22 * u, '#ffd166', '#050a1a');
+        }
+      }
+
+      /* ---------- controls ---------- */
+      function begin() {
+        if (state === 'ready') { reset(true); }
+        else if ((state === 'crash' || state === 'fall') && performance.now() - overAt > 600) { reset(true); }
+      }
+      window.addEventListener('keydown', function (e) {
+        var k = e.key;
+        if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.l = true; begin(); }
+        else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.r = true; begin(); }
+        else if (k === ' ' || k === 'Enter') { begin(); }
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].indexOf(k) !== -1) e.preventDefault();
+      }, { passive: false });
+      window.addEventListener('keyup', function (e) {
+        var k = e.key;
+        if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.l = false;
+        else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.r = false;
+      });
+      function ptr(e) { if (e.target.closest && e.target.closest('#home')) return; touch = e.clientX < W / 2 ? -1 : 1; begin(); }
+      window.addEventListener('pointerdown', ptr);
+      window.addEventListener('pointermove', function (e) { if (touch && e.buttons) touch = e.clientX < W / 2 ? -1 : 1; });
+      window.addEventListener('pointerup', function () { touch = 0; });
+      window.addEventListener('pointercancel', function () { touch = 0; });
+      window.addEventListener('blur', function () { keys.l = keys.r = false; touch = 0; });
+
+      /* ---------- the loop ---------- */
+      var last = performance.now();
+      function frame(now) {
+        var dt = Math.min(0.05, (now - last) / 1000); last = now;
+        if (!GamePause.paused) step(dt);
+        draw();
+        requestAnimationFrame(frame);
+      }
+      GamePause.init({ playing: function () { return state === 'play'; } });
+      requestAnimationFrame(frame);
+    })();
+  </script>
+  <script src="leaderboard.js"></script>
+  <script src="site-config.js"></script>
+</body>
+</html>

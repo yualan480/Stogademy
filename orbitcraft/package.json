@@ -1,0 +1,25 @@
+{
+  "name": "orbitcraft",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test test/*.test.js",
+    "build:cloudflare": "node cloudflare/build.js",
+    "dev:cloudflare": "npm run build:cloudflare && wrangler dev",
+    "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy"
+  },
+  "dependencies": {
+    "three": "0.181.1",
+    "undici": "7.18.2",
+    "ws": "8.18.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "wrangler": "4.45.0"
+  }
+}

@@ -1,0 +1,9 @@
+/* Stogademy custom cursor: a glossy blue arrow, and the same arrow with a little planet when something is clickable.
+   Linked from every page. The images sit next to this file. If they fail to load the normal cursor is used. */
+:root{--cur-arrow:url("cursor-arrow.png") 4 3,auto;--cur-pointer:url("cursor-hand.png") 4 3,pointer}
+html,body{cursor:var(--cur-arrow)}
+:where(a[href],button:not(:disabled),summary,select,label[for],[role=button],[role=tab],[role=menuitem],input[type=checkbox],input[type=radio],input[type=range],input[type=file],input[type=color],input[type=submit],input[type=button]){cursor:var(--cur-pointer)}
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=submit]):not([type=button]),textarea,[contenteditable=""],[contenteditable=true]){cursor:text}
+:where(:disabled,[aria-disabled=true]){cursor:not-allowed}
+/* elements that set cursor:pointer inline still get the chosen hover (finger) cursor */
+[style*="cursor:pointer"],[style*="cursor: pointer"]{cursor:var(--cur-pointer,pointer)!important}

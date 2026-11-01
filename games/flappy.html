@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Flappy Bird | Gamer4school</title>
+  <meta name="description" content="Play Flappy Bird in your browser. Tap to flap and squeeze through the pipes.">
+  <meta name="theme-color" content="#14142a">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+  <style>
+    :root { --vh: 100vh; --pixel: "Pixelify Sans", "Courier New", monospace; }
+    @supports (height: 100dvh) { :root { --vh: 100dvh; } }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: var(--vh);
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #0b0b14;
+      color: #ecebf5;
+      font-family: var(--pixel);
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+
+    .app { height: var(--vh); display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+
+    .bar {
+      flex: none;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 12px;
+      background: #14142a;
+      border-bottom: 1px solid #26263f;
+    }
+    .stat { display: flex; align-items: baseline; gap: 6px; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat small { font-size: 0.75rem; font-weight: 500; color: #a9a8c4; }
+    .right { margin-left: auto; display: flex; gap: 6px; }
+    .back, .fx {
+      padding: 6px 12px;
+      border: 0;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font: 700 0.9rem var(--pixel);
+      text-decoration: none;
+      cursor:var(--cur-pointer,pointer);
+    }
+    .back:hover, .fx:hover { background: rgba(255, 255, 255, 0.2); }
+    .fx[aria-pressed="false"] { color: #ff9a9a; text-decoration: line-through; }
+
+    .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
+    .board { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6); border-radius: 4px; overflow: hidden; line-height: 0; }
+    canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; cursor:var(--cur-pointer,pointer); }
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+:where(.bar){border-radius:var(--round,10px)}
+</style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <div class="app">
+    <header class="bar">
+      <div class="stat"><small>Score</small><span id="score" aria-live="polite">0</span></div>
+      <div class="stat"><small>Best</small><span id="best">0</span></div>
+      <div class="right">
+        <button class="fx" id="sfxBtn" type="button" aria-pressed="true" title="Sound effects">FX</button>
+        <a class="back" href="index.html">&lsaquo; Back</a>
+      </div>
+    </header>
+
+    <main class="stage" id="stage">
+      <div class="board" id="board">
+        <canvas id="cv" role="img" aria-label="Flappy Bird. Click, tap, or press any key to flap and fly the bird through the gaps in the pipes."></canvas>
+      </div>
+    </main>
+  </div>
+
+  <script src="recorder.js" data-game="flappy" data-canvas="#cv" data-grace="1500"></script>
+  <script src="pause.js"></script>
+  <script src="leaderboard.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const W = 320, H = 240, GROUND = 190;
+      const BIRD_X = 80, BIRD_R = 5.5;
+      const GRAV = 560, FLAP = -155, MAXFALL = 290;
+      const PIPE_W = 26, CAP_W = 30, CAP_H = 11, GAP = 58, SPACING = 112, SPEED = 62;
+      const BEST_KEY = 'flappy-best';
+      const FONT = '"Pixelify Sans", "Courier New", monospace';
+
+      const $ = id => document.getElementById(id);
+      const cv = $('cv'), ctx = cv.getContext('2d');
+      const stage = $('stage');
+      const scoreEl = $('score'), bestEl = $('best'), sfxBtn = $('sfxBtn');
+
+      /* ---------- sound (made with the Web Audio API, no files) ---------- */
+      let sfxOn = true;
+      try { sfxOn = localStorage.getItem('flappy-sfx') !== 'off'; } catch (e) { /* storage unavailable */ }
+      sfxBtn.setAttribute('aria-pressed', String(sfxOn));
+      let ac = null;
+      function audio() {
+        if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+        if (ac && ac.state === 'suspended') ac.resume();
+        return ac;
+      }
+      function tone(freq, to, dur, type, vol, delay) {
+        if (!sfxOn || !audio()) return;
+        const t = ac.currentTime + (delay || 0);
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = type || 'square';
+        o.frequency.setValueAtTime(freq, t);
+        if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+        g.gain.setValueAtTime(vol || 0.08, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(ac.destination);
+        o.start(t); o.stop(t + dur + 0.02);
+      }
+      const Snd = {
+        flap() { tone(380, 620, 0.09, 'square', 0.06); },
+        point() { tone(880, 0, 0.07, 'square', 0.06); tone(1320, 0, 0.12, 'square', 0.06, 0.07); },
+        hit() { tone(180, 50, 0.18, 'sawtooth', 0.12); },
+        fall() { tone(520, 120, 0.4, 'square', 0.06, 0.12); }
+      };
+      sfxBtn.addEventListener('click', () => {
+        sfxOn = !sfxOn;
+        sfxBtn.setAttribute('aria-pressed', String(sfxOn));
+        try { localStorage.setItem('flappy-sfx', sfxOn ? 'on' : 'off'); } catch (e) { /* ignore */ }
+        sfxBtn.blur();
+      });
+
+      /* ---------- pixel art, drawn once into small canvases ---------- */
+      function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+      // the bird: 16 x 12 pixels, with three wing positions
+      const BIRD_ROWS = [
+        '....kkkkkk......',
+        '..kkYYYYyykkkk..',
+        '.kYYYYyyykwwwwk.',
+        '.kYYyyyyykwwkwwk',
+        'kYyyyyyyyykwwwwk',
+        'kyyyyyyyyyykkkkk',
+        'kyyyyyyyykrrrrrk',
+        '.kyyyyyykrrrrrk.',
+        '.kooyyyyykkkkkk.',
+        '..kkooooyyyk....',
+        '....kkkkkkk.....'
+      ];
+      const BIRD_PAL = { k: '#3a2a2a', Y: '#fbe46a', y: '#f8c830', o: '#e29624', w: '#ffffff', r: '#e8452a' };
+      const BIRD_FRAMES = [2, 4, 6].map(wy => {
+        const c = mk(16, 12), g = c.getContext('2d');
+        BIRD_ROWS.forEach((row, y) => [...row].forEach((ch, x) => {
+          if (BIRD_PAL[ch]) { g.fillStyle = BIRD_PAL[ch]; g.fillRect(x, y, 1, 1); }
+        }));
+        // the wing: a small white patch with a dark outline
+        g.fillStyle = '#3a2a2a';
+        g.fillRect(2, wy, 4, 4); g.fillRect(1, wy + 1, 6, 2);
+        g.fillStyle = '#ffffff';
+        g.fillRect(2, wy + 1, 4, 2);
+        return c;
+      });
+
+      // far skyline (pale buildings) and bushes: both are as wide as the screen so they can loop
+      function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+      const SKY_H = 64;
+      const skyline = (() => {
+        const c = mk(W, SKY_H), g = c.getContext('2d'), r = rng(7);
+        let x = 0;
+        while (x < W) {
+          const w = Math.min(W - x, 12 + Math.floor(r() * 12));
+          const h = 14 + Math.floor(r() * 40);
+          g.fillStyle = '#cdeec2';
+          g.fillRect(x, SKY_H - h, w, h);
+          g.fillStyle = '#e1f8d6';
+          g.fillRect(x, SKY_H - h, 2, h);
+          g.fillStyle = '#b9e3ad';
+          for (let wy = SKY_H - h + 5; wy < SKY_H - 4; wy += 7) for (let wx = x + 4; wx < x + w - 3; wx += 5) g.fillRect(wx, wy, 2, 3);
+          if (w > 14 && r() > 0.55) { g.fillStyle = '#cdeec2'; g.fillRect(x + Math.floor(w / 2), SKY_H - h - 7, 1, 7); }
+          x += w + (r() > 0.6 ? 3 : 0);
+        }
+        return c;
+      })();
+      const BUSH_H = 28;
+      const bushes = (() => {
+        const c = mk(W, BUSH_H), g = c.getContext('2d'), r = rng(31);
+        const dots = [];
+        for (let x = 0; x < W; x += 14) dots.push([x + Math.floor(r() * 8), 9 + Math.floor(r() * 4), 9 + Math.floor(r() * 5)]);
+        const blob = (cx, cy, rad, col) => {
+          g.fillStyle = col;
+          for (const o of [-W, 0, W]) { g.beginPath(); g.arc(cx + o, cy, rad, 0, Math.PI * 2); g.fill(); }
+        };
+        dots.forEach(d => blob(d[0], d[1] + 2, d[2], '#7ccd5c'));
+        dots.forEach(d => blob(d[0], d[1], d[2] - 1, '#9fe383'));
+        g.fillStyle = '#7ccd5c'; g.fillRect(0, 14, W, BUSH_H - 14);
+        g.fillStyle = '#69b94b'; g.fillRect(0, BUSH_H - 5, W, 5);
+        return c;
+      })();
+
+      function drawPipe(x, top, bottom, isTopPipe) {
+        // body
+        const bx = x, bw = PIPE_W;
+        const capY = isTopPipe ? bottom - CAP_H : top;
+        const bodyTop = isTopPipe ? top : top + CAP_H;
+        const bodyBot = isTopPipe ? bottom - CAP_H : bottom;
+        if (bodyBot > bodyTop) {
+          ctx.fillStyle = '#533846'; ctx.fillRect(bx, bodyTop, bw, bodyBot - bodyTop);
+          ctx.fillStyle = '#73bf2e'; ctx.fillRect(bx + 1, bodyTop, bw - 2, bodyBot - bodyTop);
+          ctx.fillStyle = '#a5e75b'; ctx.fillRect(bx + 2, bodyTop, 4, bodyBot - bodyTop);
+          ctx.fillStyle = '#d3f58e'; ctx.fillRect(bx + 3, bodyTop, 1, bodyBot - bodyTop);
+          ctx.fillStyle = '#558022'; ctx.fillRect(bx + bw - 6, bodyTop, 5, bodyBot - bodyTop);
+        }
+        // cap
+        const cx = x - (CAP_W - PIPE_W) / 2;
+        ctx.fillStyle = '#533846'; ctx.fillRect(cx, capY, CAP_W, CAP_H);
+        ctx.fillStyle = '#73bf2e'; ctx.fillRect(cx + 1, capY + 1, CAP_W - 2, CAP_H - 2);
+        ctx.fillStyle = '#a5e75b'; ctx.fillRect(cx + 2, capY + 1, 4, CAP_H - 2);
+        ctx.fillStyle = '#d3f58e'; ctx.fillRect(cx + 3, capY + 1, 1, CAP_H - 2);
+        ctx.fillStyle = '#558022'; ctx.fillRect(cx + CAP_W - 7, capY + 1, 6, CAP_H - 2);
+      }
+
+      function drawGround(off) {
+        ctx.fillStyle = '#ded895'; ctx.fillRect(0, GROUND, W, H - GROUND);
+        ctx.fillStyle = '#c9c07a'; ctx.fillRect(0, GROUND + 8, W, 1);
+        // grass strip with sliding diagonal stripes
+        ctx.fillStyle = '#73bf2e'; ctx.fillRect(0, GROUND + 1, W, 6);
+        ctx.fillStyle = '#9ce659';
+        const o = ((off % 8) + 8) % 8;
+        for (let r = 0; r < 6; r++) for (let sx = -8; sx < W + 8; sx += 8) ctx.fillRect(sx - o + r, GROUND + 1 + r, 4, 1);
+        ctx.fillStyle = '#533846'; ctx.fillRect(0, GROUND, W, 1);
+        ctx.fillStyle = '#e8fba0'; ctx.fillRect(0, GROUND + 7, W, 1);
+      }
+
+      /* ---------- state ---------- */
+      let state = 'title';           // title | play | dead
+      let by = 100, vy = 0, birdT = 0, tilt = 0;
+      let pipes = [], score = 0, best = 0;
+      // save this round's score if the player pauses, quits or leaves before dying
+      const bank = (window.Leaderboard && Leaderboard.track) ? Leaderboard.track('flappy', () => state === 'play' ? score : 0) : () => {};
+      let worldX = 0, bgX1 = 0, bgX2 = 0;
+      let deadT = 0, flash = 0, shake = 0, onGround = false, submitted = false, pointPulse = 0;
+      try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { best = 0; }
+      bestEl.textContent = best;
+
+      const gapRange = () => [GAP / 2 + 24, GROUND - GAP / 2 - 24];
+      function addPipe(x) {
+        const [lo, hi] = gapRange();
+        pipes.push({ x, gy: lo + Math.random() * (hi - lo), passed: false });
+      }
+      function seedTitlePipes() {
+        pipes = [];
+        for (let i = 0; i < 3; i++) addPipe(40 + i * SPACING);
+        pipes.forEach(p => { p.passed = true; });
+      }
+      seedTitlePipes();
+
+      function startGame() {
+        pipes = []; addPipe(W + 10);
+        score = 0; scoreEl.textContent = 0;
+        by = 100; vy = FLAP; tilt = -0.4; onGround = false; submitted = false; flash = 0; shake = 0;
+        state = 'play';
+        Snd.flap();
+      }
+
+      function flap() {
+        audio();
+        if (state === 'title') { startGame(); return; }
+        if (state === 'play') { vy = FLAP; Snd.flap(); return; }
+        if (state === 'dead' && deadT > 0.7) { state = 'title'; by = 100; vy = 0; tilt = 0; seedTitlePipes(); }
+      }
+
+      function die() {
+        if (state !== 'play') return;
+        state = 'dead'; deadT = 0; flash = 1; shake = 1;
+        Snd.hit(); Snd.fall();
+        if (score > best) {
+          best = score; bestEl.textContent = best;
+          try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* storage unavailable */ }
+        }
+        if (!submitted) { submitted = true; if (window.Leaderboard) Leaderboard.submit('flappy', score); }
+      }
+
+      function hitsPipe(p) {
+        const gt = p.gy - GAP / 2, gb = p.gy + GAP / 2;
+        const rects = [
+          [p.x, 0, PIPE_W, gt], [p.x - (CAP_W - PIPE_W) / 2, gt - CAP_H, CAP_W, CAP_H],
+          [p.x, gb, PIPE_W, GROUND - gb], [p.x - (CAP_W - PIPE_W) / 2, gb, CAP_W, CAP_H]
+        ];
+        for (const [rx, ry, rw, rh] of rects) {
+          const nx = Math.max(rx, Math.min(BIRD_X, rx + rw)), ny = Math.max(ry, Math.min(by, ry + rh));
+          const dx = BIRD_X - nx, dy = by - ny;
+          if (dx * dx + dy * dy < BIRD_R * BIRD_R) return true;
+        }
+        return false;
+      }
+
+      /* ---------- one fixed step of the game ---------- */
+      function step(dt) {
+        birdT += dt;
+        if (pointPulse > 0) pointPulse = Math.max(0, pointPulse - dt * 4);
+        if (state === 'title') {
+          by = 100 + Math.sin(birdT * 5) * 4;
+          scrollWorld(dt, true);
+          return;
+        }
+        if (state === 'play') {
+          vy = Math.min(MAXFALL, vy + GRAV * dt);
+          by += vy * dt;
+          tilt = Math.max(-0.45, Math.min(1.35, vy / 230));
+          if (by < BIRD_R) { by = BIRD_R; if (vy < 0) vy = 0; }
+          scrollWorld(dt, false);
+          for (const p of pipes) {
+            if (!p.passed && p.x + PIPE_W < BIRD_X - BIRD_R) {
+              p.passed = true; score++; scoreEl.textContent = score; pointPulse = 1; Snd.point();
+            }
+            if (hitsPipe(p)) { die(); break; }
+          }
+          if (state === 'play' && by + BIRD_R >= GROUND) { by = GROUND - BIRD_R; onGround = true; die(); }
+          return;
+        }
+        // dead: the bird tumbles down to the ground
+        deadT += dt;
+        flash = Math.max(0, flash - dt * 5);
+        shake = Math.max(0, shake - dt * 4);
+        if (!onGround) {
+          vy = Math.min(MAXFALL + 80, vy + GRAV * dt);
+          by += vy * dt;
+          tilt = Math.min(1.5, tilt + dt * 6);
+          if (by + BIRD_R >= GROUND) { by = GROUND - BIRD_R; onGround = true; }
+        }
+      }
+
+      function scrollWorld(dt, idle) {
+        const d = SPEED * dt;
+        worldX += d; bgX1 += d * 0.12; bgX2 += d * 0.35;
+        for (const p of pipes) p.x -= d;
+        while (pipes.length && pipes[0].x + CAP_W < 0) pipes.shift();
+        const last = pipes[pipes.length - 1];
+        if (!last || last.x < W + 10 - SPACING) addPipe(last ? last.x + SPACING : W + 10);
+        if (idle) pipes.forEach(p => { p.passed = true; });
+      }
+
+      /* ---------- drawing ---------- */
+      function text(str, x, y, size, fill, stroke, align) {
+        ctx.font = '700 ' + size + 'px ' + FONT;
+        ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+        if (stroke) { ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(2, size / 4); ctx.strokeStyle = stroke; ctx.strokeText(str, x, y); }
+        ctx.fillStyle = fill; ctx.fillText(str, x, y);
+      }
+      const pad3 = n => String(Math.min(n, 999)).padStart(3, '0');
+
+      function drawPanel(y, h) {
+        const x = 126, w = 68;
+        ctx.fillStyle = '#533846'; ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#e8d9a0'; ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        ctx.fillStyle = '#fbf0c4'; ctx.fillRect(x + 3, y + 3, w - 6, 1); ctx.fillRect(x + 3, y + 3, 1, h - 6);
+        ctx.fillStyle = '#c9b57a'; ctx.fillRect(x + 4, y + h - 5, w - 8, 1);
+        ctx.strokeStyle = '#a5905a'; ctx.lineWidth = 1; ctx.strokeRect(x + 5.5, y + 5.5, w - 11, h - 11);
+        const cx = x + w / 2, k = '#533846';
+        text('SCORE', cx, y + h * 0.24, 11, k);
+        text(pad3(score), cx, y + h * 0.42, 14, k);
+        text('BEST', cx, y + h * 0.66, 11, k);
+        text(pad3(best), cx, y + h * 0.84, 14, k);
+      }
+
+      function draw() {
+        const sx = shake > 0 ? Math.round((Math.random() - 0.5) * 4 * shake) : 0;
+        const sy = shake > 0 ? Math.round((Math.random() - 0.5) * 4 * shake) : 0;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.fillStyle = '#71c5d0'; ctx.fillRect(-4, -4, W + 8, H + 8);
+
+        // layers that slide at different speeds
+        const o1 = Math.floor(bgX1) % W, o2 = Math.floor(bgX2) % W;
+        for (const o of [-o1, W - o1]) ctx.drawImage(skyline, o, GROUND - SKY_H - 6);
+        for (const o of [-o2, W - o2]) ctx.drawImage(bushes, o, GROUND - BUSH_H + 2);
+
+        for (const p of pipes) {
+          drawPipe(Math.round(p.x), 0, p.gy - GAP / 2, true);
+          drawPipe(Math.round(p.x), p.gy + GAP / 2, GROUND, false);
+        }
+        drawGround(state === 'dead' ? worldX : worldX);
+
+        // the bird
+        const frame = state === 'dead' ? 1 : (state === 'title' || vy < 60) ? Math.floor(birdT / 0.09) % 3 : 1;
+        ctx.save();
+        ctx.translate(Math.round(BIRD_X), Math.round(by));
+        ctx.rotate(state === 'title' ? 0 : tilt);
+        ctx.drawImage(BIRD_FRAMES[frame], -8, -6);
+        ctx.restore();
+
+        // text on top
+        if (state === 'play') {
+          const s = 1 + pointPulse * 0.25;
+          ctx.save(); ctx.translate(W / 2, 28); ctx.scale(s, s);
+          text(String(score), 0, 0, 26, '#ffffff', '#533846');
+          ctx.restore();
+        } else if (state === 'title') {
+          drawPanel(40, 108);
+          text('Press any key to start', W / 2, GROUND + 28, 11, '#533846');
+          text('or click / tap', W / 2, GROUND + 42, 9, '#7a6540');
+        } else if (state === 'dead' && deadT > 0.45) {
+          const t = Math.min(1, (deadT - 0.45) / 0.25);
+          ctx.save(); ctx.globalAlpha = t;
+          text('GAME OVER', W / 2, 26, 20, '#fca33b', '#533846');
+          drawPanel(40 + (1 - t) * 12, 108);
+          if (deadT > 0.7) text('Press any key to retry', W / 2, GROUND + 28, 11, '#533846');
+          ctx.restore();
+        }
+        ctx.restore();
+
+        if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (flash * 0.8) + ')'; ctx.fillRect(0, 0, W, H); }
+      }
+
+      /* ---------- main loop (fixed 120 steps a second, so it plays the same on any screen) ---------- */
+      const STEP = 1 / 120;
+      let last = 0, acc = 0;
+      function frame(now) {
+        const t = now / 1000;
+        let dt = last ? t - last : 0;
+        last = t;
+        if (dt > 0.1) dt = 0.1;
+        if (!GamePause.paused) { acc += dt; while (acc >= STEP) { step(STEP); acc -= STEP; } }
+        draw();
+        requestAnimationFrame(frame);
+      }
+
+      /* ---------- fit the picture to the window ---------- */
+      let S = 1;
+      function fit() {
+        const aw = Math.max(80, stage.clientWidth - 24), ah = Math.max(60, stage.clientHeight - 24);
+        const k = Math.min(aw / W, ah / H);
+        S = k >= 1 ? Math.floor(k) : k;                         // sharp whole-number scaling when there is room
+        cv.width = Math.round(W * S); cv.height = Math.round(H * S);
+        cv.style.width = Math.floor(W * k) + 'px'; cv.style.height = Math.floor(H * k) + 'px';
+        ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+      }
+      window.addEventListener('resize', fit);
+      if (window.ResizeObserver) new ResizeObserver(fit).observe(stage);
+
+      /* ---------- controls: any key, a click, or a tap ---------- */
+      window.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (/^F\d+$/.test(e.key) || e.key === 'Tab' || e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return;
+        if (e.target && e.target.closest && e.target.closest('a,button') && (e.key === 'Enter' || e.key === ' ')) return;
+        if (e.key === ' ' || e.key.indexOf('Arrow') === 0) e.preventDefault();
+        if (e.repeat) return;
+        flap();
+      });
+      stage.addEventListener('pointerdown', e => {
+        if (e.target.closest('a,button')) return;
+        e.preventDefault();
+        flap();
+      });
+
+      GamePause.init({ playing: () => state === 'play', onPause: () => bank() });
+      fit();
+      const go = () => requestAnimationFrame(frame);
+      if (document.fonts && document.fonts.load) {
+        Promise.race([document.fonts.load('700 12px "Pixelify Sans"'), new Promise(r => setTimeout(r, 1500))]).then(go, go);
+      } else go();
+    })();
+  </script>
+</body>
+</html>

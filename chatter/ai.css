@@ -1,0 +1,100 @@
+/* Orbit AI: animated orb, welcome cards, chat bubbles, typing effect, composer. Loaded after style.css. */
+.aiscreen{flex:1;min-height:0;display:flex;flex-direction:column;background:url(orbit-ai-bg.jpg?v=1) center/cover no-repeat #020318}
+.aiwrap{position:relative}
+.aimsgs{gap:14px;padding:18px 2px 22px;scroll-behavior:smooth;scrollbar-width:thin;overflow-x:hidden}
+
+/* ── the orb (a glowing core, a spinning ring, two orbiting dots) ── */
+.aiorb2{--s:40px;position:relative;display:inline-grid;place-items:center;width:var(--s);height:var(--s);flex:none;vertical-align:middle}
+.aiorb2 .core{position:relative;z-index:1;display:grid;place-items:center;width:78%;height:78%;border-radius:50%;color:#fff;background:radial-gradient(circle at 30% 25%,#8fc0ff,#2563eb 55%,#6d3df0);box-shadow:0 0 calc(var(--s)*.3) #2563eb88,inset 0 -4px 10px #0003}
+.aiorb2 .ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#37c8ff,#8b5cf6,#ff7ad9,#37c8ff);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));animation:aispin 6s linear infinite}
+.aiorb2 .sat{position:absolute;inset:0;animation:aispin 4.5s linear infinite}
+.aiorb2 .sat::after{content:"";position:absolute;top:-2px;left:50%;width:calc(var(--s)*.09);height:calc(var(--s)*.09);min-width:3px;min-height:3px;margin-left:calc(var(--s)*-.045);border-radius:50%;background:#fff;box-shadow:0 0 8px 2px #8fc0ff}
+.aiorb2 .sat.s2{animation-duration:7.5s;animation-direction:reverse;transform:rotate(120deg)}.aiorb2 .sat.s2::after{background:#ff9bea;box-shadow:0 0 8px 2px #ff7ad9}
+.aiorb2.xs .sat,.aiorb2.sm .sat{display:none}.aiorb2.xs .ring{animation-duration:9s}
+.aiorb2.hero{margin:0 auto 6px;animation:aifloat 5s ease-in-out infinite}
+.aiorb2.hero::before{content:"";position:absolute;inset:-26%;border-radius:50%;background:radial-gradient(circle,#2563eb55,#8b5cf622 55%,transparent 70%);animation:aipulse 3.2s ease-in-out infinite}
+.aiorb2.busy .core{animation:aibreathe 1.1s ease-in-out infinite}.aiorb2.busy .ring{animation-duration:1.4s}
+@keyframes aispin{to{transform:rotate(360deg)}}
+@keyframes aifloat{50%{transform:translateY(-7px)}}
+@keyframes aipulse{50%{transform:scale(1.18);opacity:.6}}
+@keyframes aibreathe{50%{transform:scale(1.12)}}
+
+/* ── header status ── */
+.aistat{display:inline-flex;align-items:center;gap:6px;margin-left:10px;font-size:12px;color:var(--muted)}
+.aistat i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 #3ecf8e88;animation:aiping 2.2s infinite}
+@keyframes aiping{70%{box-shadow:0 0 0 7px #3ecf8e00}100%{box-shadow:0 0 0 0 #3ecf8e00}}
+
+/* ── welcome ── */
+.aihello{max-width:640px;animation:airise .6s cubic-bezier(.2,.8,.2,1) both}
+.aihello h2{font-size:clamp(22px,calc(4vw / var(--pz,1)),30px);margin:14px 0 6px;letter-spacing:-.01em}
+.aigrad{background:linear-gradient(100deg,#6aa8ff,#a78bfa,#ff7ad9,#6aa8ff);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:aisweep 6s linear infinite}
+@keyframes aisweep{to{background-position:250% 0}}
+.aicards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px;text-align:left}
+.aicard{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel2) 80%,transparent);color:var(--text);cursor:var(--cur-pointer,pointer);font:inherit;text-align:left;
+  opacity:0;animation:airise .5s cubic-bezier(.2,.8,.2,1) calc(.25s + var(--n)*.07s) forwards;transition:transform .2s,border-color .2s,box-shadow .2s,background .2s}
+.aicard:hover,.aicard:focus-visible{transform:translateY(-3px);border-color:var(--accent2);box-shadow:0 10px 26px #2563eb33;background:var(--panel2)}
+.aicard:active{transform:translateY(-1px) scale(.99)}
+.aicard:last-child:nth-child(odd){grid-column:1/-1}
+.aic-i{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;flex:none;color:#fff;background:linear-gradient(135deg,#2563eb,#8b5cf6);transition:transform .25s}
+.aicard:hover .aic-i{transform:rotate(-8deg) scale(1.08)}
+.aic-t{display:flex;flex-direction:column;min-width:0}.aic-t b{font-size:14px;font-weight:600;line-height:1.3}.aic-t small{color:var(--muted);font-size:12px;margin-top:2px}
+@keyframes airise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ── messages ── */
+.aim{display:flex;align-items:flex-end;gap:9px}
+.aim.assistant{align-items:flex-start}
+.aim.new{animation:aipop .38s cubic-bezier(.2,.9,.25,1.1) both}
+.aim.user.new{transform-origin:100% 100%}.aim.assistant.new{transform-origin:0 0}
+@keyframes aipop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+.aicol{display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:min(88%,680px)}
+.aim .aib{max-width:100%;height:auto;padding:10px 14px;line-height:1.55}
+.aim.assistant .aib{border-radius:4px 18px 18px 18px;background:color-mix(in srgb,var(--panel2) 88%,transparent);box-shadow:0 2px 12px #0002}
+.aim.user .aib{max-width:min(82%,640px);border-radius:18px 18px 4px 18px;background:linear-gradient(135deg,#2563eb,#6d3df0);border-color:transparent;box-shadow:0 6px 18px #2563eb44}
+.aim.user{justify-content:flex-end}
+.aiav{width:30px;height:30px;flex:none;display:grid}.aiav .av{width:30px;height:30px}
+.aib p:first-child{margin-top:0}.aib p:last-child{margin-bottom:0}
+.aib.aityping::after{content:"";display:inline-block;width:7px;height:1.05em;margin-left:2px;vertical-align:-.15em;border-radius:2px;background:var(--accent2);animation:aicaret .8s steps(2) infinite}
+@keyframes aicaret{50%{opacity:0}}
+
+/* ── thinking ── */
+.aib.thinking{display:flex;align-items:center;gap:10px;padding:11px 15px}
+.aiwave{display:inline-flex;gap:4px;align-items:center;height:16px}
+.aiwave i{width:5px;border-radius:3px;background:linear-gradient(#6aa8ff,#a78bfa);height:6px;animation:aiwave 1s ease-in-out infinite}
+.aiwave i:nth-child(2){animation-delay:.14s}.aiwave i:nth-child(3){animation-delay:.28s}
+@keyframes aiwave{0%,100%{height:5px;opacity:.5}50%{height:16px;opacity:1}}
+.aishim{font-size:13.5px;background:linear-gradient(100deg,var(--muted) 30%,var(--text) 50%,var(--muted) 70%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:aisweep2 1.8s linear infinite}
+@keyframes aisweep2{from{background-position:120% 0}to{background-position:-100% 0}}
+.aistep{display:none}
+.aistep.s1{display:inline;animation:aistep 9s infinite}
+.aistep.s2{display:inline;position:absolute;opacity:0;animation:aistep 9s 3s infinite}
+.aistep.s3{display:inline;position:absolute;opacity:0;animation:aistep 9s 6s infinite}
+.aishim{position:relative}
+@keyframes aistep{0%{opacity:0}6%,30%{opacity:1}36%,100%{opacity:0}}
+
+/* ── copy / regenerate ── */
+.aiact{display:flex;gap:4px;margin:4px 0 0 4px;opacity:0;transform:translateY(-3px);transition:opacity .2s,transform .2s}
+.aim.assistant:hover .aiact,.aim.assistant:focus-within .aiact,.aim.assistant:last-of-type .aiact{opacity:1;transform:none}
+.aiact.wait{visibility:hidden}
+@media (hover:none){.aiact{opacity:1;transform:none}}
+.aiact-b{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:8px;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;cursor:var(--cur-pointer,pointer);transition:background .15s,color .15s}
+.aiact-b:hover,.aiact-b:focus-visible{background:var(--hover);color:var(--text)}.aiact-b.ok{color:var(--ok)}
+.aiact-b svg{flex:none}
+
+/* ── composer ── */
+.aibox{position:relative;border-radius:18px;padding:7px 7px 7px 10px;background:color-mix(in srgb,var(--panel2) 90%,transparent);transition:box-shadow .25s,border-color .25s}
+.aibox::before{content:"";position:absolute;inset:-1px;border-radius:19px;padding:1.5px;background:conic-gradient(from var(--aia,0deg),#37c8ff,#8b5cf6,#ff7ad9,#37c8ff);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;pointer-events:none}
+@property --aia{syntax:"<angle>";inherits:false;initial-value:0deg}
+.aibox:focus-within{border-color:transparent;box-shadow:0 8px 30px #2563eb2e}
+.aibox:focus-within::before{opacity:1;animation:aiturn 5s linear infinite}
+@keyframes aiturn{to{--aia:360deg}}
+.aibox .send{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;padding:0;border:0;color:#fff;background:var(--line);opacity:.6;transition:transform .2s,opacity .2s,background .25s,box-shadow .25s}
+.aibox .send.ready{opacity:1;background:linear-gradient(135deg,#2563eb,#8b5cf6);box-shadow:0 4px 14px #2563eb66}
+.aibox .send.ready:hover{transform:scale(1.08) rotate(-8deg)}.aibox .send.ready:active{transform:scale(.94)}
+.aibox .send:disabled{cursor:default}
+.aispin{width:16px;height:16px;border-radius:50%;border:2px solid #fff6;border-top-color:#fff;animation:aispin .7s linear infinite}
+.aicount{align-self:center;font-size:11px;color:var(--muted);padding:0 4px;font-variant-numeric:tabular-nums}.aicount.low{color:var(--danger)}
+.aidown{position:absolute;right:26px;bottom:104px;z-index:3;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--text);display:grid;place-items:center;box-shadow:0 6px 18px #0004;cursor:var(--cur-pointer,pointer);animation:aipop .25s both}
+.aidown:hover{border-color:var(--accent2)}.aidown[hidden]{display:none}
+
+@media (max-width:620px){.aicards{grid-template-columns:1fr}.aicard:last-child:nth-child(odd){grid-column:auto}.aim .aib{font-size:14.5px}.aiav{display:none}.aistat{display:none}}
+@media (prefers-reduced-motion:reduce){html:not(.force-motion) :is(.aiorb2,.aiorb2 *,.aigrad,.aihello,.aicard,.aim.new,.aistat i,.aiwave i,.aishim,.aistep,.aibox,.aibox::before,.aidown,.aicard .aic-i){animation:none!important;transition:none!important}html:not(.force-motion) .aicard{opacity:1}html:not(.force-motion) .aistep.s2,html:not(.force-motion) .aistep.s3{display:none}html:not(.force-motion) .aistep.s1{opacity:1}}

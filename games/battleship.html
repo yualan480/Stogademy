@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Battleship | Gamer4school</title>
+  <meta name="description" content="Play Battleship online: find an opponent, invite a friend with a room code, or play the computer.">
+  <meta name="theme-color" content="#0a2540">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+  <style>
+    :root { --vh: 100vh; --pixel: "Pixelify Sans", "Courier New", monospace; --navy: #0a2540; --gold: #ffd166; --red: #e8452a; }
+    @supports (height: 100dvh) { :root { --vh: 100dvh; } }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: var(--vh); overflow: hidden; overscroll-behavior: none;
+      background: #07182b; color: #ecebf5; font-family: var(--pixel);
+      -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent;
+    }
+    :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+    button { font-family: var(--pixel); }
+
+    .app { height: var(--vh); display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    .bar { flex: none; height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #0d1f38; border-bottom: 1px solid #1f3a5c; }
+    .embed .bar { padding-left: 112px; }
+    .stat { display: flex; align-items: baseline; gap: 6px; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat small { font-size: 0.75rem; font-weight: 500; color: #9fb4cf; }
+    .right { margin-left: auto; display: flex; gap: 6px; }
+    .tbtn { white-space: nowrap; padding: 6px 12px; border: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: #fff; font: 700 0.9rem var(--pixel); text-decoration: none; cursor:var(--cur-pointer,pointer); }
+    .tbtn:hover { background: rgba(255, 255, 255, 0.2); }
+    .tbtn[aria-pressed="false"] { color: #ff9a9a; text-decoration: line-through; }
+    .embed .back { display: none; }
+    @media (max-width: 480px) { .bar { gap: 8px; padding: 0 8px; } .tbtn { padding: 5px 8px; font-size: 0.8rem; } .stat { font-size: 1rem; } .stat small { font-size: 0.65rem; } }
+    #menuBtn[hidden] { display: none; }
+
+    .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+    /* top strip: you, status, opponent */
+    .hud { position: absolute; top: 6px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none; }
+    .hud[hidden] { display: none; }
+    .pc { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 32%; padding: 3px 10px 3px 4px; border-radius: 99px; background: rgba(7, 24, 43, 0.75); border: 2px solid #1f3a5c; font-weight: 700; font-size: 0.9rem; }
+    .pc.opp { flex-direction: row-reverse; padding: 3px 4px 3px 10px; }
+    .pc span.n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pc.turn { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 209, 102, 0.5); }
+    .pc .av { display: inline-block; flex: none; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: #2b2b3c; }
+    .pc .av svg, .pc .av img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .status { flex: 1; text-align: center; font-weight: 700; font-size: 1rem; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5); }
+    .status.good { color: var(--gold); }
+    .status.bad { color: #ff8e8e; }
+    @media (max-width: 560px) { .pc .n { display: none; } .pc { padding: 3px; } .status { font-size: 0.85rem; } }
+
+    /* bottom: ship placement */
+    .dock { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; background: rgba(7, 24, 43, 0.88); border-top: 2px solid #1f3a5c; }
+    .dock[hidden] { display: none; }
+    .ships { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    .ship { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 9px; border-radius: 8px; border: 2px solid #2d5078; background: #12304f; color: #fff; font-size: 0.72rem; font-weight: 600; cursor:var(--cur-pointer,pointer); }
+    .ship i { display: flex; gap: 2px; }
+    .ship i b { width: 9px; height: 9px; background: #98a4b6; border-radius: 2px; }
+    .ship.sel { border-color: var(--gold); background: #1c4572; }
+    .ship.done { opacity: 0.55; }
+    .ship.done i b { background: #6cc56c; }
+    .btn { padding: 9px 16px; border-radius: 8px; border: 2px solid #1b1b2f; background: #e8497d; color: #fff; font-weight: 700; font-size: 1rem; cursor:var(--cur-pointer,pointer); box-shadow: 0 3px 0 #8e1b46; }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8e1b46; }
+    .btn.alt { background: #2d5f93; box-shadow: 0 3px 0 #163a63; }
+    .btn.go { background: #3aa655; box-shadow: 0 3px 0 #1d6a33; }
+    .btn[disabled] { opacity: 0.4; cursor: not-allowed; filter: none; }
+    .btn.small { padding: 6px 12px; font-size: 0.85rem; }
+
+    /* centre cards: menu, search, result */
+    .ov { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(4, 14, 28, 0.55); overflow: auto; }
+    .ov[hidden] { display: none; }
+    .card { width: min(100%, 420px); text-align: center; padding: 22px 20px; border-radius: 14px; background: rgba(9, 28, 50, 0.96); border: 3px solid #2d5078; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+    .card[hidden] { display: none; }
+    .card h1 { font-size: clamp(2rem, 9vw, 3rem); line-height: 1; letter-spacing: 1px; text-shadow: 0 4px 0 #0a2540, 0 0 18px rgba(80, 170, 255, 0.35); }
+    .card h2 { font-size: 1.8rem; line-height: 1.1; }
+    .card h2.win { color: var(--gold); }
+    .card h2.lose { color: #ff8e8e; }
+    .card p { color: #b7c7dc; margin: 8px 0 0; font-size: 0.95rem; line-height: 1.35; }
+    .card .col { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .card .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .card .fine { font-size: 0.8rem; color: #8aa0bb; margin-top: 14px; }
+    .code { font-size: 2.6rem; letter-spacing: 8px; color: var(--gold); margin: 10px 0 2px; padding-left: 8px; }
+    input.codein { width: 9em; padding: 10px; border-radius: 8px; border: 2px solid #2d5078; background: #07182b; color: #fff; font: 700 1.6rem var(--pixel); text-align: center; text-transform: uppercase; letter-spacing: 6px; -webkit-user-select: text; user-select: text; }
+    .spin { width: 34px; height: 34px; margin: 14px auto 0; border-radius: 50%; border: 4px solid #2d5078; border-top-color: var(--gold); animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+:where(.bar){border-radius:var(--round,10px)}
+:where(.pc.turn){border-radius:var(--round,10px)}
+:where(.dock){border-radius:var(--round,10px)}
+:where(.ship.sel){border-radius:var(--round,10px)}
+:where(.ship.done i b){border-radius:var(--round,10px)}
+:where(.btn.alt){border-radius:var(--round,10px)}
+:where(.btn.go){border-radius:var(--round,10px)}
+</style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <div class="app" id="app">
+    <header class="bar">
+      <div class="stat"><small>Wins</small><span id="wins">0</span></div>
+      <div class="stat"><small>Losses</small><span id="losses">0</span></div>
+      <div class="right">
+        <button class="tbtn" id="menuBtn" type="button" hidden>Menu</button>
+        <button class="tbtn" id="musBtn" type="button" aria-pressed="true" title="Music">Music</button>
+        <button class="tbtn" id="sfxBtn" type="button" aria-pressed="true" title="Sound effects">FX</button>
+        <a class="tbtn back" href="index.html">&lsaquo; Back</a>
+      </div>
+    </header>
+
+    <main class="stage" id="stage">
+      <canvas id="cv" role="img" aria-label="Battleship board. Place your fleet, then take turns firing at the enemy waters."></canvas>
+
+      <div class="hud" id="hud" hidden>
+        <div class="pc" id="pcMe"><span class="n" id="nameMe">You</span></div>
+        <div class="status" id="status"></div>
+        <div class="pc opp" id="pcOpp"><span class="n" id="nameOpp">Opponent</span></div>
+      </div>
+
+      <div class="dock" id="dock" hidden>
+        <div class="ships" id="shipBtns"></div>
+        <button class="btn alt small" id="rotBtn" type="button">Rotate (R)</button>
+        <button class="btn alt small" id="rndBtn" type="button">Randomize</button>
+        <button class="btn alt small" id="clrBtn" type="button">Clear</button>
+        <button class="btn go" id="readyBtn" type="button" disabled>Ready!</button>
+      </div>
+
+      <div class="ov" id="ov">
+        <section class="card" id="pMenu">
+          <h1>BATTLE<br>SHIP</h1>
+          <p>Hide your fleet, then sink the enemy's.</p>
+          <div class="col">
+            <button class="btn" id="bFind" type="button">Find an opponent online</button>
+            <button class="btn alt" id="bFriend" type="button">Play a friend (room code)</button>
+            <button class="btn alt" id="bAi" type="button">Play the computer</button>
+          </div>
+          <p class="fine">Online play needs a connection to the matchmaking server.</p>
+        </section>
+
+        <section class="card" id="pFriend" hidden>
+          <h2>Play a friend</h2>
+          <p>One of you creates a room and shares the 4-letter code. The other joins with it.</p>
+          <div class="col">
+            <button class="btn" id="bCreate" type="button">Create a room</button>
+            <div class="row" style="margin-top:0"><input class="codein" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code"><button class="btn alt" id="bJoin" type="button">Join</button></div>
+            <button class="btn alt small" id="bFriendBack" type="button">Back</button>
+          </div>
+        </section>
+
+        <section class="card" id="pSearch" hidden>
+          <h2 id="sTitle">Searching...</h2>
+          <div class="code" id="sCode" hidden></div>
+          <div class="spin" aria-hidden="true"></div>
+          <p id="sText">Looking for an opponent.</p>
+          <div class="row"><button class="btn alt small" id="bCancel" type="button">Cancel</button></div>
+        </section>
+
+        <section class="card" id="pOver" hidden>
+          <h2 id="oTitle">Victory!</h2>
+          <p id="oText"></p>
+          <div class="row"><button class="btn go" id="bAgain" type="button">Rematch</button><button class="btn alt" id="bMenu" type="button">Main menu</button></div>
+          <p class="fine" id="oFine"></p>
+        </section>
+
+        <section class="card" id="pInfo" hidden>
+          <h2 id="iTitle">Oops</h2>
+          <p id="iText"></p>
+          <div class="row"><button class="btn alt" id="bInfoAi" type="button" hidden>Play the computer</button><button class="btn" id="bInfoOk" type="button">OK</button></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="leaderboard.js"></script>
+  <script>
+  (() => {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const N = 10;
+    const SHIPS = [
+      { id: 'carrier', name: 'Carrier', len: 5 },
+      { id: 'battleship', name: 'Battleship', len: 4 },
+      { id: 'cruiser', name: 'Cruiser', len: 3 },
+      { id: 'submarine', name: 'Submarine', len: 3 },
+      { id: 'destroyer', name: 'Destroyer', len: 2 }
+    ];
+    const SHIP = {}; SHIPS.forEach(s => { SHIP[s.id] = s; });
+    const rnd = n => Math.floor(Math.random() * n);
+    const mk2d = () => Array.from({ length: N }, () => Array(N).fill(0));
+    const store = {
+      get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
+    };
+    const embed = new URLSearchParams(location.search).get('embed') === '1';
+    if (embed) document.body.classList.add('embed');
+
+    /* ================= sound: effects and music, all synthesized ================= */
+    const Snd = (() => {
+      let ac = null, master, sfxBus, musBus, noiseBuf, echo;
+      let sfxOn = store.get('battleship-sfx', 'on') !== 'off';
+      let musOn = store.get('battleship-music', 'on') !== 'off';
+      let mode = 'calm', timer = 0, nextT = 0, step = 0, bar = 0;
+      const BPM = 92, STEP = 60 / BPM / 4;
+      const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+
+      function ensure() {
+        if (!ac) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          try { ac = new AC(); } catch (e) { return null; }
+          master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
+          sfxBus = ac.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
+          musBus = ac.createGain(); musBus.gain.value = musOn ? 0.5 : 0; musBus.connect(master);
+          echo = ac.createDelay(1); echo.delayTime.value = 0.43;
+          const fb = ac.createGain(); fb.gain.value = 0.38; echo.connect(fb); fb.connect(echo);
+          const eg = ac.createGain(); eg.gain.value = 0.5; echo.connect(eg); eg.connect(musBus);
+          noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+          const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+          document.addEventListener('visibilitychange', () => { if (!ac) return; if (document.hidden) ac.suspend(); else ac.resume(); });
+        }
+        if (ac.state === 'suspended' && !document.hidden) ac.resume();
+        return ac;
+      }
+      function tone(f0, f1, dur, type, vol, when, bus, attack) {
+        if (!ac) return;
+        const t = ac.currentTime + (when || 0), o = ac.createOscillator(), g = ac.createGain();
+        o.type = type || 'square';
+        o.frequency.setValueAtTime(f0, t);
+        if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + (attack || 0.008));
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(bus || sfxBus);
+        o.start(t); o.stop(t + dur + 0.05);
+        return g;
+      }
+      function noise(dur, vol, type, f0, f1, when, bus) {
+        if (!ac) return;
+        const t = ac.currentTime + (when || 0), s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+        s.buffer = noiseBuf; s.loop = true; f.type = type; f.Q.value = type === 'bandpass' ? 1.1 : 0.7;
+        f.frequency.setValueAtTime(f0, t);
+        if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        s.connect(f); f.connect(g); g.connect(bus || sfxBus);
+        s.start(t, Math.random()); s.stop(t + dur + 0.05);
+      }
+      const on = fn => (...a) => { if (sfxOn && ensure()) fn(...a); };
+      const fx = {
+        click: on(() => tone(660, 520, 0.05, 'square', 0.05)),
+        rotate: on(() => { tone(500, 700, 0.06, 'square', 0.05); }),
+        place: on(() => { noise(0.12, 0.25, 'lowpass', 900, 200); tone(180, 90, 0.12, 'sine', 0.25); }),
+        found: on(() => { tone(660, 0, 0.12, 'triangle', 0.14); tone(990, 0, 0.25, 'triangle', 0.14, 0.12); }),
+        fire: on(() => {
+          noise(0.35, 0.5, 'lowpass', 2400, 120); tone(140, 38, 0.4, 'sine', 0.5);
+          tone(1200, 380, 0.55, 'sine', 0.05, 0.1);            // the shell whistling in
+        }),
+        splash: on((w) => { noise(0.6, 0.3, 'bandpass', 2000, 380, w || 0); tone(300, 120, 0.2, 'sine', 0.1, w || 0); }),
+        hit: on((w) => {
+          noise(0.7, 0.55, 'lowpass', 3200, 140, w || 0); tone(130, 28, 0.55, 'sawtooth', 0.28, w || 0);
+          noise(0.3, 0.2, 'highpass', 5000, 3000, (w || 0) + 0.05);
+        }),
+        sunk: on((w) => {
+          [0, 0.18, 0.4].forEach(d => { noise(0.8, 0.5, 'lowpass', 3000, 100, (w || 0) + d); tone(110, 24, 0.7, 'sawtooth', 0.25, (w || 0) + d); });
+          tone(440, 110, 1.1, 'triangle', 0.12, (w || 0) + 0.2);
+        }),
+        ping: on(() => tone(1500, 1490, 0.9, 'sine', 0.12, 0, null, 0.01)),
+        win: on(() => { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0, 0.28, 'square', 0.1, i * 0.14)); tone(1319, 0, 0.8, 'triangle', 0.12, 0.84); }),
+        lose: on(() => { [392, 349, 311, 262].forEach((f, i) => tone(f, f * 0.97, 0.45, 'sawtooth', 0.09, i * 0.3)); tone(98, 70, 1.3, 'triangle', 0.2, 1.2); })
+      };
+
+      /* music: a slow naval theme in A minor. Calm for menus and placing ships, with a drum and arpeggio layer in battle. */
+      const PROG = [[45, 0], [41, 1], [48, 1], [43, 1], [45, 0], [41, 1], [43, 1], [40, 1]];
+      function pad(f, t, len) {
+        const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+        o.type = 'triangle'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 900;
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.7); g.gain.linearRampToValueAtTime(0.0001, t + len + 0.5);
+        o.connect(lp); lp.connect(g); g.connect(musBus); o.start(t); o.stop(t + len + 0.6);
+      }
+      function playStep(s, b, t) {
+        const root = PROG[b][0], maj = PROG[b][1], third = root + (maj ? 4 : 3), fifth = root + 7;
+        const at = t - ac.currentTime;
+        if (s === 0) {
+          [root + 12, third + 12, fifth + 12].forEach(m => pad(mf(m), t, STEP * 16));
+          if (mode === 'calm' && b % 4 === 0) tone(1760, 1750, 1.4, 'sine', 0.07, at + 0.15, echo, 0.01);   // sonar ping with echo
+        }
+        if (s === 0 || s === 6 || s === 10) tone(mf(root), 0, STEP * (s === 0 ? 5 : 3), 'triangle', 0.26, at, musBus, 0.01);
+        if (s === 8) tone(mf(fifth), 0, STEP * 2, 'triangle', 0.22, at, musBus, 0.01);
+        if (mode === 'battle') {
+          if (s === 12) tone(mf(root + 12), 0, STEP * 2, 'triangle', 0.2, at, musBus, 0.01);
+          if (s % 2 === 0) {
+            const tones = [root + 24, third + 24, fifth + 24, third + 24];
+            tone(mf(tones[((s / 2) + (b % 2)) % 4]), 0, 0.17, 'square', 0.035, at, musBus, 0.005);
+          }
+          if (s === 0 || s === 8) { tone(110, 40, 0.18, 'sine', 0.4, at, musBus); }
+          if (s === 4 || s === 12) noise(0.13, 0.09, 'bandpass', 1800, 1200, at, musBus);
+          if (s % 2 === 0) noise(0.04, s % 4 === 0 ? 0.045 : 0.025, 'highpass', 7000, 7000, at, musBus);
+        } else if (s === 0 || s === 8) {
+          tone(mf((b % 2 ? fifth : third) + 24), 0, 1.2, 'sine', 0.05, at, echo, 0.02);
+        }
+      }
+      function sched() {
+        if (!ac || !musOn || document.hidden) return;
+        if (nextT < ac.currentTime) nextT = ac.currentTime + 0.05;
+        while (nextT < ac.currentTime + 0.35) {
+          playStep(step, bar, nextT); nextT += STEP; step++;
+          if (step === 16) { step = 0; bar = (bar + 1) % 8; }
+        }
+      }
+      return {
+        fx,
+        get sfxOn() { return sfxOn; }, get musOn() { return musOn; },
+        unlock() { if (ensure() && !timer) { nextT = 0; timer = setInterval(sched, 90); } },
+        setMode(m) { mode = m; },
+        setMusic(v) { musOn = v; store.set('battleship-music', v ? 'on' : 'off'); if (ensure()) { musBus.gain.setTargetAtTime(v ? 0.5 : 0, ac.currentTime, 0.08); Snd.unlock(); } },
+        setSfx(v) { sfxOn = v; store.set('battleship-sfx', v ? 'on' : 'off'); }
+      };
+    })();
+
+    /* ================= realtime: a tiny client for Supabase Realtime (Phoenix channels) ================= */
+    const SB = (window.Leaderboard && window.Leaderboard.config) || null;
+    class Chan {
+      constructor(rt, name, key) { this.rt = rt; this.topic = 'realtime:' + name; this.key = key; this.h = {}; this.presence = {}; this.joined = false; this.onPresence = null; this.onClose = null; }
+      on(ev, fn) { this.h[ev] = fn; return this; }
+      join() {
+        return new Promise((res, rej) => {
+          const ref = this.rt.ref(); this.joinRef = ref;
+          this._res = res; this._rej = rej;
+          this.rt.send({ topic: this.topic, event: 'phx_join', ref, join_ref: ref,
+            payload: { config: { broadcast: { ack: false, self: false }, presence: { key: this.key }, postgres_changes: [], private: false }, access_token: SB.key } });
+          setTimeout(() => { if (!this.joined) rej(new Error('join timeout')); }, 8000);
+        });
+      }
+      send(ev, payload) { this.rt.send({ topic: this.topic, event: 'broadcast', ref: this.rt.ref(), payload: { type: 'broadcast', event: ev, payload: payload || {} } }); }
+      track(meta) { this.rt.send({ topic: this.topic, event: 'presence', ref: this.rt.ref(), payload: { type: 'presence', event: 'track', payload: meta } }); }
+      leave() { this.rt.send({ topic: this.topic, event: 'phx_leave', payload: {}, ref: this.rt.ref() }); this.rt.chans.delete(this.topic); this.h = {}; this.onPresence = null; }
+      _msg(m) {
+        const p = m.payload || {};
+        if (m.event === 'phx_reply') {
+          if (m.ref === this.joinRef && !this.joined) {
+            if (p.status === 'ok') { this.joined = true; this._res(); } else this._rej(new Error('join refused'));
+          }
+        } else if (m.event === 'broadcast') {
+          if (p.event && this.h[p.event]) this.h[p.event](p.payload || {});
+        } else if (m.event === 'presence_state') {
+          this.presence = {};
+          Object.keys(p).forEach(k => { this.presence[k] = (p[k].metas || []).slice(); });
+          if (this.onPresence) this.onPresence();
+        } else if (m.event === 'presence_diff') {
+          const lv = p.leaves || {}, jn = p.joins || {};
+          Object.keys(lv).forEach(k => {
+            const refs = (lv[k].metas || []).map(x => x.phx_ref);
+            this.presence[k] = (this.presence[k] || []).filter(x => refs.indexOf(x.phx_ref) === -1);
+            if (!this.presence[k].length) delete this.presence[k];
+          });
+          Object.keys(jn).forEach(k => { this.presence[k] = (this.presence[k] || []).concat(jn[k].metas || []); });
+          if (this.onPresence) this.onPresence();
+        } else if (m.event === 'phx_error' || m.event === 'phx_close') {
+          if (this.onClose) this.onClose();
+        }
+      }
+    }
+    class RT {
+      constructor() { this.n = 0; this.chans = new Map(); this.ws = null; this.hb = 0; this.onClose = null; this.dead = false; }
+      ref() { return String(++this.n); }
+      connect() {
+        return new Promise((res, rej) => {
+          if (!SB) { rej(new Error('no config')); return; }
+          let done = false;
+          const url = SB.url.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SB.key) + '&vsn=1.0.0';
+          try { this.ws = new WebSocket(url); } catch (e) { rej(e); return; }
+          const fail = e => { if (!done) { done = true; rej(e || new Error('closed')); } };
+          setTimeout(() => fail(new Error('timeout')), 8000);
+          this.ws.onopen = () => {
+            done = true; res();
+            this.hb = setInterval(() => this.send({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: this.ref() }), 20000);
+          };
+          this.ws.onerror = () => fail(new Error('error'));
+          this.ws.onclose = () => { clearInterval(this.hb); fail(); if (!this.dead && this.onClose) this.onClose(); };
+          this.ws.onmessage = ev => {
+            let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+            const c = this.chans.get(m.topic); if (c) c._msg(m);
+          };
+        });
+      }
+      channel(name, key) { const c = new Chan(this, name, key); this.chans.set(c.topic, c); return c; }
+      send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); }
+      close() { this.dead = true; clearInterval(this.hb); try { this.ws && this.ws.close(); } catch (e) { /* ignore */ } }
+    }
+
+    /* ================= fleet helpers ================= */
+    const cellsOf = s => { const a = []; for (let i = 0; i < s.len; i++) a.push([s.x + (s.h ? i : 0), s.y + (s.h ? 0 : i)]); return a; };
+    function fits(fleet, id, len, x, y, h) {
+      if (x < 0 || y < 0 || x + (h ? len : 1) > N || y + (h ? 1 : len) > N) return false;
+      for (const s of fleet) {
+        if (s.id === id) continue;
+        for (const c of cellsOf(s)) for (let i = 0; i < len; i++) if (c[0] === x + (h ? i : 0) && c[1] === y + (h ? 0 : i)) return false;
+      }
+      return true;
+    }
+    function randomFleet() {
+      const f = [];
+      SHIPS.forEach(sh => { for (;;) { const h = Math.random() < 0.5, x = rnd(N), y = rnd(N); if (fits(f, sh.id, sh.len, x, y, h)) { f.push({ id: sh.id, len: sh.len, x, y, h, hits: 0 }); break; } } });
+      return f;
+    }
+    function shipAt(fleet, x, y) { return fleet.find(s => cellsOf(s).some(c => c[0] === x && c[1] === y)) || null; }
+    // what a defender does when a shell lands: returns the answer to send back
+    function takeShot(fleet, x, y) {
+      const s = shipAt(fleet, x, y);
+      if (!s) return { hit: false, sunk: null, win: false };
+      s.hits++;
+      const sunk = s.hits >= s.len ? { id: s.id, len: s.len, x: s.x, y: s.y, h: s.h } : null;
+      return { hit: true, sunk, win: fleet.every(q => q.hits >= q.len) };
+    }
+
+    /* ================= the computer opponent: it behaves like a remote player ================= */
+    class Bot {
+      constructor(deliver) { this.deliver = deliver; this.reset(); }
+      reset() {
+        this.fleet = randomFleet(); this.shot = mk2d(); this.left = SHIPS.map(s => s.len); this.myTurn = false; this.timers = [];
+      }
+      later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+      stop() { this.timers.forEach(clearTimeout); this.timers = []; }
+      receive(type, p) {
+        if (type === 'ready') this.later(() => this.deliver('ready', {}), 500);
+        else if (type === 'start') { this.myTurn = p.first === 'guest'; if (this.myTurn) this.schedule(); }
+        else if (type === 'fire') {
+          const r = takeShot(this.fleet, p.x, p.y);
+          this.later(() => { this.deliver('result', { x: p.x, y: p.y, hit: r.hit, sunk: r.sunk, win: r.win }); if (!r.win) { this.myTurn = true; this.schedule(); } }, 450);
+        } else if (type === 'result') {
+          this.shot[this.last.y][this.last.x] = p.hit ? 2 : 1;
+          if (p.sunk) { cellsOf(p.sunk).forEach(c => { this.shot[c[1]][c[0]] = 3; }); this.left.splice(this.left.indexOf(p.sunk.len), 1); }
+          this.myTurn = false;
+        } else if (type === 'rematch') { this.stop(); this.reset(); this.later(() => this.deliver('rematch', {}), 400); }
+      }
+      schedule() { this.later(() => { this.last = this.pick(); this.deliver('fire', this.last); }, 900 + Math.random() * 700); }
+      // weigh every spot by how many of the remaining ships could still sit there; hits make nearby spots much heavier
+      pick() {
+        const w = mk2d(); let hitsOpen = 0;
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (this.shot[y][x] === 2) hitsOpen++;
+        this.left.forEach(len => {
+          for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) for (const h of [true, false]) {
+            if (x + (h ? len : 1) > N || y + (h ? 1 : len) > N) continue;
+            let ok = true, cover = 0;
+            for (let i = 0; i < len; i++) { const v = this.shot[y + (h ? 0 : i)][x + (h ? i : 0)]; if (v === 1 || v === 3) { ok = false; break; } if (v === 2) cover++; }
+            if (!ok) continue;
+            for (let i = 0; i < len; i++) { const cy = y + (h ? 0 : i), cx = x + (h ? i : 0); if (this.shot[cy][cx] === 0) w[cy][cx] += 1 + cover * 30; }
+          }
+        });
+        const free = []; let best = -1;
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (this.shot[y][x] === 0) { free.push({ x, y }); if (w[y][x] > best) best = w[y][x]; }
+        if (!hitsOpen && Math.random() < 0.15) return free[rnd(free.length)];
+        const top = free.filter(c => w[c.y][c.x] >= best * 0.9 && w[c.y][c.x] > 0);
+        return (top.length ? top : free)[rnd((top.length ? top : free).length)];
+      }
+    }
+
+    /* ================= game state ================= */
+    const S = {
+      phase: 'menu', mode: null, role: 'host',
+      fleet: [], sel: 'carrier', horiz: true, hover: null,
+      myReady: false, oppReady: false, started: false, turn: 'me',
+      myShots: mk2d(), oppSunk: [], inShots: mk2d(), pending: null, aim: null,
+      oppName: 'Opponent', oppAvatar: '', shotsMade: 0, shotsTaken: 0, rematchMe: false, rematchOpp: false, oppHere: false
+    };
+    let rt = null, lobby = null, room = null, bot = null, searchTimers = [];
+    const myId = Math.random().toString(36).slice(2, 10);
+    const myName = () => { const n = window.Leaderboard && Leaderboard.getName(); return n || 'Captain'; };
+    const myAvatar = () => (window.Leaderboard ? Leaderboard.getAvatar() : '');
+    let wins = parseInt(store.get('battleship-wins', '0'), 10) || 0, losses = parseInt(store.get('battleship-losses', '0'), 10) || 0;
+    const showRecord = () => { $('wins').textContent = wins; $('losses').textContent = losses; };
+    showRecord();
+
+    /* ---------- screens ---------- */
+    const panels = ['pMenu', 'pFriend', 'pSearch', 'pOver', 'pInfo'];
+    function showPanel(id) {
+      $('ov').hidden = !id;
+      panels.forEach(p => { $(p).hidden = p !== id; });
+    }
+    function setStatus(txt, tone) { const s = $('status'); s.textContent = txt; s.className = 'status' + (tone ? ' ' + tone : ''); }
+    function setAvatar(box, avatar) {
+      const old = box.querySelector('.av'); if (old) old.remove();
+      let el = null;
+      try { if (window.Leaderboard && avatar && Leaderboard.isValidAvatar(avatar)) el = Leaderboard.avatarEl(avatar, 28); } catch (e) { el = null; }
+      if (!el) { el = document.createElement('span'); el.className = 'av'; }
+      box.insertBefore(el, box.firstChild);
+    }
+    function setPlayers() {
+      $('nameMe').textContent = myName(); $('nameOpp').textContent = S.oppName;
+      setAvatar($('pcMe'), myAvatar()); setAvatar($('pcOpp'), S.oppAvatar);
+    }
+    function updateTurnMarks() {
+      $('pcMe').classList.toggle('turn', S.phase === 'battle' && S.turn === 'me');
+      $('pcOpp').classList.toggle('turn', S.phase === 'battle' && S.turn === 'opp');
+    }
+    function inGameUi(on) { $('hud').hidden = !on; $('menuBtn').hidden = !on; }
+
+    function toMenu() {
+      closeNet(true);
+      Object.assign(S, { phase: 'menu', mode: null, started: false, myReady: false, oppReady: false, oppHere: false });
+      inGameUi(false); $('dock').hidden = true;
+      Snd.setMode('calm');
+      showPanel('pMenu');
+    }
+    function closeNet(sayBye) {
+      searchTimers.forEach(clearInterval); searchTimers = [];
+      if (bot) { bot.stop(); bot = null; }
+      if (room) { if (sayBye) room.send('bye', {}); room.leave(); room = null; }
+      if (lobby) { lobby.leave(); lobby = null; }
+      if (rt) { rt.close(); rt = null; }
+    }
+    function info(title, text, opts) {
+      $('iTitle').textContent = title; $('iText').textContent = text;
+      $('bInfoAi').hidden = !(opts && opts.ai);
+      showPanel('pInfo');
+    }
+
+    /* ---------- placement ---------- */
+    function beginPlacement() {
+      S.phase = 'place'; S.fleet = []; S.sel = 'carrier'; S.horiz = true; S.hover = null;
+      S.myReady = false; S.oppReady = S.oppReady && false; S.started = false;
+      S.myShots = mk2d(); S.inShots = mk2d(); S.oppSunk = []; S.pending = null; S.aim = null; S.shotsMade = 0; S.shotsTaken = 0;
+      S.rematchMe = false; S.rematchOpp = false;
+      inGameUi(true); setPlayers(); updateTurnMarks();
+      showPanel(null); $('dock').hidden = false;
+      Snd.setMode('calm');
+      setStatus('Place your ships');
+      buildDock();
+    }
+    function buildDock() {
+      const box = $('shipBtns'); box.innerHTML = '';
+      SHIPS.forEach(sh => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'ship' + (S.sel === sh.id ? ' sel' : '') + (S.fleet.some(f => f.id === sh.id) ? ' done' : '');
+        const pips = document.createElement('i'); for (let i = 0; i < sh.len; i++) pips.appendChild(document.createElement('b'));
+        const t = document.createElement('span'); t.textContent = sh.name;
+        b.appendChild(pips); b.appendChild(t);
+        b.addEventListener('click', () => { if (S.myReady) return; S.sel = sh.id; Snd.fx.click(); const placed = S.fleet.find(f => f.id === sh.id); if (placed) { S.horiz = placed.h; S.fleet = S.fleet.filter(f => f !== placed); } buildDock(); });
+        box.appendChild(b);
+      });
+      const done = S.fleet.length === SHIPS.length;
+      $('readyBtn').disabled = !done || S.myReady;
+      ['rotBtn', 'rndBtn', 'clrBtn'].forEach(i => { $(i).disabled = S.myReady; });
+      $('readyBtn').textContent = S.myReady ? 'Waiting...' : 'Ready!';
+    }
+    function nextUnplaced() { const u = SHIPS.find(s => !S.fleet.some(f => f.id === s.id)); S.sel = u ? u.id : null; }
+    function placeAt(x, y) {
+      if (S.myReady) return;
+      const hit = shipAt(S.fleet, x, y);
+      if (hit && !S.sel) {                     // pick a placed ship back up
+        S.fleet = S.fleet.filter(f => f !== hit); S.sel = hit.id; S.horiz = hit.h; Snd.fx.click(); buildDock(); return;
+      }
+      if (!S.sel) return;
+      const sh = SHIP[S.sel];
+      if (hit && hit.id !== S.sel && !fits(S.fleet, sh.id, sh.len, x, y, S.horiz)) { S.fleet = S.fleet.filter(f => f !== hit); S.sel = hit.id; S.horiz = hit.h; Snd.fx.click(); buildDock(); return; }
+      if (!fits(S.fleet, sh.id, sh.len, x, y, S.horiz)) { Snd.fx.rotate(); return; }
+      S.fleet = S.fleet.filter(f => f.id !== sh.id); S.fleet.push({ id: sh.id, len: sh.len, x, y, h: S.horiz, hits: 0 });
+      Snd.fx.place(); nextUnplaced(); buildDock();
+    }
+    function rotate() { if (S.myReady) return; S.horiz = !S.horiz; Snd.fx.rotate(); }
+    $('rotBtn').addEventListener('click', rotate);
+    $('rndBtn').addEventListener('click', () => { if (S.myReady) return; S.fleet = randomFleet(); S.sel = null; Snd.fx.place(); buildDock(); });
+    $('clrBtn').addEventListener('click', () => { if (S.myReady) return; S.fleet = []; S.sel = 'carrier'; Snd.fx.click(); buildDock(); });
+    $('readyBtn').addEventListener('click', () => {
+      if (S.fleet.length !== SHIPS.length || S.myReady) return;
+      S.myReady = true; Snd.fx.click(); buildDock();
+      setStatus(S.oppReady ? 'Starting...' : 'Waiting for the opponent...');
+      tx('ready', {}); maybeStart();
+    });
+
+    /* ---------- messages between the two players (same for the computer and for a person online) ---------- */
+    function tx(type, p) {
+      if (S.mode === 'ai') { if (bot) bot.receive(type, p || {}); }
+      else if (room) room.send(type, p || {});
+    }
+    function onMsg(type, p) {
+      if (S.phase === 'menu') return;
+      if (type === 'ready') { S.oppReady = true; if (S.phase === 'place' && S.myReady) setStatus('Starting...'); maybeStart(); }
+      else if (type === 'start') { if (S.phase === 'place' && S.myReady && !S.started) beginBattle(p.first === S.role ? 'me' : 'opp'); }
+      else if (type === 'fire') handleFire(p);
+      else if (type === 'result') handleResult(p);
+      else if (type === 'rematch') { S.rematchOpp = true; checkRematch(); }
+      else if (type === 'bye') oppLeft();
+    }
+    function maybeStart() {
+      if (S.role === 'host' && S.myReady && S.oppReady && !S.started && S.phase === 'place') {
+        const first = Math.random() < 0.5 ? 'host' : 'guest';
+        tx('start', { first });
+        beginBattle(first === S.role ? 'me' : 'opp');
+      }
+    }
+    function beginBattle(turn) {
+      S.started = true; S.phase = 'battle'; S.turn = turn; S.pending = null; S.aim = null;
+      $('dock').hidden = true; Snd.setMode('battle'); Snd.fx.found();
+      updateTurnMarks(); turnStatus();
+    }
+    function turnStatus() {
+      if (S.phase !== 'battle') return;
+      if (S.turn === 'me') setStatus('Your turn: fire!', 'good'); else setStatus(S.oppName + ' is aiming...', '');
+      updateTurnMarks();
+    }
+
+    /* ---------- shooting ---------- */
+    function fireAt(x, y) {
+      if (S.phase !== 'battle' || S.turn !== 'me' || S.pending || S.myShots[y][x]) return;
+      S.pending = { x, y }; S.aim = null; S.shotsMade++;
+      Snd.fx.fire(); setStatus('Incoming...');
+      tx('fire', { x, y });
+    }
+    function handleFire(p) {
+      if (S.phase !== 'battle' || S.turn !== 'opp') return;
+      const x = p.x | 0, y = p.y | 0;
+      if (x < 0 || y < 0 || x >= N || y >= N || S.inShots[y][x]) return;
+      const r = takeShot(S.fleet, x, y);
+      S.inShots[y][x] = r.hit ? 2 : 1; S.shotsTaken++;
+      tx('result', { x, y, hit: r.hit, sunk: r.sunk, win: r.win });
+      impact('mine', x, y, r.hit, !!r.sunk);
+      if (r.win) { finish(false); return; }
+      S.turn = 'me'; turnStatus();
+      if (S.mode === 'online') Snd.fx.ping();
+    }
+    function handleResult(p) {
+      const q = S.pending; if (S.phase !== 'battle' || !q || q.x !== p.x || q.y !== p.y) return;
+      S.pending = null;
+      S.myShots[q.y][q.x] = p.hit ? 2 : 1;
+      if (p.sunk) { S.oppSunk.push(p.sunk); cellsOf(p.sunk).forEach(c => { S.myShots[c[1]][c[0]] = 3; }); }
+      impact('enemy', q.x, q.y, p.hit, !!p.sunk);
+      if (p.win) { finish(true); return; }
+      S.turn = 'opp'; turnStatus();
+    }
+    function finish(won) {
+      S.phase = 'over'; updateTurnMarks();
+      if (won) { wins++; store.set('battleship-wins', String(wins)); } else { losses++; store.set('battleship-losses', String(losses)); }
+      showRecord();
+      setStatus(won ? 'Victory!' : 'Defeat', won ? 'good' : 'bad');
+      setTimeout(() => {
+        if (S.phase !== 'over') return;
+        Snd.setMode('calm'); (won ? Snd.fx.win : Snd.fx.lose)();
+        $('oTitle').textContent = won ? 'Victory!' : 'Defeat'; $('oTitle').className = won ? 'win' : 'lose';
+        $('oText').textContent = won ? 'You sank the whole enemy fleet in ' + S.shotsMade + ' shots.' : S.oppName + ' sank your fleet. You took ' + S.shotsTaken + ' shots.';
+        $('bAgain').disabled = false; $('bAgain').textContent = 'Rematch'; $('oFine').textContent = '';
+        showPanel('pOver');
+      }, 1400);
+    }
+    function checkRematch() {
+      if (S.phase !== 'over') return;
+      if (S.rematchOpp && !S.rematchMe) $('oFine').textContent = S.oppName + ' wants a rematch!';
+      if (S.rematchMe && S.rematchOpp) { S.oppReady = false; beginPlacement(); S.oppReady = false; }
+    }
+    $('bAgain').addEventListener('click', () => {
+      Snd.fx.click(); S.rematchMe = true; $('bAgain').disabled = true; $('bAgain').textContent = 'Waiting...';
+      tx('rematch', {}); checkRematch();
+    });
+    $('bMenu').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    function oppLeft() {
+      if (S.phase === 'menu') return;
+      const was = S.phase;
+      closeNet(false); S.phase = 'menu'; inGameUi(false); $('dock').hidden = true; Snd.setMode('calm');
+      info('Opponent left', was === 'battle' ? 'Your opponent left the game, so the battle is over.' : was === 'over' ? 'Your opponent left, so there will be no rematch.' : 'Your opponent left before the game started.');
+    }
+
+    /* ---------- the computer ---------- */
+    function startAi() {
+      closeNet(false);
+      S.mode = 'ai'; S.role = 'host'; S.oppName = 'Admiral Bot'; S.oppAvatar = 'robot'; S.oppReady = false;
+      bot = new Bot((t, p) => setTimeout(() => onMsg(t, p), 0));
+      beginPlacement();
+    }
+
+    /* ---------- online: random opponent ---------- */
+    function connectFail(err) {
+      closeNet(false); S.phase = 'menu';
+      info('Could not connect', 'The matchmaking server could not be reached. Your network may be blocking it. You can still play the computer.', { ai: true });
+    }
+    async function findOpponent() {
+      closeNet(false);
+      S.mode = 'online'; S.phase = 'search';
+      $('sTitle').textContent = 'Searching...'; $('sCode').hidden = true; $('sText').textContent = 'Connecting...';
+      showPanel('pSearch');
+      rt = new RT();
+      try { await rt.connect(); } catch (e) { connectFail(e); return; }
+      rt.onClose = () => { if (S.phase === 'search') connectFail(); else if (S.mode === 'online' && S.phase !== 'menu' && S.phase !== 'over') { closeNet(false); S.phase = 'menu'; inGameUi(false); $('dock').hidden = true; info('Connection lost', 'The connection to the server dropped.'); } };
+      lobby = rt.channel('battleship-lobby', myId);
+      let searching = true, attempt = 0, lastInviteAt = 0;
+      const invited = new Set();                       // every room this player has offered, so any accept can be recognised
+      const waiting = () => {
+        const out = [];
+        Object.keys(lobby.presence).forEach(k => { const m = lobby.presence[k][lobby.presence[k].length - 1]; if (m && m.state === 'waiting') out.push(m); });
+        return out.sort((a, b) => (a.ts - b.ts) || (a.id < b.id ? -1 : 1));
+      };
+      const tick = () => {
+        if (!searching) return;
+        const list = waiting();
+        $('sText').textContent = list.length > 1 ? 'Found ' + (list.length - 1) + ' other sailor' + (list.length > 2 ? 's' : '') + '. Pairing up...' : 'Waiting for another player to search too. Tell a friend to press "Find an opponent"!';
+        if (list.length > 1 && list[0].id === myId && Date.now() - lastInviteAt > 2500) {
+          const target = list[1 + (attempt % (list.length - 1))];
+          const roomId = Math.random().toString(36).slice(2, 10); attempt++; lastInviteAt = Date.now(); invited.add(roomId);
+          lobby.send('invite', { from: myId, to: target.id, room: roomId });
+        }
+      };
+      lobby.on('invite', p => {
+        if (!searching || p.to !== myId || !p.room || typeof p.room !== 'string') return;
+        searching = false;
+        lobby.track({ id: myId, ts: Date.now(), state: 'matched' });
+        lobby.send('accept', { to: p.from, from: myId, room: p.room });
+        enterRoom('battleship-room-' + p.room, 'guest');
+      });
+      lobby.on('accept', p => {
+        if (!searching || p.to !== myId || !invited.has(p.room)) return;
+        searching = false; enterRoom('battleship-room-' + p.room, 'host');
+      });
+      lobby.onPresence = tick;
+      try { await lobby.join(); } catch (e) { connectFail(e); return; }
+      lobby.track({ id: myId, name: myName(), ts: Date.now(), state: 'waiting' });
+      $('sText').textContent = 'Waiting for another player to search too. Tell a friend to press "Find an opponent"!';
+      searchTimers.push(setInterval(tick, 3000));
+    }
+
+    /* ---------- online: a room, for a random match or a friend's code ---------- */
+    async function enterRoom(channelName, role, opts) {
+      opts = opts || {};
+      S.role = role; S.oppHere = false; S.oppReady = false;
+      if (lobby) { lobby.leave(); lobby = null; }
+      searchTimers.forEach(clearInterval); searchTimers = [];
+      room = rt.channel(channelName, myId);
+      ['ready', 'start', 'fire', 'result', 'rematch', 'bye'].forEach(t => room.on(t, p => onMsg(t, p)));
+      room.onPresence = () => roomPresence(opts);
+      try { await room.join(); } catch (e) { connectFail(e); return; }
+      room.track({ id: myId, name: myName(), avatar: myAvatar(), role, ts: Date.now() });
+      if (!opts.friend) {
+        $('sText').textContent = 'Opponent found! Joining the battle...';
+        searchTimers.push(setTimeout(() => { if (!S.oppHere && S.phase === 'search') { closeNet(false); findOpponent(); } }, 12000));
+      }
+    }
+    function roomPresence(opts) {
+      if (!room) return;
+      const all = Object.keys(room.presence).map(k => room.presence[k][room.presence[k].length - 1]).filter(Boolean).sort((a, b) => (a.ts - b.ts) || (a.id < b.id ? -1 : 1));
+      const others = all.filter(m => m.id !== myId);
+      if (opts.friend && all.length > 2 && all.findIndex(m => m.id === myId) > 1) { closeNet(false); S.phase = 'menu'; info('Room full', 'That room already has two players.'); return; }
+      const opp = opts.friend ? others.find(m => m.role !== S.role) : others[0];
+      if (opp && !S.oppHere) {
+        S.oppHere = true;
+        S.oppName = String(opp.name || 'Opponent').slice(0, 20); S.oppAvatar = typeof opp.avatar === 'string' ? opp.avatar : '';
+        Snd.fx.found(); beginPlacement();
+      } else if (!opp && S.oppHere) { oppLeft(); }
+    }
+
+    /* ---------- online: play a friend with a code ---------- */
+    const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    async function friendRoom(create, code) {
+      closeNet(false);
+      S.mode = 'online'; S.phase = 'search';
+      $('sTitle').textContent = create ? 'Your room' : 'Joining...'; $('sCode').hidden = !create;
+      $('sText').textContent = 'Connecting...';
+      showPanel('pSearch');
+      rt = new RT();
+      try { await rt.connect(); } catch (e) { connectFail(e); return; }
+      rt.onClose = () => { if (S.phase === 'search') connectFail(); else if (S.mode === 'online' && S.phase !== 'menu' && S.phase !== 'over') { closeNet(false); S.phase = 'menu'; inGameUi(false); $('dock').hidden = true; info('Connection lost', 'The connection to the server dropped.'); } };
+      if (create) { code = ''; for (let i = 0; i < 4; i++) code += CODE_CHARS[rnd(CODE_CHARS.length)]; $('sCode').textContent = code; }
+      await enterRoom('battleship-code-' + code, create ? 'host' : 'guest', { friend: true });
+      if (!room) return;
+      if (create) $('sText').textContent = 'Share this code with your friend and wait for them to join.';
+      else {
+        $('sText').textContent = 'Looking for room ' + code + '...';
+        searchTimers.push(setTimeout(() => { if (!S.oppHere && S.phase === 'search') { closeNet(false); S.phase = 'menu'; info('Room not found', 'No one is waiting in room ' + code + '. Check the code and try again.'); } }, 6000));
+      }
+    }
+
+    /* ---------- menu buttons ---------- */
+    $('bFind').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); findOpponent(); });
+    $('bFriend').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); showPanel('pFriend'); });
+    $('bAi').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); startAi(); });
+    $('bFriendBack').addEventListener('click', () => { Snd.fx.click(); showPanel('pMenu'); });
+    $('bCreate').addEventListener('click', () => { Snd.fx.click(); friendRoom(true); });
+    const joinCode = () => { const c = $('codeIn').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length === 4) { Snd.fx.click(); friendRoom(false, c); } else $('codeIn').focus(); };
+    $('bJoin').addEventListener('click', joinCode);
+    $('codeIn').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') joinCode(); });
+    $('bCancel').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('menuBtn').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('bInfoOk').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('bInfoAi').addEventListener('click', () => { Snd.fx.click(); startAi(); });
+    const musBtn = $('musBtn'), sfxBtn = $('sfxBtn');
+    musBtn.setAttribute('aria-pressed', String(Snd.musOn)); sfxBtn.setAttribute('aria-pressed', String(Snd.sfxOn));
+    musBtn.addEventListener('click', () => { Snd.unlock(); Snd.setMusic(!Snd.musOn); musBtn.setAttribute('aria-pressed', String(Snd.musOn)); musBtn.blur(); });
+    sfxBtn.addEventListener('click', () => { Snd.setSfx(!Snd.sfxOn); sfxBtn.setAttribute('aria-pressed', String(Snd.sfxOn)); if (Snd.sfxOn) { Snd.unlock(); Snd.fx.click(); } sfxBtn.blur(); });
+    window.addEventListener('pagehide', () => { if (room) room.send('bye', {}); });
+
+    /* ================= drawing ================= */
+    const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+    let CW = 300, CH = 300, DPR = 1, L = null;
+    const FONT = '"Pixelify Sans", "Courier New", monospace';
+    function resize() {
+      DPR = Math.min(2, window.devicePixelRatio || 1);
+      CW = stage.clientWidth; CH = stage.clientHeight;
+      cv.width = Math.round(CW * DPR); cv.height = Math.round(CH * DPR);
+    }
+    window.addEventListener('resize', resize);
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+
+    function layout() {
+      const top = $('hud').hidden ? 8 : 48;
+      const bot = $('dock').hidden ? 8 : ($('dock').offsetHeight + 4);
+      const W = CW, H = CH - top - bot, pad = 8;
+      const showBoth = S.phase === 'battle' || S.phase === 'over';
+      let cs, mine, enemy;
+      const bw = 10.8;                                // grid plus the label strip on the left
+      if (!showBoth) {
+        cs = Math.max(10, Math.min((W - 2 * pad) / bw, (H - 2 * pad) / 11.7));
+        mine = { x: (W - 10 * cs) / 2 + 0.4 * cs, y: top + (H - 11.7 * cs) / 2 + 1.7 * cs, cs };
+        enemy = null;
+      } else if (W >= H * 1.3) {                      // wide: boards side by side
+        cs = Math.max(8, Math.min((W - 2 * pad) / 23.1, (H - 2 * pad) / 11.7));
+        const total = 23.1 * cs, x0 = (W - total) / 2, y0 = top + (H - 11.7 * cs) / 2 + 1.7 * cs;
+        mine = { x: x0 + 0.8 * cs, y: y0, cs }; enemy = { x: x0 + 12.3 * cs + 0.8 * cs, y: y0, cs };
+      } else {                                        // tall: enemy waters on top
+        cs = Math.max(8, Math.min((W - 2 * pad) / bw, (H - 2 * pad) / 24.4));
+        const y0 = top + (H - 24.4 * cs) / 2;
+        enemy = { x: (W - 10 * cs) / 2 + 0.4 * cs, y: y0 + 1.7 * cs, cs };
+        mine = { x: enemy.x, y: y0 + 12.7 * cs + 1.7 * cs, cs };
+      }
+      return { mine, enemy, cs };
+    }
+    const cellPx = (b, x, y) => [b.x + (x + 0.5) * b.cs, b.y + (y + 0.5) * b.cs];
+    function pickCell(b, px, py) {
+      if (!b) return null;
+      const x = Math.floor((px - b.x) / b.cs), y = Math.floor((py - b.y) / b.cs);
+      return x >= 0 && y >= 0 && x < N && y < N ? { x, y } : null;
+    }
+
+    function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+    // a ship drawn lying along the x axis, centred on 0,0: len is its length, wd its width
+    function shipShape(id, len, wd, mode) {
+      const hull = { normal: '#98a4b6', ok: 'rgba(120,220,140,0.75)', bad: 'rgba(240,90,90,0.75)', sunk: '#6b2a34' }[mode || 'normal'];
+      const deck = { normal: '#bcc6d6', ok: 'rgba(170,240,185,0.8)', bad: 'rgba(255,150,150,0.8)', sunk: '#8a3b46' }[mode || 'normal'];
+      const dark = mode === 'sunk' ? '#3e161c' : '#5a6578';
+      const lw = Math.max(1.5, wd * 0.08);
+      ctx.lineWidth = lw; ctx.strokeStyle = '#1a2230'; ctx.lineJoin = 'round';
+      if (id === 'submarine') {
+        ctx.fillStyle = mode === 'normal' ? '#6f8aa3' : hull;
+        rrect(-len / 2 + wd * 0.1, -wd * 0.3, len - wd * 0.2, wd * 0.6, wd * 0.3); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = dark; rrect(-wd * 0.28, -wd * 0.26, wd * 0.62, wd * 0.52, wd * 0.12); ctx.fill(); ctx.stroke();
+        ctx.fillRect(wd * 0.04, -wd * 0.46, wd * 0.08, wd * 0.22);
+        return;
+      }
+      const x0 = -len / 2 + wd * 0.08, x1 = len / 2 - wd * 0.08, hw = wd * 0.4, bow = x1 - wd * 0.6;
+      ctx.beginPath(); ctx.moveTo(x0, -hw); ctx.lineTo(bow, -hw); ctx.quadraticCurveTo(x1 - wd * 0.15, -hw * 0.6, x1, 0); ctx.quadraticCurveTo(x1 - wd * 0.15, hw * 0.6, bow, hw); ctx.lineTo(x0, hw); ctx.closePath();
+      ctx.fillStyle = hull; ctx.fill(); ctx.stroke();
+      ctx.fillStyle = deck; rrect(x0 + wd * 0.12, -hw * 0.68, (bow - x0) - wd * 0.1, hw * 1.36, wd * 0.08); ctx.fill();
+      ctx.fillStyle = dark;
+      const at = f => x0 + (x1 - x0) * f;
+      if (id === 'carrier') {
+        ctx.fillStyle = mode === 'sunk' ? '#5a222a' : '#7b8799'; ctx.fillRect(at(0.1), -hw * 0.12, (x1 - x0) * 0.72, hw * 0.24);
+        ctx.fillStyle = dark; ctx.fillRect(at(0.52), -hw * 0.95, wd * 0.34, hw * 0.55); ctx.fillRect(at(0.52) + wd * 0.06, -hw * 1.15, wd * 0.08, hw * 0.3);
+      } else if (id === 'battleship') {
+        [0.22, 0.7].forEach(f => { ctx.beginPath(); ctx.arc(at(f), 0, wd * 0.2, 0, 7); ctx.fill(); ctx.fillRect(at(f), -wd * 0.04, wd * 0.34, wd * 0.08); });
+        ctx.fillRect(at(0.44), -wd * 0.2, wd * 0.34, wd * 0.4);
+      } else if (id === 'cruiser') {
+        ctx.beginPath(); ctx.arc(at(0.72), 0, wd * 0.18, 0, 7); ctx.fill(); ctx.fillRect(at(0.72), -wd * 0.04, wd * 0.3, wd * 0.08);
+        ctx.fillRect(at(0.32), -wd * 0.2, wd * 0.34, wd * 0.4);
+      } else {
+        ctx.beginPath(); ctx.arc(at(0.68), 0, wd * 0.15, 0, 7); ctx.fill(); ctx.fillRect(at(0.3), -wd * 0.17, wd * 0.28, wd * 0.34);
+      }
+    }
+    function drawShip(b, s, mode, alpha) {
+      const cs = b.cs, len = s.len * cs, cx = b.x + (s.x + (s.h ? s.len / 2 : 0.5)) * cs, cy = b.y + (s.y + (s.h ? 0.5 : s.len / 2)) * cs;
+      ctx.save(); ctx.translate(cx, cy); if (!s.h) ctx.rotate(Math.PI / 2);
+      if (alpha !== undefined) ctx.globalAlpha = alpha;
+      shipShape(s.id, len, cs, mode); ctx.restore();
+    }
+
+    const fxs = [];       // little animations: rings, sparks and smoke
+    let shake = 0;
+    function addFx(o) { o.t = 0; fxs.push(o); }
+    function splashAt(px, py, cs) {
+      addFx({ k: 'ring', x: px, y: py, dur: 0.7, r0: cs * 0.1, r1: cs * 0.75, col: '255,255,255' });
+      addFx({ k: 'ring', x: px, y: py, dur: 0.95, r0: cs * 0.05, r1: cs * 1.05, col: '190,225,255', delay: 0.12 });
+      for (let i = 0; i < 9; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.8, v = cs * (2 + Math.random() * 2.4); addFx({ k: 'p', x: px, y: py, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: cs * 9, dur: 0.6, size: cs * 0.09, col: '220,240,255' }); }
+    }
+    function boomAt(px, py, cs, big) {
+      addFx({ k: 'ring', x: px, y: py, dur: 0.45, r0: cs * 0.1, r1: cs * (big ? 1.5 : 0.95), col: '255,200,90', fill: true });
+      const n = big ? 26 : 16;
+      for (let i = 0; i < n; i++) { const a = Math.random() * 7, v = cs * (1 + Math.random() * 3.2); addFx({ k: 'p', x: px, y: py, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: cs * 2, dur: 0.5 + Math.random() * 0.5, size: cs * (0.08 + Math.random() * 0.12), col: Math.random() < 0.5 ? '255,160,40' : '255,230,120' }); }
+      for (let i = 0; i < (big ? 8 : 4); i++) addFx({ k: 'p', x: px + (Math.random() - 0.5) * cs * 0.4, y: py, vx: (Math.random() - 0.5) * cs, vy: -cs * (0.8 + Math.random()), g: -cs * 0.3, dur: 1.1, size: cs * 0.2, col: '70,70,80', grow: true });
+      if (big) shake = 0.5;
+    }
+    // the visual and audio result of a shell landing
+    function impact(which, x, y, hit, sunk) {
+      const b = which === 'mine' ? L && L.mine : L && L.enemy; if (!b) { L = layout(); }
+      const bb = which === 'mine' ? L.mine : L.enemy; if (!bb) return;
+      const p = cellPx(bb, x, y);
+      const delay = which === 'mine' ? 0.35 : 0.12;
+      setTimeout(() => {
+        if (hit) { boomAt(p[0], p[1], bb.cs, sunk); (Snd.fx.hit)(); if (sunk) setTimeout(() => Snd.fx.sunk(), 120); }
+        else { splashAt(p[0], p[1], bb.cs); Snd.fx.splash(); }
+      }, delay * 1000);
+    }
+
+    function drawBoard(b, which, t) {
+      const cs = b.cs, g = which === 'mine' ? S.inShots : S.myShots;
+      // water
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const px = b.x + x * cs, py = b.y + y * cs;
+        ctx.fillStyle = (x + y) % 2 ? '#1c6393' : '#1a5c8a'; ctx.fillRect(px, py, cs, cs);
+        ctx.fillStyle = 'rgba(255,255,255,0.10)';
+        const o = Math.sin(t * 1.4 + x * 1.7 + y * 0.9) * cs * 0.12;
+        ctx.fillRect(px + cs * 0.18 + o, py + cs * 0.3, cs * 0.34, Math.max(1, cs * 0.05));
+        ctx.fillRect(px + cs * 0.5 - o, py + cs * 0.66, cs * 0.3, Math.max(1, cs * 0.05));
+      }
+      ctx.strokeStyle = 'rgba(8,30,55,0.55)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (let i = 0; i <= N; i++) { ctx.moveTo(b.x + i * cs, b.y); ctx.lineTo(b.x + i * cs, b.y + N * cs); ctx.moveTo(b.x, b.y + i * cs); ctx.lineTo(b.x + N * cs, b.y + i * cs); }
+      ctx.stroke();
+      // labels
+      ctx.fillStyle = '#8fb2d6'; ctx.font = '600 ' + Math.max(9, cs * 0.45) + 'px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < N; i++) { ctx.fillText('ABCDEFGHIJ'[i], b.x + (i + 0.5) * cs, b.y - cs * 0.45); ctx.fillText(String(i + 1), b.x - cs * 0.45, b.y + (i + 0.5) * cs); }
+      // ships
+      if (which === 'mine') S.fleet.forEach(s => drawShip(b, s, s.hits >= s.len ? 'sunk' : 'normal'));
+      else S.oppSunk.forEach(s => drawShip(b, s, 'sunk'));
+      // shots
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const v = g[y][x]; if (!v) continue;
+        const [cx, cy] = cellPx(b, x, y);
+        if (v === 1) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = Math.max(1.5, cs * 0.07); ctx.beginPath(); ctx.arc(cx, cy, cs * 0.22, 0, 7); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(cx, cy, cs * 0.07, 0, 7); ctx.fill();
+        } else {
+          const fl = 0.5 + 0.5 * Math.sin(t * 9 + x * 3 + y * 5);
+          ctx.fillStyle = v === 3 ? 'rgba(40,10,14,0.55)' : 'rgba(30,10,10,0.35)'; ctx.beginPath(); ctx.arc(cx, cy, cs * 0.34, 0, 7); ctx.fill();
+          ctx.fillStyle = 'rgb(230,' + (70 + fl * 70 | 0) + ',30)'; ctx.beginPath(); ctx.arc(cx, cy, cs * (0.2 + fl * 0.04), 0, 7); ctx.fill();
+          ctx.fillStyle = 'rgb(255,' + (190 + fl * 50 | 0) + ',90)'; ctx.beginPath(); ctx.arc(cx, cy - cs * 0.03, cs * 0.11, 0, 7); ctx.fill();
+          if (v !== 3) { ctx.fillStyle = 'rgba(255,200,80,' + (0.5 + fl * 0.4) + ')'; ctx.beginPath(); ctx.moveTo(cx - cs * 0.1, cy - cs * 0.15); ctx.lineTo(cx + (fl - 0.5) * cs * 0.1, cy - cs * (0.38 + fl * 0.1)); ctx.lineTo(cx + cs * 0.1, cy - cs * 0.15); ctx.fill(); }
+        }
+      }
+    }
+    function drawFrameAndTitle(b, title, fleetStatus, active, t) {
+      const cs = b.cs;
+      ctx.lineWidth = Math.max(2, cs * 0.1); ctx.strokeStyle = active ? 'rgba(255,209,102,' + (0.65 + 0.35 * Math.sin(t * 5)) + ')' : '#2d5078';
+      ctx.strokeRect(b.x - 1, b.y - 1, N * cs + 2, N * cs + 2);
+      ctx.fillStyle = active ? '#ffd166' : '#cfe0f5'; ctx.font = '700 ' + Math.max(10, cs * 0.62) + 'px ' + FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(title, b.x, b.y - cs * 1.15);
+      let px = b.x + N * cs;
+      for (let i = SHIPS.length - 1; i >= 0; i--) {
+        const sh = SHIPS[i], w = sh.len * cs * 0.2, sunk = fleetStatus(sh.id);
+        px -= w; ctx.fillStyle = sunk ? '#7a2f3a' : '#7fd08a'; ctx.fillRect(px, b.y - cs * 1.3, w - 2, cs * 0.3);
+        px -= 4;
+      }
+    }
+
+    function drawMenuSea(t) {
+      const gr = ctx.createLinearGradient(0, 0, 0, CH); gr.addColorStop(0, '#0b2d4f'); gr.addColorStop(1, '#14578a');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, CW, CH);
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      for (let i = 0; i < 40; i++) { const x = (i * 97 + t * (12 + i % 5 * 4)) % (CW + 80) - 40, y = (i * 53) % CH; ctx.fillRect(x, y + Math.sin(t + i) * 3, 26 + i % 4 * 10, 3); }
+      const ships = [['carrier', 5, 0.28, 18, 1], ['battleship', 4, 0.7, -14, -1], ['destroyer', 2, 0.52, 26, 1]];
+      const cs = Math.max(26, Math.min(CW, CH) / 11);
+      ships.forEach(s => {
+        const span = CW + cs * 12, x = ((t * s[3] * 1.6 + s[2] * 900) % span + span) % span - cs * 6;
+        ctx.save(); ctx.translate(x, CH * s[2] + Math.sin(t * 1.2 + s[2] * 9) * 3); if (s[4] < 0) ctx.scale(-1, 1);
+        ctx.globalAlpha = 0.55; shipShape(s[0], s[1] * cs, cs, 'normal'); ctx.restore();
+      });
+    }
+
+    let lastT = 0;
+    function frame(ts) {
+      const t = ts / 1000, dt = Math.min(0.05, lastT ? t - lastT : 0); lastT = t;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.clearRect(0, 0, CW, CH);
+      if (S.phase === 'menu' || S.phase === 'search') { drawMenuSea(t); }
+      else {
+        ctx.fillStyle = '#0a2540'; ctx.fillRect(0, 0, CW, CH);
+        L = layout();
+        if (shake > 0) { shake = Math.max(0, shake - dt); ctx.save(); ctx.translate((Math.random() - 0.5) * 8 * shake, (Math.random() - 0.5) * 8 * shake); }
+        const both = L.enemy;
+        drawBoard(L.mine, 'mine', t);
+        // ghost of the ship being placed
+        if (S.phase === 'place' && !S.myReady && S.sel && S.hover) {
+          const sh = SHIP[S.sel], ok = fits(S.fleet, sh.id, sh.len, S.hover.x, S.hover.y, S.horiz);
+          drawShip(L.mine, { id: sh.id, len: sh.len, x: S.hover.x, y: S.hover.y, h: S.horiz }, ok ? 'ok' : 'bad');
+        }
+        const mineDead = id => { const s = S.fleet.find(f => f.id === id); return !!s && s.hits >= s.len; };
+        drawFrameAndTitle(L.mine, both ? 'YOUR FLEET' : 'PLACE YOUR FLEET', mineDead, S.phase === 'battle' && S.turn === 'opp', t);
+        if (both) {
+          drawBoard(L.enemy, 'enemy', t);
+          drawFrameAndTitle(L.enemy, 'ENEMY WATERS', id => S.oppSunk.some(s => s.id === id), S.phase === 'battle' && S.turn === 'me', t);
+          const canAim = S.phase === 'battle' && S.turn === 'me' && !S.pending;
+          const target = S.pending || (canAim && (S.aim || S.hover && S.hover.enemy && S.hover)) || null;
+          if (target && (S.pending || !S.myShots[target.y][target.x])) {
+            const [cx, cy] = cellPx(L.enemy, target.x, target.y), r = L.cs * (0.42 + 0.06 * Math.sin(t * 8));
+            ctx.strokeStyle = S.pending ? '#ffd166' : '#ff5a4d'; ctx.lineWidth = Math.max(2, L.cs * 0.09);
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.moveTo(cx - r * 1.4, cy); ctx.lineTo(cx - r * 0.5, cy); ctx.moveTo(cx + r * 0.5, cy); ctx.lineTo(cx + r * 1.4, cy);
+            ctx.moveTo(cx, cy - r * 1.4); ctx.lineTo(cx, cy - r * 0.5); ctx.moveTo(cx, cy + r * 0.5); ctx.lineTo(cx, cy + r * 1.4); ctx.stroke();
+          }
+        }
+        // animations on top
+        for (let i = fxs.length - 1; i >= 0; i--) {
+          const f = fxs[i]; f.t += dt; const tt = f.t - (f.delay || 0); if (tt < 0) continue;
+          if (tt >= f.dur) { fxs.splice(i, 1); continue; }
+          const k = tt / f.dur;
+          if (f.k === 'ring') {
+            const r = f.r0 + (f.r1 - f.r0) * k;
+            if (f.fill) { ctx.fillStyle = 'rgba(' + f.col + ',' + (0.75 * (1 - k)) + ')'; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 7); ctx.fill(); }
+            else { ctx.strokeStyle = 'rgba(' + f.col + ',' + (0.8 * (1 - k)) + ')'; ctx.lineWidth = Math.max(1.5, L.cs * 0.07); ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 7); ctx.stroke(); }
+          } else {
+            const x = f.x + f.vx * tt, y = f.y + f.vy * tt + 0.5 * f.g * tt * tt, sz = f.size * (f.grow ? 1 + k * 1.5 : 1 - k * 0.5);
+            ctx.fillStyle = 'rgba(' + f.col + ',' + (f.grow ? 0.45 * (1 - k) : 1 - k) + ')'; ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+          }
+        }
+        if (shake > 0) ctx.restore();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    /* ================= input ================= */
+    function canvasPoint(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+    cv.addEventListener('pointermove', e => {
+      if (!L) return;
+      const [px, py] = canvasPoint(e);
+      if (S.phase === 'place') S.hover = pickCell(L.mine, px, py);
+      else if (S.phase === 'battle') { const c = pickCell(L.enemy, px, py); S.hover = c ? { x: c.x, y: c.y, enemy: true } : null; }
+    });
+    cv.addEventListener('pointerleave', () => { S.hover = null; });
+    cv.addEventListener('pointerdown', e => {
+      Snd.unlock();
+      if (!L) return;
+      const [px, py] = canvasPoint(e);
+      if (S.phase === 'place') {
+        const c = pickCell(L.mine, px, py); if (!c) return;
+        S.hover = c;
+        if (e.button === 2) { rotate(); return; }
+        placeAt(c.x, c.y);
+      } else if (S.phase === 'battle') {
+        const c = pickCell(L.enemy, px, py); if (!c || S.turn !== 'me' || S.pending || S.myShots[c.y][c.x]) return;
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') {          // touch: tap once to aim, tap again to fire
+          if (S.aim && S.aim.x === c.x && S.aim.y === c.y) fireAt(c.x, c.y); else { S.aim = c; Snd.fx.click(); setStatus('Tap again to fire', 'good'); }
+        } else fireAt(c.x, c.y);
+      }
+    });
+    cv.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if ((e.key === 'r' || e.key === 'R') && S.phase === 'place') { e.preventDefault(); rotate(); }
+      else if (e.key === 'Enter' && S.phase === 'place' && !$('readyBtn').disabled) { e.preventDefault(); $('readyBtn').click(); }
+    });
+
+    resize();
+    showPanel('pMenu');
+    requestAnimationFrame(frame);
+    // expose a few things for testing in the console
+    window.__bs = { S, onMsg, fireAt };
+  })();
+  </script>
+</body>
+</html>

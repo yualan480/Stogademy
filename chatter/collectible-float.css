@@ -1,0 +1,16 @@
+/* Floating collectibles on the Orbit home page (collectible-float.js) */
+.cfloat{position:sticky;top:0;left:0;width:100%;height:0;z-index:3;pointer-events:none;overflow:visible;align-self:stretch}
+.cf{position:absolute;left:0;top:0;width:58px;height:58px;margin:-29px 0 0 -29px;padding:0;border:0;background:none;border-radius:50%;pointer-events:auto;cursor:var(--cur-pointer,pointer);will-change:transform;-webkit-tap-highlight-color:transparent}
+.cf::before{content:"";position:absolute;inset:-8px;border-radius:50%}   /* a bigger hit area than the picture: easy to tap on a phone */
+.cf .cfi{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;font-size:30px;line-height:1;transition:transform .18s;
+  background:radial-gradient(circle at 34% 28%,#ffffff44,transparent 52%),color-mix(in srgb,var(--k1) 28%,#0a1450 72%);
+  border:1px solid color-mix(in srgb,var(--k1) 60%,transparent);
+  box-shadow:0 0 18px color-mix(in srgb,var(--k2) 55%,transparent),inset 0 0 10px #ffffff22}
+.cf:hover .cfi{transform:scale(1.12)}
+.cf:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.cf.cfpop .cfi{animation:cfPop .55s cubic-bezier(.2,1.4,.4,1)}
+.cf.cfpop::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--k1);animation:cfRing .6s ease-out forwards;pointer-events:none}
+@keyframes cfPop{0%{transform:scale(1)}35%{transform:scale(1.35) rotate(-8deg)}65%{transform:scale(.92) rotate(6deg)}100%{transform:scale(1)}}
+@keyframes cfRing{from{transform:scale(1);opacity:.9}to{transform:scale(2.3);opacity:0}}
+@media (max-width:640px){.cf{width:48px;height:48px;margin:-24px 0 0 -24px}.cf .cfi{font-size:25px}}
+@media (prefers-reduced-motion:reduce){:root:not(.force-motion) .cf.cfpop .cfi,:root:not(.force-motion) .cf.cfpop::after{animation:none}}

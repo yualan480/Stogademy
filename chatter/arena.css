@@ -1,0 +1,69 @@
+/* Orbit Leaderboard Game. Same deep-space blue / violet look as the leaderboard and shop.
+   Motion is CSS transform / opacity only; style.css already switches animations off for people who asked their device for less motion. */
+.arena{position:relative;margin:14px 0 4px;padding:14px;border-radius:16px;border:1px solid #4a4fd088;background:linear-gradient(135deg,#0a1556cc,#1a0f5acc);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 34px #00000055,0 0 30px #5a3bff22;color:#e9eeff;animation:arIn .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes arIn{from{opacity:0;transform:translateY(10px)}}
+.arena.on::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(120deg,#5a3bff,#37c8ff,#b05bff,#5a3bff);background-size:300% 100%;animation:arEdge 7s linear infinite;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.55;pointer-events:none}
+@keyframes arEdge{to{background-position:300% 0}}
+.arena .err{margin:0}.arena small{color:var(--muted);display:block;font-size:12px}
+.ar-sk{height:64px;border-radius:12px;background:linear-gradient(90deg,#ffffff08,#ffffff18,#ffffff08);background-size:200% 100%;animation:arSk 1.2s linear infinite}@keyframes arSk{to{background-position:-200% 0}}
+.ar-loop{display:flex;align-items:center;gap:12px}.ar-loop>div{min-width:0;flex:1}.ar-loop b{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ar-loop em{font-style:normal;color:var(--muted);font-weight:400}
+.ar-hav{position:relative;display:inline-grid;place-items:center;width:44px;height:44px;flex:none;margin-top:12px}.ar-hav .av{width:44px;height:44px}
+.ar-none{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px dashed #6aa8ff88;color:var(--muted)}
+.ar-link{background:none;border:0;color:var(--accent2);cursor:var(--cur-pointer,pointer);font:inherit;font-size:13px;padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
+.ar-mid{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:12px}
+.ar-bal{display:flex;gap:8px}.ar-bal>span{padding:6px 12px;border-radius:10px;background:#ffffff0d;border:1px solid #ffffff14;min-width:84px;transition:border-color .3s,background .3s}
+.ar-bal b{font-size:16px;font-variant-numeric:tabular-nums}.ar-bal .lk{border-color:#37c8ff88;background:#37c8ff14}.ar-bal .lk b{color:#8fe3ff}
+.ar-chips{display:flex;gap:6px;flex-wrap:wrap}.ar-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 4px;border-radius:99px;background:#ffffff0a;opacity:.5;font-size:13px}.ar-chip.has{opacity:1;background:#ffffff14}
+.ar-act{display:flex;gap:6px;margin-left:auto}.ar-act .btn{width:auto;margin:0}
+.ar-pitch{margin:10px 0 0;font-size:13px}
+.ar-orb{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:12px;line-height:1;color:#fff;background:radial-gradient(circle at 30% 25%,var(--c1),var(--c2));box-shadow:0 0 10px color-mix(in srgb,var(--c1) 55%,transparent)}
+.ar-orb.big{width:40px;height:40px;font-size:19px;flex:none;animation:arFloat 3.4s ease-in-out infinite}@keyframes arFloat{50%{transform:translateY(-3px)}}
+.ar-how{margin-top:12px!important}
+
+/* target button on leaderboard rows */
+.lbrow .r:last-child{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.ar-tg{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;border:1px solid #6aa8ff66;background:#2563eb33;color:#cfe0ff;cursor:var(--cur-pointer,pointer);padding:0;transition:transform .15s,background .15s,box-shadow .15s}
+.ar-tg:hover,.ar-tg:focus-visible{background:#2563ebaa;transform:scale(1.1);box-shadow:0 0 14px #37c8ff77}.ar-tg.off{opacity:.4}
+@media(max-width:700px){.lbrow{grid-template-columns:40px minmax(0,1fr) 84px 76px!important}.ar-act{margin-left:0;width:100%}.ar-bal>span{min-width:0;flex:1}}
+
+/* windows */
+.ar-m{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ar-th{display:flex;gap:10px;align-items:center}.ar-th b{font-size:16px}.ar-th small{color:var(--muted);font-size:12px}.ar-th .av{width:40px;height:40px}
+.ar-tag{font-style:normal;font-size:11px;padding:1px 7px;border-radius:99px;background:linear-gradient(90deg,#5a3bff,#b05bff);color:#fff;vertical-align:middle}
+.ar-tabs{display:flex;gap:4px;padding:3px;border-radius:10px;background:#00000033}.ar-tabs button{flex:1;border:0;border-radius:8px;padding:6px 4px;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:var(--cur-pointer,pointer);transition:background .2s,color .2s}
+.ar-tabs button.on{background:var(--accent);color:#fff;box-shadow:0 0 14px #2563eb88}
+.ar-pane{display:flex;flex-direction:column;gap:10px}.ar-pane .btn,.ar-m>.btn{width:100%;margin:0}
+.ar-conf{border:1px solid var(--line);border-radius:10px;overflow:hidden}.ar-row{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;font-size:14px}.ar-row+.ar-row{border-top:1px solid var(--line)}
+.neg{color:#ff8da6}.pos{color:#7dffcf}.ar-small{font-size:12.5px;margin:0}
+.ar-two{display:flex;gap:8px}.ar-two>*{flex:1;min-width:0}.ar-two .btn{margin:0}
+.ar-lbl{font-size:12px;color:var(--muted)}.ar-noterow{display:flex;gap:8px;align-items:flex-start}.ar-noterow textarea{flex:1;resize:vertical;min-height:44px;background:#00000033;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:6px 8px;font:inherit;font-size:13px}
+.ar-res{display:none;text-align:center;padding:14px;border-radius:12px;position:relative;overflow:hidden}.ar-res.show{display:block}.ar-res b{display:block;font-size:20px}.ar-res span{font-size:13px;color:var(--muted)}
+.ar-res.ok{background:linear-gradient(135deg,#3ecf8e22,#37c8ff1c);border:1px solid #3ecf8e77}.ar-res.ok b{color:#7dffcf;text-shadow:0 0 18px #3ecf8e}
+.ar-res.blocked{background:#ef5b5b1c;border:1px solid #ef5b5b77;animation:arShake .5s}.ar-res.blocked b{color:#ff8da6}
+.ar-res.empty{background:#ffffff0a;border:1px solid #ffffff22}
+@keyframes arShake{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
+.pop{animation:arPop .45s cubic-bezier(.2,1.4,.4,1)}@keyframes arPop{from{transform:scale(.9);opacity:.2}}
+.ar-burst{position:absolute;left:50%;top:50%;pointer-events:none}.ar-burst i{position:absolute;width:8px;height:8px;margin:-4px;border-radius:50%;background:#ffd86b;box-shadow:0 0 8px #ffd86b;opacity:0;animation:arFly .9s ease-out var(--dl) both}
+.ar-burst.shatter i{border-radius:2px;width:7px;height:11px;background:#9fe4ff;box-shadow:0 0 8px #37c8ff;animation-name:arShard}
+@keyframes arFly{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(.4)}}
+@keyframes arShard{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+.ar-clue{position:relative;padding:12px 12px 12px 44px;border-radius:12px;background:#2563eb22;border:1px solid #6aa8ff66;margin-top:2px}.ar-clue.comp{background:#3ecf8e1c;border-color:#3ecf8e77}
+.ar-clue p{margin:0 0 8px;font-weight:600}.ar-ping{position:absolute;left:20px;top:22px;width:10px;height:10px;margin:-5px;border-radius:50%;background:#37c8ff}
+.ar-ping::before,.ar-ping::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #37c8ff;animation:arPing 1.4s ease-out 2}.ar-ping::after{animation-delay:.35s}
+@keyframes arPing{from{transform:scale(1);opacity:.9}to{transform:scale(4.2);opacity:0}}
+.ar-gear{display:flex;flex-direction:column;gap:8px}.ar-card{display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:#ffffff0a;border:1px solid #ffffff14}
+.ar-card[data-r=rare]{border-color:#6aa8ff55}.ar-card[data-r=epic]{border-color:#b05bff88;box-shadow:0 0 18px #b05bff22}
+.ar-ci{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ar-ci small{color:var(--muted);font-size:12px}.ar-meta b{color:var(--text)}
+.ar-rar{font-style:normal;font-size:10.5px;font-weight:600;color:var(--accent2);margin-left:4px;text-transform:uppercase;letter-spacing:.04em}.ar-auto{color:#7dffcf!important}
+.ar-card .btn{width:auto;margin:0;min-width:58px}.ar-card .ar-two input{background:#00000033;border:1px solid var(--line);border-radius:8px;color:var(--text);padding:4px 8px;font:inherit;font-size:13px;width:100%}
+.ar-h{margin:6px 0 0;font-size:13px;color:var(--muted)}.ar-notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}.ar-notes li{padding:6px 10px;border-radius:8px;background:#ffffff0a}
+
+/* the Loop changes hands */
+.ar-fx{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;pointer-events:none}
+.ar-fx-dim{position:absolute;inset:0;background:radial-gradient(circle,#2a1a8a99,#02041acc);animation:arDim 2.6s ease both}@keyframes arDim{0%{opacity:0}15%,80%{opacity:1}100%{opacity:0}}
+.ar-fx-sword{position:absolute;font-size:64px;left:-10%;top:60%;filter:drop-shadow(0 0 18px #b05bff);animation:arSword .9s cubic-bezier(.5,0,.3,1) both}
+@keyframes arSword{0%{transform:translate(0,0) rotate(-40deg);opacity:0}15%{opacity:1}100%{transform:translate(calc(60vw / var(--pz,1)),calc(-12vh / var(--pz,1))) rotate(20deg);opacity:0}}
+.ar-fx-loop{opacity:0;animation:arLoop 1.8s .7s cubic-bezier(.2,1.2,.3,1) both}@keyframes arLoop{0%{opacity:0;transform:scale(.3) rotate(-90deg)}40%{opacity:1;transform:scale(1.25)}100%{opacity:1;transform:scale(1)}}
+.ar-fx-ban{position:absolute;bottom:26%;text-align:center;opacity:0;animation:arBan 1.7s 1s ease both}@keyframes arBan{0%{opacity:0;transform:translateY(14px)}30%,85%{opacity:1;transform:none}100%{opacity:0}}
+.ar-fx-ban small{display:block;letter-spacing:.14em;text-transform:uppercase;color:#cfe0ff;font-size:12px}.ar-fx-ban b{font-size:28px}
+@media(prefers-reduced-motion:reduce){html:not(.force-motion) .ar-fx-sword{display:none}html:not(.force-motion) .ar-fx-dim,html:not(.force-motion) .ar-fx-loop,html:not(.force-motion) .ar-fx-ban{opacity:1;animation:none}}

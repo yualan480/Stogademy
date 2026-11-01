@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="../gate.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Block Breaker Duel | Gamer4school</title>
+  <meta name="description" content="Block Breaker Duel: two players, two boards, same bricks. Smash bricks to send junk rows to your rival. Play online or against the computer.">
+  <meta name="theme-color" content="#14142a">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
+  <link rel="shortcut icon" href="favicon.ico?v=2">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
+  <style>
+    :root { --vh: 100vh; --pixel: "Pixelify Sans", "Courier New", monospace; --gold: #ffd166; --pink: #d4285f; --line: #26263f; }
+    @supports (height: 100dvh) { :root { --vh: 100dvh; } }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: var(--vh); overflow: hidden; overscroll-behavior: none;
+      background: #0b0b14; color: #ecebf5; font-family: var(--pixel);
+      -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent;
+    }
+    :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+    button, input { font-family: var(--pixel); }
+    [hidden] { display: none !important; }
+
+    .app { height: var(--vh); display: flex; flex-direction: column; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    .bar { flex: none; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 12px; background: #14142a; border-bottom: 1px solid var(--line); }
+    .embed .bar { padding-left: 112px; }
+    .stat { display: flex; align-items: baseline; gap: 6px; font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat small { font-size: 0.75rem; font-weight: 500; color: #a9a8c4; }
+    .stat.warn span { color: #ff8e8e; }
+    .right { margin-left: auto; display: flex; gap: 6px; }
+    .tbtn { white-space: nowrap; padding: 6px 12px; border: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: #fff; font: 700 0.9rem var(--pixel); text-decoration: none; cursor:var(--cur-pointer,pointer); }
+    .tbtn:hover { background: rgba(255, 255, 255, 0.2); }
+    .tbtn[aria-pressed="false"] { color: #ff9a9a; text-decoration: line-through; }
+    .embed .back { display: none; }
+    @media (max-width: 480px) { .bar { gap: 10px; padding: 0 8px; } .embed .bar { padding-left: 104px; } .tbtn { padding: 5px 8px; font-size: 0.8rem; } .stat { font-size: 1.05rem; } }
+
+    .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+
+    /* the two boards */
+    .duel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px; }
+    .embed .duel { padding-bottom: 64px; }   /* room for the chat bubble in the corner */
+    .duel.stack { flex-direction: column-reverse; gap: 4px; }
+    .pane { display: flex; flex-direction: column; align-items: stretch; flex: none; }
+    .phead { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 2px; font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+    .phead .avw { flex: none; display: inline-block; width: 22px; height: 22px; border-radius: 50%; overflow: hidden; background: #2b2b3c; }
+    .phead .avw .av, .phead .avw svg, .phead .avw img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .phead .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .phead .hp { flex: none; color: #ff6b8b; letter-spacing: 0.08em; }
+    .phead .sc { flex: none; min-width: 3.2ch; text-align: right; color: var(--gold); font-variant-numeric: tabular-nums; }
+    .pane.me .phead .nm { color: #7fe08b; }
+    .board { position: relative; border-radius: 4px; overflow: hidden; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6); }
+    .pane.me .board { outline: 2px solid var(--pink); }
+    canvas { display: block; }
+
+    .count { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; pointer-events: none; font-size: clamp(4rem, 22vmin, 9rem); font-weight: 700; color: #fff; text-shadow: 0 6px 0 var(--pink), 0 0 30px rgba(212, 40, 95, 0.6); }
+    .toast { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 4; padding: 5px 14px; border-radius: 99px; background: rgba(212, 40, 95, 0.92); color: #fff; font-weight: 700; font-size: 0.95rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap; }
+    .toast.on { opacity: 1; }
+    .toast.bad { background: rgba(255, 120, 40, 0.95); }
+
+    /* buttons */
+    .btn { padding: 9px 16px; border-radius: 8px; border: 2px solid #1b1b2f; background: #e8497d; color: #fff; font-weight: 700; font-size: 1rem; cursor:var(--cur-pointer,pointer); box-shadow: 0 3px 0 #8e1b46; }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8e1b46; }
+    .btn.alt { background: #4a4a8a; box-shadow: 0 3px 0 #2a2a5a; }
+    .btn.go { background: #3aa655; box-shadow: 0 3px 0 #1d6a33; }
+    .btn[disabled] { opacity: 0.4; cursor: not-allowed; filter: none; }
+    .btn.small { padding: 6px 12px; font-size: 0.85rem; }
+
+    /* centre cards: menu, lobby, results */
+    .ov { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(8, 8, 18, 0.66); overflow: auto; touch-action: pan-y; }
+    .card { width: min(100%, 440px); margin: auto; text-align: center; padding: 22px 20px; border-radius: 14px; background: rgba(20, 20, 42, 0.97); border: 3px solid #3a3a66; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+    .card h1 { font-size: clamp(1.9rem, 9vw, 2.8rem); line-height: 1; letter-spacing: 1px; color: #ff6b8b; text-shadow: 0 4px 0 #14142a, 0 0 18px rgba(255, 90, 140, 0.35); }
+    .card h1 small { display: block; margin-top: 6px; font-size: 0.5em; letter-spacing: 6px; color: var(--gold); text-shadow: none; }
+    .card h2 { font-size: 1.6rem; line-height: 1.15; }
+    .card h2.win { color: var(--gold); }
+    .card h2.lose { color: #ff8e8e; }
+    .card p { color: #b9b8d4; margin: 8px 0 0; font-size: 0.95rem; line-height: 1.35; }
+    .card .col { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    .card .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .card .fine { font-size: 0.8rem; color: #8f8eb0; margin-top: 14px; }
+    .code { font-size: 2.6rem; letter-spacing: 8px; color: var(--gold); margin: 10px 0 2px; padding-left: 8px; }
+    input.codein { width: 9em; padding: 10px; border-radius: 8px; border: 2px solid #3a3a66; background: #0b0b14; color: #fff; font: 700 1.6rem var(--pixel); text-align: center; text-transform: uppercase; letter-spacing: 6px; -webkit-user-select: text; user-select: text; }
+    .spin { width: 34px; height: 34px; margin: 14px auto 0; border-radius: 50%; border: 4px solid #3a3a66; border-top-color: var(--gold); animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+    .seg { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+    .seg button { padding: 6px 14px; border: 2px solid #3a3a66; border-radius: 8px; background: transparent; color: #d6d5ee; font: 700 0.95rem var(--pixel); cursor:var(--cur-pointer,pointer); }
+    .seg button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: #1b1b2f; }
+    .lbl { margin-top: 14px; font-size: 0.85rem; color: #8f8eb0; }
+    .rules { list-style: none; display: grid; gap: 4px; margin-top: 12px; text-align: left; font-size: 0.88rem; color: #cfcee8; }
+    .rules li::before { content: "\25B6"; color: #ff6b8b; margin-right: 0.55rem; font-size: 0.7em; }
+
+    .slots { list-style: none; display: grid; gap: 6px; margin-top: 14px; text-align: left; }
+    .slots li { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px 4px 6px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); font-weight: 700; }
+    .slots li.empty { color: #6d6c90; font-weight: 500; border: 2px dashed #3a3a66; background: transparent; }
+    .slots .avw { display: inline-block; flex: none; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: #2b2b3c; }
+    .slots .avw .av, .slots .avw svg, .slots .avw img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .slots .tag { margin-left: auto; font-size: 0.75rem; color: var(--gold); font-weight: 600; }
+
+    .rank { list-style: none; display: grid; gap: 6px; margin-top: 14px; text-align: left; }
+    .rank li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); font-weight: 700; }
+    .rank li.top { background: rgba(255, 209, 102, 0.22); }
+    .rank .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank .pt { color: var(--gold); font-variant-numeric: tabular-nums; }
+/* round edges: default radius for boxes that had none (zero specificity, so any explicit radius still wins) */
+:root{--round:10px}
+:where(button,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea,img,video,canvas,iframe,dialog,details,summary,pre,kbd,progress,meter,fieldset,blockquote,aside,article,nav,header,footer,.card,.panel,.modal){border-radius:var(--round,10px)}
+:where(.bar){border-radius:var(--round,10px)}
+:where(.toast.bad){border-radius:var(--round,10px)}
+:where(.btn.alt){border-radius:var(--round,10px)}
+:where(.btn.go){border-radius:var(--round,10px)}
+:where(.seg button[aria-pressed="true"]){border-radius:var(--round,10px)}
+:where(.slots li.empty){border-radius:var(--round,10px)}
+:where(.rank li.top){border-radius:var(--round,10px)}
+</style>
+<link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script></head>
+<body>
+  <div class="app" id="app">
+    <header class="bar">
+      <div class="stat" id="tmrBox"><small>Time</small><span id="tmr">-</span></div>
+      <div class="right">
+        <button class="tbtn" id="pauseBtn" type="button" hidden>Pause</button>
+        <button class="tbtn" id="menuBtn" type="button" hidden>Leave</button>
+        <button class="tbtn" id="sfxBtn" type="button" aria-pressed="true" title="Sound effects">FX</button>
+        <a class="tbtn back" href="index.html">&lsaquo; Back</a>
+      </div>
+    </header>
+
+    <main class="stage" id="stage">
+      <div class="duel" id="duel" hidden>
+        <div class="pane me" id="paneMe">
+          <div class="phead"><span class="avw" id="meAv"></span><span class="nm" id="meNm">You</span><span class="hp" id="meHp"></span><span class="sc" id="meSc">0</span></div>
+          <div class="board" id="boardMe"><canvas id="cvMe" role="img" aria-label="Your board. Move the paddle with the mouse, your finger or the arrow keys."></canvas></div>
+        </div>
+        <div class="pane opp" id="paneOpp">
+          <div class="phead"><span class="avw" id="opAv"></span><span class="nm" id="opNm">Rival</span><span class="hp" id="opHp"></span><span class="sc" id="opSc">0</span></div>
+          <div class="board" id="boardOpp"><canvas id="cvOpp" role="img" aria-label="Your opponent's board."></canvas></div>
+        </div>
+      </div>
+      <div class="count" id="count" hidden></div>
+      <div class="toast" id="toast" role="status"></div>
+
+      <div class="ov" id="ov">
+        <section class="card" id="pMenu">
+          <h1>BLOCK BREAKER<small>DUEL</small></h1>
+          <p>Two players, two boards, the very same bricks. Break bricks faster than your rival.</p>
+          <ul class="rules">
+            <li>Every 5 bricks you break sends a junk row to your rival</li>
+            <li>Clear your whole board to send 2 junk rows at once</li>
+            <li>Bricks reaching your paddle, or no lives left, is a K.O.</li>
+            <li>No K.O.? The higher score after 2 minutes wins</li>
+          </ul>
+          <div class="col">
+            <button class="btn" id="bQuick" type="button">Find an opponent</button>
+            <button class="btn alt" id="bCreate" type="button">Create a room (share a code)</button>
+            <button class="btn alt" id="bJoinMenu" type="button">Join with a code</button>
+            <button class="btn go" id="bSolo" type="button">Play the computer</button>
+          </div>
+          <div class="lbl">Computer skill</div>
+          <div class="seg" id="skillSeg"></div>
+          <p class="fine">Move with the mouse, your finger or the arrow keys. Space or a tap launches the ball. Online play needs a connection to the matchmaking server.</p>
+        </section>
+
+        <section class="card" id="pJoin" hidden>
+          <h2>Join a room</h2>
+          <p>Ask your friend for the 4-letter room code.</p>
+          <div class="col">
+            <div class="row" style="margin-top:0"><input class="codein" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code"><button class="btn alt" id="bJoin" type="button">Join</button></div>
+            <button class="btn alt small" id="bJoinBack" type="button">Back</button>
+          </div>
+        </section>
+
+        <section class="card" id="pConnect" hidden>
+          <h2 id="cTitle">Connecting...</h2>
+          <div class="spin" aria-hidden="true"></div>
+          <p id="cText">Looking for a room.</p>
+          <div class="row"><button class="btn alt small" id="bCancel" type="button">Cancel</button></div>
+        </section>
+
+        <section class="card" id="pLobby" hidden>
+          <h2 id="lTitle">Lobby</h2>
+          <div class="code" id="lCode" hidden></div>
+          <p id="lSub"></p>
+          <ul class="slots" id="slots"></ul>
+          <div class="row">
+            <button class="btn go" id="bStart" type="button">Start match</button>
+            <button class="btn alt" id="bLeave" type="button">Leave</button>
+          </div>
+          <p class="fine" id="lFine"></p>
+        </section>
+
+        <section class="card" id="pOver" hidden>
+          <h2 id="oTitle">Match over</h2>
+          <p id="oText"></p>
+          <ol class="rank" id="rank"></ol>
+          <div class="row"><button class="btn go" id="bAgain" type="button">Rematch</button><button class="btn alt" id="bMenu" type="button">Leave</button></div>
+          <p class="fine" id="oFine"></p>
+        </section>
+
+        <section class="card" id="pPause" hidden>
+          <h2>Paused</h2>
+          <p>Take a breather. The clock is stopped.</p>
+          <div class="row"><button class="btn go" id="bResume" type="button">Resume</button><button class="btn alt" id="bPauseLeave" type="button">Leave</button></div>
+        </section>
+
+        <section class="card" id="pInfo" hidden>
+          <h2 id="iTitle">Oops</h2>
+          <p id="iText"></p>
+          <div class="row"><button class="btn" id="bInfoOk" type="button">OK</button></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="leaderboard.js"></script>
+  <script>
+  (() => {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const rnd = n => Math.floor(Math.random() * n);
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const store = {
+      get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
+    };
+    const embed = new URLSearchParams(location.search).get('embed') === '1';
+    if (embed) document.body.classList.add('embed');
+    function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+    /* ================= sound (synthesised, no files) ================= */
+    const Snd = (() => {
+      let ac = null, on = store.get('bbduel-sfx', 'on') !== 'off';
+      function unlock() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; } }
+      function tone(f, dur, type, vol, when, f2) {
+        if (!on || !ac) return;
+        try {
+          const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + (when || 0);
+          o.type = type || 'triangle'; o.frequency.setValueAtTime(f, t);
+          if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.08, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.02);
+        } catch (e) { /* ignore */ }
+      }
+      const fx = {
+        click() { tone(520, 0.05, 'square', 0.04); },
+        join() { tone(440, 0.08, 'triangle', 0.07); tone(660, 0.1, 'triangle', 0.07, 0.08); },
+        wall() { tone(170, 0.06, 'square', 0.05); },
+        paddle() { tone(260, 0.08, 'square', 0.07, 0, 340); },
+        brick(r) { tone(520 + (6 - Math.min(6, r)) * 90, 0.09, 'square', 0.05); },
+        launch() { tone(300, 0.12, 'triangle', 0.08, 0, 700); },
+        row() { tone(120, 0.14, 'square', 0.07, 0, 80); },
+        lose() { for (let i = 0; i < 5; i++) tone(500 * Math.pow(0.78, i), 0.14, 'triangle', 0.08, i * 0.12); },
+        warn() { tone(880, 0.09, 'square', 0.06); tone(660, 0.12, 'square', 0.06, 0.1); },
+        send() { tone(500, 0.1, 'sawtooth', 0.05, 0, 1100); },
+        clear() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'triangle', 0.08, i * 0.07)); },
+        tick() { tone(700, 0.07, 'square', 0.06); },
+        go() { tone(1050, 0.25, 'square', 0.07); },
+        win() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.09, i * 0.12)); },
+        defeat() { [440, 370, 311, 220].forEach((f, i) => tone(f, 0.3, 'triangle', 0.08, i * 0.26)); }
+      };
+      return { unlock, fx, get on() { return on; }, set(v) { on = v; store.set('bbduel-sfx', v ? 'on' : 'off'); } };
+    })();
+
+    /* ================= realtime: a tiny client for Supabase Realtime (Phoenix channels) ================= */
+    const SB = (window.Leaderboard && window.Leaderboard.config) || null;
+    class Chan {
+      constructor(rt, name, key) { this.rt = rt; this.topic = 'realtime:' + name; this.key = key; this.h = {}; this.presence = {}; this.joined = false; this.onPresence = null; this.onClose = null; }
+      on(ev, fn) { this.h[ev] = fn; return this; }
+      join() {
+        return new Promise((res, rej) => {
+          const ref = this.rt.ref(); this.joinRef = ref;
+          this._res = res; this._rej = rej;
+          this.rt.send({ topic: this.topic, event: 'phx_join', ref, join_ref: ref,
+            payload: { config: { broadcast: { ack: false, self: false }, presence: { key: this.key }, postgres_changes: [], private: false }, access_token: SB.key } });
+          setTimeout(() => { if (!this.joined) rej(new Error('join timeout')); }, 8000);
+        });
+      }
+      send(ev, payload) { this.rt.send({ topic: this.topic, event: 'broadcast', ref: this.rt.ref(), payload: { type: 'broadcast', event: ev, payload: payload || {} } }); }
+      track(meta) { this.rt.send({ topic: this.topic, event: 'presence', ref: this.rt.ref(), payload: { type: 'presence', event: 'track', payload: meta } }); }
+      leave() { this.rt.send({ topic: this.topic, event: 'phx_leave', payload: {}, ref: this.rt.ref() }); this.rt.chans.delete(this.topic); this.h = {}; this.onPresence = null; }
+      _msg(m) {
+        const p = m.payload || {};
+        if (m.event === 'phx_reply') {
+          if (m.ref === this.joinRef && !this.joined) {
+            if (p.status === 'ok') { this.joined = true; this._res(); } else this._rej(new Error('join refused'));
+          }
+        } else if (m.event === 'broadcast') {
+          if (p.event && this.h[p.event]) this.h[p.event](p.payload || {});
+        } else if (m.event === 'presence_state') {
+          this.presence = {};
+          Object.keys(p).forEach(k => { this.presence[k] = (p[k].metas || []).slice(); });
+          if (this.onPresence) this.onPresence();
+        } else if (m.event === 'presence_diff') {
+          const lv = p.leaves || {}, jn = p.joins || {};
+          Object.keys(lv).forEach(k => {
+            const refs = (lv[k].metas || []).map(x => x.phx_ref);
+            this.presence[k] = (this.presence[k] || []).filter(x => refs.indexOf(x.phx_ref) === -1);
+            if (!this.presence[k].length) delete this.presence[k];
+          });
+          Object.keys(jn).forEach(k => { this.presence[k] = (this.presence[k] || []).concat(jn[k].metas || []); });
+          if (this.onPresence) this.onPresence();
+        } else if (m.event === 'phx_error' || m.event === 'phx_close') {
+          if (this.onClose) this.onClose();
+        }
+      }
+    }
+    class RT {
+      constructor() { this.n = 0; this.chans = new Map(); this.ws = null; this.hb = 0; this.onClose = null; this.dead = false; }
+      ref() { return String(++this.n); }
+      connect() {
+        return new Promise((res, rej) => {
+          if (!SB) { rej(new Error('no config')); return; }
+          let done = false;
+          const url = SB.url.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(SB.key) + '&vsn=1.0.0';
+          try { this.ws = new WebSocket(url); } catch (e) { rej(e); return; }
+          const fail = e => { if (!done) { done = true; rej(e || new Error('closed')); } };
+          setTimeout(() => fail(new Error('timeout')), 8000);
+          this.ws.onopen = () => {
+            done = true; res();
+            this.hb = setInterval(() => this.send({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: this.ref() }), 20000);
+          };
+          this.ws.onerror = () => fail(new Error('error'));
+          this.ws.onclose = () => { clearInterval(this.hb); fail(); if (!this.dead && this.onClose) this.onClose(); };
+          this.ws.onmessage = ev => {
+            let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+            const c = this.chans.get(m.topic); if (c) c._msg(m);
+          };
+        });
+      }
+      channel(name, key) { const c = new Chan(this, name, key); this.chans.set(c.topic, c); return c; }
+      send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); }
+      close() { this.dead = true; clearInterval(this.hb); try { this.ws && this.ws.close(); } catch (e) { /* ignore */ } }
+    }
+
+    /* ================= the game rules (same numbers as the single-player Block Breaker) ================= */
+    const W = 360, H = 480, CEIL = 30;
+    const COLS = 9, ROWS = 6, GAP = 3, SIDE = 12, BH = 14, TOP = 64;
+    const BW = (W - SIDE * 2 - GAP * (COLS - 1)) / COLS;
+    const PW = 66, PH = 10, PY = H - 36, R = 5;
+    const COLORS = ['#ff4d6d', '#ff9f43', '#ffd93d', '#4cd964', '#38d0f0', '#7b8cff', '#8a89a8'];   // the grey one is a junk row
+    const START_ROWS = 5, MATCH_S = 120, ATTACK_EVERY = 5, COUNT_MS = 3000, KO_WAIT = 1600, FIN_WAIT = 3000;
+    const SKILLS = { easy: { n: 'Easy', speed: 250, err: 0.85 }, medium: { n: 'Medium', speed: 380, err: 0.5 }, hard: { n: 'Hard', speed: 620, err: 0.15 } };
+
+    class Board {
+      constructor(seed, bot, emit) {
+        this.rng = mulberry32(seed); this.lr = mulberry32((seed ^ 0x5bd1e995) >>> 0);
+        this.bot = bot || null; this.emit = emit || (() => {});
+        this.bricks = []; this.score = 0; this.lives = 3; this.spawned = 0; this.rev = 0;
+        this.px = W / 2; this.target = W / 2; this.ball = { x: W / 2, y: PY - R - 1, vx: 0, vy: 0 };
+        this.state = 'ready'; this.readyT = 0.6; this.speed = this.baseSpeed = 300;
+        this.pushT = 0; this.pushEvery = 10; this.charge = 0; this.incoming = 0; this.incT = 0; this.dead = false; this.errOff = 0;
+        for (let i = 0; i < START_ROWS; i++) this.addRow(this.rng);
+      }
+      place(b) { b.x = SIDE + b.col * (BW + GAP); b.y = TOP + b.gy * (BH + GAP); }
+      reached() { return this.bricks.reduce((m, k) => k.hits ? Math.max(m, k.y + BH) : m, 0) >= PY - 24; }
+      drop() { this.bricks = this.bricks.filter(k => k.hits); this.bricks.forEach(k => { k.gy++; this.place(k); }); }
+      addRow(rng) {
+        this.drop();
+        const c = this.spawned++ % ROWS, p2 = Math.min(0.5, this.spawned * 0.012);
+        let any = false;
+        for (let col = 0; col < COLS; col++) {
+          if (rng() > 0.82) continue;
+          any = true;
+          const hits = rng() < p2 ? 2 : 1, b = { col, gy: 0, r: c, hits, max: hits };
+          this.place(b); this.bricks.push(b);
+        }
+        if (!any) { const b = { col: 4, gy: 0, r: c, hits: 1, max: 1 }; this.place(b); this.bricks.push(b); }
+        this.baseSpeed = 300 + Math.min(160, this.spawned * 5);
+        if (this.speed < this.baseSpeed) this.setSpeed(this.baseSpeed);
+        this.pushEvery = Math.max(5, 10 - this.spawned * 0.1);
+        this.pushT = this.pushEvery;
+        this.rev++;
+        return this.reached();
+      }
+      garbageRow() {
+        this.drop();
+        const g1 = rnd(COLS), g2 = rnd(COLS);
+        for (let col = 0; col < COLS; col++) {
+          if (col === g1 || col === g2) continue;
+          const b = { col, gy: 0, r: 6, hits: 1, max: 1 }; this.place(b); this.bricks.push(b);
+        }
+        this.rev++; this.emit('row');
+        return this.reached();
+      }
+      receive(n) {
+        if (this.dead || n < 1) return;
+        if (!this.incoming) this.incT = 0.9;
+        this.incoming = Math.min(12, this.incoming + n);
+        this.emit('warn');
+      }
+      setSpeed(s) { const m = Math.hypot(this.ball.vx, this.ball.vy) || 1; this.ball.vx *= s / m; this.ball.vy *= s / m; this.speed = s; }
+      launch() {
+        if (this.state !== 'ready') return;
+        const a = this.lr() * 0.5 - 0.25;
+        this.ball.vx = this.speed * Math.sin(a); this.ball.vy = -this.speed * Math.cos(a);
+        this.state = 'play'; this.emit('launch');
+      }
+      toReady() { this.state = 'ready'; this.readyT = 1.6; this.ball.x = this.px; this.ball.y = PY - R - 1; this.ball.vx = this.ball.vy = 0; }
+      die() { if (this.dead) return; this.dead = true; this.state = 'ko'; this.emit('ko'); }
+      step(h) {
+        const ball = this.ball;
+        ball.x += ball.vx * h; ball.y += ball.vy * h;
+        if (ball.x < R) { ball.x = R; ball.vx = Math.abs(ball.vx); this.emit('wall'); }
+        else if (ball.x > W - R) { ball.x = W - R; ball.vx = -Math.abs(ball.vx); this.emit('wall'); }
+        if (ball.y < CEIL + R) { ball.y = CEIL + R; ball.vy = Math.abs(ball.vy); this.emit('wall'); }
+        if (ball.vy > 0 && ball.y + R >= PY && ball.y - R <= PY + PH && Math.abs(ball.x - this.px) <= PW / 2 + R) {
+          const t = clamp((ball.x - this.px) / (PW / 2), -1, 1), a = t * 1.1;
+          ball.y = PY - R; ball.vx = this.speed * Math.sin(a); ball.vy = -this.speed * Math.cos(a);
+          if (this.bot) this.errOff = (this.lr() * 2 - 1) * this.bot.err;
+          this.emit('paddle');
+        }
+        for (const b of this.bricks) {
+          if (!b.hits) continue;
+          const cx = clamp(ball.x, b.x, b.x + BW), cy = clamp(ball.y, b.y, b.y + BH);
+          const dx = ball.x - cx, dy = ball.y - cy;
+          if (dx * dx + dy * dy >= R * R) continue;
+          if (Math.abs(dx) > Math.abs(dy)) ball.vx = dx > 0 ? Math.abs(ball.vx) : -Math.abs(ball.vx);
+          else ball.vy = dy > 0 || (dy === 0 && ball.vy > 0) ? Math.abs(ball.vy) : -Math.abs(ball.vy);
+          b.hits--; this.rev++; this.emit('brick', b.r);
+          if (!b.hits) {
+            this.score += b.r < ROWS ? (ROWS - b.r) * 10 : 10;
+            if (b.r < ROWS && ++this.charge >= ATTACK_EVERY) { this.charge -= ATTACK_EVERY; this.emit('attack', 1); }
+          } else this.score += 5;
+          this.setSpeed(Math.min(this.speed * 1.01, this.baseSpeed * 1.6));
+          break;
+        }
+        if (!this.bricks.some(k => k.hits)) {          // board cleared: bonus, junk rows for the rival, and a fresh row
+          this.score += 100; this.emit('clear'); this.emit('attack', 2);
+          if (this.addRow(this.lr)) { this.die(); return; }
+        }
+        if (ball.y - R > H) {
+          this.lives--;
+          if (this.lives > 0) { this.emit('lose'); this.toReady(); } else this.die();
+        }
+      }
+      think(dt) {            // the computer's paddle
+        const b = this.ball; let want = this.target;
+        if (this.state === 'play') want = b.vy > 0 ? b.x + this.errOff * PW / 2 : b.x * 0.6 + W * 0.2;
+        const d = want - this.target, m = this.bot.speed * dt * (b && b.vy > 0 ? 1 : 0.5);
+        this.target += clamp(d, -m, m);
+      }
+      update(dt) {
+        if (this.dead) return;
+        if (this.bot) this.think(dt);
+        this.target = clamp(this.target, PW / 2, W - PW / 2);
+        this.px += (this.target - this.px) * Math.min(1, dt * 30);
+        if (this.state === 'ready') {
+          this.ball.x = this.px; this.ball.y = PY - R - 1;
+          if ((this.readyT -= dt) <= 0) this.launch();
+        } else if (this.state === 'play') {
+          const n = Math.max(1, Math.ceil(Math.hypot(this.ball.vx, this.ball.vy) * dt / 3));
+          for (let i = 0; i < n && this.state === 'play' && !this.dead; i++) this.step(dt / n);
+          if (this.state === 'play' && !this.dead) {
+            this.pushT -= dt;
+            if (this.pushT <= 0) { this.emit('row'); if (this.addRow(this.rng)) this.die(); }
+            if (!this.dead && this.incoming > 0 && (this.incT -= dt) <= 0) {
+              this.incoming--; this.incT = 0.5;
+              if (this.garbageRow()) this.die();
+            }
+          }
+        }
+      }
+    }
+
+    /* bricks travel over the network as one letter per brick: row by row, '.' for empty */
+    function encodeBricks(list) {
+      const rows = [];
+      list.forEach(b => {
+        if (!b.hits) return;
+        while (rows.length <= b.gy) rows.push(new Array(COLS).fill('.'));
+        rows[b.gy][b.col] = String.fromCharCode(97 + b.r * 4 + (b.hits - 1) * 2 + (b.max - 1));
+      });
+      return rows.map(r => r.join('')).join('|');
+    }
+    function decodeBricks(str) {
+      const out = [];
+      String(str || '').split('|').slice(0, 30).forEach((row, gy) => {
+        for (let col = 0; col < COLS && col < row.length; col++) {
+          const idx = row.charCodeAt(col) - 97;
+          if (idx < 0 || idx > 27) continue;
+          const b = { col, gy, r: idx >> 2, hits: ((idx >> 1) & 1) + 1, max: (idx & 1) + 1 };
+          b.x = SIDE + col * (BW + GAP); b.y = TOP + gy * (BH + GAP); out.push(b);
+        }
+      });
+      return out;
+    }
+
+    /* ================= state ================= */
+    const myId = Math.random().toString(36).slice(2, 10);
+    const myName = () => { let n = ''; try { n = window.Leaderboard && Leaderboard.getName(); } catch (e) { n = ''; } return String(n || 'Player').slice(0, 20); };
+    const myAvatar = () => { try { return window.Leaderboard ? Leaderboard.getAvatar() : ''; } catch (e) { return ''; } };
+    let rt = null, room = null, tracked = false, isHost = false, myTs = 0, myState = 'lobby', solo = false;
+    let roomCode = '', roomPublic = false, joinToken = 0, autoT = 0;
+    let phase = 'menu';          // menu | connect | lobby | count | play | fin | over
+    let me = null, opp = null, oppInfo = null;
+    let countEndAt = 0, matchEndAt = 0, koTimer = 0, finTimer = 0, myFin = null, oppFin = null, oppWant = false, wantSent = false;
+    let paused = false, pausedAt = 0, skill = store.get('bbduel-skill', 'medium');
+    if (!SKILLS[skill]) skill = 'medium';
+    const keys = { l: false, r: false };
+
+    function newRemote() {
+      return { bricks: [], px: W / 2, target: W / 2, ball: { x: W / 2, y: PY - R - 1 }, rbx: W / 2, rby: PY - R - 1, rvx: 0, rvy: 0, rat: 0,
+        state: 'ready', dead: false, score: 0, lives: 3, pushT: 10, pushEvery: 10, incoming: 0 };
+    }
+    const sendRoom = (ev, p) => { if (room && tracked) room.send(ev, p); };
+    function members() {
+      if (!room) return [];
+      const out = [], seen = new Set();
+      Object.keys(room.presence).forEach(k => {
+        const arr = room.presence[k]; const m = arr[arr.length - 1];
+        if (!m || typeof m.id !== 'string' || seen.has(m.id)) return;
+        seen.add(m.id); out.push(m);
+      });
+      return out.sort((a, b) => ((a.ts || 0) - (b.ts || 0)) || (a.id < b.id ? -1 : 1));
+    }
+    const meta = () => ({ id: myId, name: myName(), avatar: myAvatar(), ts: myTs, st: myState });
+    function setMyState(s) { myState = s; if (room && tracked) room.track(meta()); }
+    function avatarNode(avatar, size) {
+      let el = null;
+      try { if (window.Leaderboard && avatar && Leaderboard.isValidAvatar(avatar)) el = Leaderboard.avatarEl(avatar, size); } catch (e) { el = null; }
+      if (!el) { el = document.createElement('span'); el.className = 'av'; }
+      return el;
+    }
+    const txt = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
+    const avWrap = (avatar, size) => { const w = txt('span', 'avw', ''); w.appendChild(avatarNode(avatar, size)); return w; };
+    function setText(el, v) { v = String(v); if (el.textContent !== v) el.textContent = v; }
+
+    /* ================= screens ================= */
+    const panels = ['pMenu', 'pJoin', 'pConnect', 'pLobby', 'pOver', 'pPause', 'pInfo'];
+    function showPanel(id) { $('ov').hidden = !id; panels.forEach(p => { $(p).hidden = p !== id; }); }
+    function info(title, text) { $('iTitle').textContent = title; $('iText').textContent = text; showPanel('pInfo'); }
+    function setPhase(p) { phase = p; renderAll(); }
+    function renderAll() {
+      const playing = ['count', 'play', 'fin', 'over'].indexOf(phase) !== -1 && me && opp;
+      $('duel').hidden = !playing;
+      $('menuBtn').hidden = phase === 'menu' || phase === 'connect';
+      $('pauseBtn').hidden = !(solo && phase === 'play');
+      if (playing) layout();
+      if (phase === 'menu') showPanel('pMenu');
+      else if (phase === 'lobby') { renderLobby(); showPanel('pLobby'); }
+      else if (phase === 'over') { renderOver(); }
+      else if (phase !== 'connect') showPanel(paused ? 'pPause' : null);
+    }
+    function renderSkill() {
+      const seg = $('skillSeg'); seg.textContent = '';
+      Object.keys(SKILLS).forEach(k => {
+        const b = txt('button', '', SKILLS[k].n); b.type = 'button'; b.dataset.v = k; b.setAttribute('aria-pressed', String(k === skill)); seg.appendChild(b);
+      });
+    }
+
+    function renderLobby() {
+      const all = members().slice(0, 2);
+      $('lTitle').textContent = roomPublic ? 'Finding an opponent' : 'Private room';
+      $('lCode').hidden = !roomCode; $('lCode').textContent = roomCode;
+      $('lSub').textContent = roomCode ? 'Share this code with your friend.' : (all.length < 2 ? 'Waiting for someone to join...' : 'Opponent found!');
+      const ul = $('slots'); ul.textContent = '';
+      for (let i = 0; i < 2; i++) {
+        const m = all[i], li = document.createElement('li');
+        if (!m) { li.className = 'empty'; li.textContent = 'Waiting for a player...'; }
+        else {
+          li.appendChild(avWrap(m.avatar, 30)); li.appendChild(txt('span', '', m.name + (m.id === myId ? ' (you)' : '')));
+          if (i === 0) li.appendChild(txt('span', 'tag', 'HOST'));
+        }
+        ul.appendChild(li);
+      }
+      $('bStart').hidden = !isHost; $('bStart').disabled = all.length < 2;
+      $('lFine').textContent = isHost ? (all.length < 2 ? 'The match can start as soon as your opponent joins.' : (roomPublic ? 'Starting in a moment...' : 'Press Start when you are both ready.')) : 'Waiting for the host to start the match.';
+      if (isHost && roomPublic && all.length >= 2 && !autoT) autoT = setTimeout(() => { autoT = 0; if (phase === 'lobby' && isHost && members().length >= 2) hostStart(); }, 3000);
+      if ((all.length < 2 || !isHost) && autoT) { clearTimeout(autoT); autoT = 0; }
+    }
+
+    /* ================= layout: your board big, the rival's next to it (or above it on a tall screen) ================= */
+    const cvMe = $('cvMe'), cvOpp = $('cvOpp');
+    const ctxMe = cvMe.getContext('2d'), ctxOpp = cvOpp.getContext('2d');
+    function sizeCanvas(cv, pane, s) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.max(40, Math.floor(W * s)), h = Math.max(50, Math.floor(H * s));
+      cv.parentNode.style.width = w + 'px'; cv.parentNode.style.height = h + 'px';
+      cv.style.width = w + 'px'; cv.style.height = h + 'px';
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      cv.dataset.k = (w * dpr) / W; pane.style.width = w + 'px';
+    }
+    function layout() {
+      const st = $('stage'), cs = getComputedStyle($('duel'));
+      const pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0, pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+      const sw = st.clientWidth - pl - pr, sh = st.clientHeight - pt - pb, HEAD = 28;
+      const wide = sw / sh > 1.1;
+      $('duel').classList.toggle('stack', !wide);
+      let sMe, sOpp;
+      if (wide) { sMe = sOpp = Math.max(0.3, Math.min((sw - 12) / 2 / W, (sh - HEAD) / H)); }
+      else {
+        sMe = Math.max(0.3, Math.min(sw / W, (sh * 0.64 - HEAD) / H));
+        sOpp = Math.max(0.22, Math.min(sw / W, (sh - HEAD * 2 - H * sMe - 4) / H));
+      }
+      sizeCanvas(cvMe, $('paneMe'), sMe); sizeCanvas(cvOpp, $('paneOpp'), sOpp);
+    }
+    window.addEventListener('resize', () => { if (!$('duel').hidden) layout(); });
+
+    function paintHeads() {
+      const a = $('meAv'), b = $('opAv'); a.textContent = ''; b.textContent = '';
+      a.appendChild(avatarNode(myAvatar(), 22)); b.appendChild(avatarNode(oppInfo ? oppInfo.avatar : '', 22));
+      $('meNm').textContent = myName() + ' (you)'; $('opNm').textContent = oppInfo ? oppInfo.name : 'Rival';
+    }
+    const hearts = n => '\u2665'.repeat(Math.max(0, n));
+    function renderHud() {
+      if (!me || !opp) return;
+      setText($('meHp'), hearts(me.lives)); setText($('meSc'), me.score);
+      setText($('opHp'), hearts(opp.lives)); setText($('opSc'), opp.score);
+      const box = $('tmrBox'), out = $('tmr');
+      if (phase === 'play' || phase === 'fin') {
+        const left = Math.max(0, Math.ceil(((paused ? pausedAt : Date.now()) < matchEndAt ? matchEndAt - (paused ? pausedAt : Date.now()) : 0) / 1000));
+        setText(out, Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0')); box.classList.toggle('warn', left <= 10);
+        if (left <= 5 && left > 0 && left !== lastSec && phase === 'play' && !paused) Snd.fx.tick();
+        lastSec = left;
+      } else if (phase === 'count') { setText(out, Math.floor(MATCH_S / 60) + ':' + String(MATCH_S % 60).padStart(2, '0')); box.classList.remove('warn'); }
+      else { setText(out, '-'); box.classList.remove('warn'); }
+    }
+    let lastSec = -1;
+
+    /* ================= drawing ================= */
+    function drawBoard(ctx, cv, v, mine, now) {
+      const k = parseFloat(cv.dataset.k) || 1;
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#16163a'); bg.addColorStop(1, '#0b0b14');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      for (let y = CEIL; y < H; y += 24) for (let x = 12; x < W; x += 24) ctx.fillRect(x, y, 1.5, 1.5);
+      ctx.fillStyle = '#14142a'; ctx.fillRect(0, 0, W, CEIL);
+      ctx.fillStyle = '#26263f'; ctx.fillRect(0, CEIL - 2, W, 2);
+      ctx.font = '700 14px "Pixelify Sans", "Courier New", monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.fillStyle = '#a9a8c4'; ctx.fillText('NEXT ROW', 10, CEIL / 2);
+      ctx.fillStyle = '#26263f'; ctx.fillRect(92, CEIL / 2 - 3, 110, 6);
+      ctx.fillStyle = '#d4285f'; ctx.fillRect(92, CEIL / 2 - 3, 110 * (v.pushEvery ? clamp(1 - v.pushT / v.pushEvery, 0, 1) : 0), 6);
+      if (v.incoming > 0) {
+        ctx.textAlign = 'right'; ctx.fillStyle = Math.floor(now / 250) % 2 ? '#ff8e4d' : '#ff4d6d';
+        ctx.fillText('INCOMING x' + v.incoming, W - 8, CEIL / 2); ctx.textAlign = 'left';
+      }
+      ctx.fillStyle = 'rgba(255, 80, 100, 0.25)'; ctx.fillRect(0, PY - 24, W, 1);
+      v.bricks.forEach(b => {
+        if (!b.hits) return;
+        ctx.fillStyle = COLORS[b.r] || COLORS[6]; ctx.fillRect(b.x, b.y, BW, BH);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(b.x, b.y, BW, 3);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(b.x, b.y + BH - 3, BW, 3);
+        if (b.max === 2) {
+          ctx.strokeStyle = b.hits === 2 ? '#fff' : 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5;
+          ctx.strokeRect(b.x + 2, b.y + 2, BW - 4, BH - 4);
+        }
+      });
+      if (!v.dead) {
+        ctx.fillStyle = mine ? '#ecebf5' : '#cfcce8';
+        ctx.beginPath(); ctx.roundRect(v.px - PW / 2, PY, PW, PH, 5); ctx.fill();
+        ctx.fillStyle = mine ? '#d4285f' : '#7b8cff'; ctx.fillRect(v.px - PW / 2 + 8, PY + 3, PW - 16, 3);
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.arc(v.ball.x, v.ball.y, R + 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(v.ball.x, v.ball.y, R, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(11, 11, 20, 0.7)'; ctx.fillRect(0, CEIL, W, H - CEIL);
+        ctx.textAlign = 'center'; ctx.fillStyle = '#ff6b8b'; ctx.font = '700 56px "Pixelify Sans", "Courier New", monospace';
+        ctx.fillText('K.O.', W / 2, H / 2);
+      }
+    }
+
+    /* ================= match flow ================= */
+    function clearTimers() { clearTimeout(koTimer); clearTimeout(finTimer); koTimer = finTimer = 0; }
+    function toast(msg, bad) { const t = $('toast'); t.textContent = msg; t.classList.toggle('bad', !!bad); t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1300); }
+    const nameOfOpp = () => (oppInfo && oppInfo.name) || 'Your rival';
+
+    function beginMatch(seed) {
+      clearTimers(); paused = false; myFin = oppFin = null; oppWant = wantSent = false;
+      const other = !solo ? members().find(m => m.id !== myId) : null;
+      oppInfo = solo ? { id: 'cpu', name: 'Computer (' + SKILLS[skill].n + ')', avatar: '' } : { id: other ? other.id : '', name: other ? other.name : 'Rival', avatar: other ? other.avatar : '' };
+      me = new Board(seed, null, onMine);
+      if (solo) opp = new Board(seed, SKILLS[skill], onCpu); else opp = newRemote();
+      countEndAt = Date.now() + COUNT_MS; lastCount = 4; lastSendP = lastSendB = 0; lastRev = -1;
+      paintHeads(); setPhase('count');
+    }
+    let lastCount = 4;
+    function onMine(t, a) {
+      if (t === 'wall') Snd.fx.wall(); else if (t === 'paddle') Snd.fx.paddle(); else if (t === 'brick') Snd.fx.brick(a);
+      else if (t === 'launch') Snd.fx.launch(); else if (t === 'row') Snd.fx.row(); else if (t === 'lose') Snd.fx.lose();
+      else if (t === 'warn') { Snd.fx.warn(); toast('Incoming junk rows!', true); }
+      else if (t === 'clear') Snd.fx.clear();
+      else if (t === 'attack') { Snd.fx.send(); toast(a > 1 ? 'Board cleared! 2 rows sent' : 'Junk row sent!'); if (solo) opp.receive(a); else sendRoom('atk', { n: a }); }
+      else if (t === 'ko') onMyKO();
+    }
+    function onCpu(t, a) {
+      if (t === 'attack') me.receive(a);
+      else if (t === 'ko') onOppKO();
+    }
+    function judge(ms, ml, os, ol) { if (ms !== os) return ms > os ? 'win' : 'lose'; if (ml !== ol) return ml > ol ? 'win' : 'lose'; return 'draw'; }
+
+    function onMyKO() {
+      if (phase !== 'play') return;
+      sendRoom('ko', { sc: me.score });
+      if (solo) { endMatch('lose', 'ko'); return; }
+      clearTimeout(koTimer);
+      koTimer = setTimeout(() => { if (phase === 'play' && me.dead) endMatch('lose', 'ko'); }, KO_WAIT);   // gives a rival who fell at the same moment time to be counted
+    }
+    function onOppKO(sc) {
+      if (phase !== 'play' && phase !== 'fin') return;
+      if (typeof sc === 'number') opp.score = sc;
+      if (me.dead) endMatch(judge(me.score, me.lives, opp.score, opp.lives), 'ko');
+      else endMatch('win', 'ko');
+    }
+    function onTimeUp() {
+      if (phase !== 'play') return;
+      if (me.dead) return;
+      if (solo) { endMatch(judge(me.score, me.lives, opp.score, opp.lives), 'time'); return; }
+      phase = 'fin'; myFin = { sc: me.score, lv: me.lives };
+      sendRoom('fin', myFin); tryFinish();
+      clearTimeout(finTimer);
+      finTimer = setTimeout(() => { if (phase === 'fin') { oppFin = oppFin || { sc: opp.score, lv: opp.lives }; tryFinish(); } }, FIN_WAIT);
+    }
+    function tryFinish() {
+      if (phase !== 'fin' || !myFin || !oppFin) return;
+      endMatch(judge(myFin.sc, myFin.lv, oppFin.sc, oppFin.lv), 'time');
+    }
+    function endMatch(outcome, reason) {
+      if (phase === 'over') return;
+      clearTimers(); me.state = me.dead ? 'ko' : me.state; paused = false;
+      if (!solo) setMyState('lobby');
+      const t = { outcome, reason };
+      showResult(t); Snd.unlock(); if (outcome === 'win') Snd.fx.win(); else if (outcome === 'lose') Snd.fx.defeat();
+    }
+    let result = null;
+    function showResult(t) { result = t; phase = 'over'; renderAll(); }
+    function renderOver() {
+      const t = result || { outcome: 'draw', reason: 'time' };
+      const title = $('oTitle'); title.className = t.outcome === 'win' ? 'win' : (t.outcome === 'lose' ? 'lose' : '');
+      title.textContent = t.outcome === 'win' ? 'You win!' : (t.outcome === 'lose' ? 'You lose' : 'It is a draw');
+      const why = { ko: t.outcome === 'win' ? nameOfOpp() + ' got buried or ran out of lives.' : (t.outcome === 'lose' ? 'Your bricks reached the paddle or you ran out of lives.' : 'Both boards fell together.'),
+        time: 'Time is up. The higher score wins.', left: nameOfOpp() + ' left the match.' };
+      $('oText').textContent = why[t.reason] || '';
+      const rk = $('rank'); rk.textContent = '';
+      [[myName() + ' (you)', me.score, me.lives, t.outcome === 'win'], [nameOfOpp(), opp.score, opp.lives, t.outcome === 'lose']].forEach(r => {
+        const li = document.createElement('li'); if (r[3]) li.className = 'top';
+        li.appendChild(txt('span', 'nm', r[0])); li.appendChild(txt('span', 'pt', r[1] + ' pts')); rk.appendChild(li);
+      });
+      const gone = !solo && !members().some(m => m.id !== myId);
+      const ab = $('bAgain'); ab.disabled = gone;
+      ab.textContent = isHost || solo ? 'Rematch' : (wantSent ? 'Asked!' : 'Ask for rematch');
+      $('oFine').textContent = gone ? 'Your opponent has left the room.' : (oppWant && isHost ? nameOfOpp() + ' wants a rematch!' : (!isHost && !solo ? 'The host starts the next match.' : ''));
+      showPanel('pOver');
+    }
+
+    /* ================= network messages ================= */
+    const HANDLED = ['start', 'p', 'b', 'atk', 'ko', 'fin', 'want'];
+    function handle(t, p) {
+      if (t === 'start') {
+        if ((phase === 'lobby' || phase === 'over') && !isHost) { setMyState('play'); beginMatch((p.seed | 0) || 1); }
+      } else if (t === 'want') { oppWant = true; if (phase === 'over') renderOver(); }
+      else if (!opp || solo || ['count', 'play', 'fin', 'over'].indexOf(phase) === -1) return;
+      else if (t === 'p') {
+        opp.rx = clamp(+p.x || 0, 0, W); opp.rbx = clamp(+p.bx || 0, 0, W); opp.rby = clamp(+p.by || 0, 0, H + 20);
+        opp.rvx = clamp(+p.vx || 0, -900, 900); opp.rvy = clamp(+p.vy || 0, -900, 900); opp.rat = performance.now();
+        opp.dead = p.s === 'k'; opp.state = opp.dead ? 'ko' : (p.s === 'r' ? 'ready' : 'play');
+        opp.score = clamp(p.sc | 0, 0, 1e7); opp.lives = clamp(p.lv | 0, 0, 3);
+        opp.pushT = clamp(+p.pt || 0, 0, 20); opp.pushEvery = clamp(+p.pe || 10, 1, 20); opp.incoming = clamp(p.in | 0, 0, 12);
+      } else if (t === 'b') opp.bricks = decodeBricks(p.g);
+      else if (t === 'atk') { if (phase === 'play' && me) me.receive(clamp(p.n | 0, 0, 3)); }
+      else if (t === 'ko') onOppKO(typeof p.sc === 'number' ? p.sc : undefined);
+      else if (t === 'fin') { oppFin = { sc: clamp(p.sc | 0, 0, 1e7), lv: clamp(p.lv | 0, 0, 3) }; opp.score = oppFin.sc; opp.lives = oppFin.lv; tryFinish(); }
+    }
+
+    function onPresence() {
+      if (!tracked || !room || phase === 'connect' || phase === 'menu') return;
+      const all = members(), idx = all.findIndex(m => m.id === myId);
+      if (idx === -1) return;
+      if (idx >= 2 && (phase === 'lobby')) { leaveWith('Room full', 'That room already has 2 players.'); return; }
+      isHost = all[0].id === myId;
+      if (phase === 'lobby') { renderLobby(); return; }
+      if (phase === 'over') { renderOver(); return; }
+      if (oppInfo && oppInfo.id && !all.some(m => m.id === oppInfo.id)) endMatch('win', 'left');
+    }
+
+    const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    function resetGame() {
+      clearTimers(); clearTimeout(autoT); autoT = 0;
+      me = opp = oppInfo = null; result = null; paused = false;
+      isHost = false; tracked = false; myState = 'lobby'; solo = false; roomCode = ''; roomPublic = false;
+      $('count').hidden = true;
+    }
+    function closeNet() {
+      joinToken++;
+      if (room) { try { room.leave(); } catch (e) { /* ignore */ } room = null; }
+      if (rt) { rt.close(); rt = null; }
+      resetGame();
+    }
+    function toMenu() { closeNet(); setPhase('menu'); }
+    function leaveWith(title, text) { closeNet(); phase = 'menu'; renderAll(); info(title, text); }
+    function connectFail() { leaveWith('Could not connect', 'The matchmaking server could not be reached. Your network may be blocking it.'); }
+    function netLost() { if (phase === 'menu') return; if (phase === 'connect') { connectFail(); return; } leaveWith('Connection lost', 'The connection to your opponent dropped.'); }
+    function connecting(title, text) { phase = 'connect'; $('cTitle').textContent = title; $('cText').textContent = text; renderAll(); showPanel('pConnect'); }
+
+    /* try to join one room. Returns 'ok', 'busy' (a match is running), 'full', 'empty' (nobody there), 'taken' or 'fail' */
+    async function joinRoom(name, opts, token) {
+      const ch = rt.channel(name, myId); room = ch; tracked = false;
+      HANDLED.forEach(t => ch.on(t, p => handle(t, p)));
+      ch.onPresence = onPresence; ch.onClose = netLost;
+      const bail = r => { try { ch.leave(); } catch (e) { /* ignore */ } if (room === ch) room = null; tracked = false; return r; };
+      try { await ch.join(); } catch (e) { return bail('fail'); }
+      await sleep(800); if (token !== joinToken) return bail('fail');
+      const ex = members();
+      if (ex.some(m => m.st === 'play')) return bail('busy');
+      if (ex.length >= 2) return bail('full');
+      if (opts.need && !ex.length) return bail('empty');
+      if (opts.create && ex.length) return bail('taken');
+      myTs = Math.max(Date.now(), ...ex.map(m => (m.ts || 0) + 1));
+      myState = 'lobby'; ch.track(meta()); tracked = true;
+      await sleep(700); if (token !== joinToken) return bail('fail');
+      const all = members(), idx = all.findIndex(m => m.id === myId);
+      if (idx === -1 || idx >= 2) return bail('full');
+      if (all.some(m => m.st === 'play')) return bail('busy');
+      isHost = all[0].id === myId; roomPublic = !!opts.pub; roomCode = opts.code || '';
+      Snd.fx.join(); setPhase('lobby');
+      return 'ok';
+    }
+    async function startNet(title, text) {
+      closeNet(); const token = joinToken; connecting(title, text);
+      rt = new RT();
+      try { await rt.connect(); } catch (e) { if (token === joinToken) connectFail(); return null; }
+      if (token !== joinToken) { rt.close(); return null; }
+      rt.onClose = netLost;
+      return token;
+    }
+    async function quickPlay() {
+      const token = await startNet('Finding an opponent...', 'Looking for a room with space.'); if (token === null) return;
+      for (let n = 1; n <= 20; n++) {
+        $('cText').textContent = 'Checking room ' + n + '...';
+        const r = await joinRoom('bbduel-pub-' + n, { pub: true }, token);
+        if (token !== joinToken) return;
+        if (r === 'ok') return;
+        if (r === 'fail') { connectFail(); return; }
+      }
+      leaveWith('All rooms are busy', 'Every public room is full or in a match right now. Try again in a minute, or create a private room.');
+    }
+    async function makeRoom() {
+      const token = await startNet('Creating a room...', 'Setting things up.'); if (token === null) return;
+      for (let i = 0; i < 4; i++) {
+        let code = ''; for (let k = 0; k < 4; k++) code += CODE_CHARS[rnd(CODE_CHARS.length)];
+        const r = await joinRoom('bbduel-code-' + code, { create: true, code }, token);
+        if (token !== joinToken) return;
+        if (r === 'ok') return;
+        if (r === 'fail') { connectFail(); return; }
+      }
+      connectFail();
+    }
+    async function joinCodeRoom(code) {
+      const token = await startNet('Joining...', 'Looking for room ' + code + '...'); if (token === null) return;
+      const r = await joinRoom('bbduel-code-' + code, { need: true, code }, token);
+      if (token !== joinToken || r === 'ok') return;
+      if (r === 'empty') leaveWith('Room not found', 'No one is in room ' + code + '. Check the code and try again.');
+      else if (r === 'full') leaveWith('Room full', 'That room already has 2 players.');
+      else if (r === 'busy') leaveWith('Match in progress', 'That match already started. Ask your friend to make a new room after it ends.');
+      else connectFail();
+    }
+    function hostStart() {
+      if (!isHost && !solo) return;
+      if (solo) { beginMatch(1 + rnd(2147483000)); return; }
+      if (members().length < 2) return;
+      clearTimeout(autoT); autoT = 0;
+      const sd = 1 + rnd(2147483000);
+      setMyState('play'); sendRoom('start', { seed: sd }); beginMatch(sd);
+    }
+    function startSolo() { closeNet(); solo = true; isHost = true; beginMatch(1 + rnd(2147483000)); }
+
+    /* ================= buttons ================= */
+    $('bQuick').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); quickPlay(); });
+    $('bCreate').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); makeRoom(); });
+    $('bSolo').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); startSolo(); });
+    $('bJoinMenu').addEventListener('click', () => { Snd.unlock(); Snd.fx.click(); showPanel('pJoin'); $('codeIn').focus(); });
+    $('bJoinBack').addEventListener('click', () => { Snd.fx.click(); showPanel('pMenu'); });
+    const joinCode = () => { const c = $('codeIn').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length === 4) { Snd.fx.click(); joinCodeRoom(c); } else $('codeIn').focus(); };
+    $('bJoin').addEventListener('click', joinCode);
+    $('codeIn').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') joinCode(); });
+    $('bCancel').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('bInfoOk').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('bLeave').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('bMenu').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('menuBtn').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    $('bStart').addEventListener('click', () => { Snd.fx.click(); hostStart(); });
+    $('bAgain').addEventListener('click', () => {
+      Snd.fx.click();
+      if (isHost || solo) hostStart(); else if (!wantSent) { wantSent = true; sendRoom('want', {}); renderOver(); }
+    });
+    $('skillSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; skill = b.dataset.v; store.set('bbduel-skill', skill); Snd.fx.click(); renderSkill(); });
+    const sfxBtn = $('sfxBtn');
+    sfxBtn.setAttribute('aria-pressed', String(Snd.on));
+    sfxBtn.addEventListener('click', () => { Snd.set(!Snd.on); sfxBtn.setAttribute('aria-pressed', String(Snd.on)); if (Snd.on) { Snd.unlock(); Snd.fx.click(); } sfxBtn.blur(); });
+    window.addEventListener('pagehide', () => { if (room) { try { room.leave(); } catch (e) { /* ignore */ } } });
+
+    /* pause (only against the computer: an online match cannot be stopped) */
+    function togglePause() {
+      if (!solo || phase !== 'play') return;
+      if (!paused) { paused = true; pausedAt = Date.now(); keys.l = keys.r = false; showPanel('pPause'); }
+      else { paused = false; matchEndAt += Date.now() - pausedAt; showPanel(null); }
+    }
+    $('pauseBtn').addEventListener('click', () => { Snd.fx.click(); togglePause(); $('pauseBtn').blur(); });
+    $('bResume').addEventListener('click', () => { Snd.fx.click(); togglePause(); });
+    $('bPauseLeave').addEventListener('click', () => { Snd.fx.click(); toMenu(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && solo && phase === 'play' && !paused) togglePause(); });
+
+    /* ================= input ================= */
+    window.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      Snd.unlock();
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (e.target && e.target.tagName === 'INPUT') return;
+      if (k === 'ArrowLeft' || k === 'a') { keys.l = true; if (phase === 'play') e.preventDefault(); }
+      else if (k === 'ArrowRight' || k === 'd') { keys.r = true; if (phase === 'play') e.preventDefault(); }
+      else if (k === ' ' || k === 'ArrowUp') {
+        if (e.target && e.target.closest && e.target.closest('button, a')) return;
+        e.preventDefault();
+        if (phase === 'play' && me && !paused) me.launch();
+      } else if (k === 'p') togglePause();
+    });
+    window.addEventListener('keyup', e => {
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === 'ArrowLeft' || k === 'a') keys.l = false; else if (k === 'ArrowRight' || k === 'd') keys.r = false;
+    });
+    window.addEventListener('blur', () => { keys.l = keys.r = false; });
+    function aim(e) {
+      if (!me || paused || (phase !== 'play' && phase !== 'count')) return;
+      const r = cvMe.getBoundingClientRect(); if (!r.width) return;
+      me.target = clamp((e.clientX - r.left) / r.width * W, PW / 2, W - PW / 2);
+    }
+    document.addEventListener('pointermove', aim);
+    document.addEventListener('pointerdown', e => {
+      Snd.unlock();
+      if (e.target.closest && e.target.closest('button, a, input, .ov')) return;
+      aim(e); if (phase === 'play' && me && !paused) me.launch();
+    });
+    document.addEventListener('touchmove', e => { if (!(e.target.closest && e.target.closest('.ov'))) e.preventDefault(); }, { passive: false });
+
+    /* ================= the loop ================= */
+    let last = 0, lastSendP = 0, lastSendB = 0, lastRev = -1;
+    function updateRemote(dt, now) {
+      const o = opp;
+      o.px += ((o.rx === undefined ? o.px : o.rx) - o.px) * Math.min(1, dt * 18);
+      const e = Math.min(0.12, Math.max(0, (now - o.rat) / 1000));
+      const tx = clamp(o.rbx + o.rvx * e, R, W - R), ty = o.rby + o.rvy * e;
+      const f = Math.min(1, dt * 25);
+      o.ball.x += (tx - o.ball.x) * f; o.ball.y += (ty - o.ball.y) * f;
+      if (o.state === 'ready') o.ball.y = PY - R - 1;
+    }
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, 0.05); last = now;
+      if (me && opp) {
+        const t = Date.now();
+        if (phase === 'count') {
+          const left = countEndAt - t, n = Math.max(0, Math.ceil(left / 1000)), c = $('count');
+          me.px += (me.target - me.px) * Math.min(1, dt * 30);
+          if (left > 0) { c.hidden = false; if (n !== lastCount) { lastCount = n; c.textContent = n; Snd.unlock(); Snd.fx.tick(); } }
+          else {
+            c.textContent = 'GO!'; Snd.fx.go(); setTimeout(() => { if (phase !== 'count') $('count').hidden = true; }, 500);
+            matchEndAt = t + MATCH_S * 1000; me.readyT = 0.4; if (solo) opp.readyT = 0.4;
+            phase = 'play'; renderAll(); setTimeout(() => { $('count').hidden = true; }, 600);
+          }
+        } else if (phase === 'play' && !paused) {
+          if (!me.dead) { if (keys.l) me.target -= 460 * dt; if (keys.r) me.target += 460 * dt; }
+          me.update(dt);
+          if (solo && phase === 'play') opp.update(dt);
+          if (phase === 'play' && t >= matchEndAt) onTimeUp();
+        }
+        if (!solo) {
+          updateRemote(dt, now);
+          if (['count', 'play', 'fin'].indexOf(phase) !== -1) {
+            if (now - lastSendP >= 50) {
+              lastSendP = now;
+              sendRoom('p', { x: Math.round(me.px), bx: Math.round(me.ball.x), by: Math.round(me.ball.y), vx: Math.round(me.ball.vx), vy: Math.round(me.ball.vy),
+                s: me.dead ? 'k' : (me.state === 'ready' ? 'r' : 'p'), sc: me.score, lv: me.lives, pt: Math.round(me.pushT * 10) / 10, pe: Math.round(me.pushEvery * 10) / 10, in: me.incoming });
+            }
+            if ((me.rev !== lastRev && now - lastSendB >= 100) || now - lastSendB >= 1500) { lastSendB = now; lastRev = me.rev; sendRoom('b', { g: encodeBricks(me.bricks) }); }
+          }
+        }
+        if (!$('duel').hidden) { drawBoard(ctxMe, cvMe, me, true, now); drawBoard(ctxOpp, cvOpp, opp, false, now); renderHud(); }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    renderSkill();
+    renderAll();
+    requestAnimationFrame(t => { last = t; frame(t); });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+/* Shared mobile / touch rules, linked from every page (dashboard, Orbit chat, Orbit Games and each game). */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+a, button, select, summary, label, [role="button"], input { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+img, video, canvas, svg { max-width: 100%; }
+@media (pointer: coarse) {
+  /* 16px stops iPhones from zooming the page when a field is focused */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]),
+  select, textarea { font-size: 16px; }
+  /* thumb-sized buttons in game toolbars */
+  .tbtn, .fx, .back, .tools button, .tools select { min-height: 38px; min-width: 38px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
+  .coin-chip, .streak { min-height: 38px; }
+}
+/* iPhone: no sideways wobble, no rubber-band sideways scroll, keep long words inside their boxes */
+html, body { overflow-x: clip; max-width: 100%; }
+body { overscroll-behavior-x: none; }
+@media (pointer: coarse) { :where(.btn, button.tbtn, .back) { min-height: 40px; } }

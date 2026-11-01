@@ -1,0 +1,9 @@
+/* Orbit uses the Stogademy deep-space palette (navy sky, blue glow). Only colour tokens change, so layout and behaviour are untouched. */
+:root{
+  --bg:#050c40;--side:#030828;--panel:#0a1556;--panel2:#101e6b;--hover:#ffffff0d;--sel:#16298a;
+  --line:#1a2a7c;--text:#e9eeff;--muted:#93a3e6;
+  --accent:#2563eb;--accent2:#6aa8ff;--violet:#9a86ff;
+  --danger:#ef5b5b;--ok:#3ecf8e;
+}
+::selection{background:#3d6bff;color:#fff}
+:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
