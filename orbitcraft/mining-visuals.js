@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.js';
-import { TILE_COUNT,tileFor } from './visuals.js';
+import { TILE_COUNT,tileFor } from './visuals.js?v=20261102-textures4';
 
-function blockGeometry(id,size){
-  const geometry=new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
-  for(let face=0;face<6;face++){
+export function blockGeometry(id,size){
+  const geometry=id>=100?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
+  for(let face=0;face<(id>=100?1:6);face++){
     const tile=tileFor(id,face===2?1:face===3?-1:0);
     for(let v=0;v<4;v++)uv.setXY(face*4+v,(tile*16+.2+(v%2)*15.6)/(TILE_COUNT*16),(.2+(v<2?1:0)*15.6)/16);
   }
@@ -34,7 +34,7 @@ export function createResourceEffects(scene,texture){
   const overlays=new Map(),drops=new Map(),particles=[],geometryCache=new Map();
   const cube=new THREE.BoxGeometry(1.008,1.008,1.008);
   const cracks=Array.from({length:10},(_,stage)=>new THREE.MeshBasicMaterial({map:crackTexture(stage),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
-  const itemMaterial=new THREE.MeshLambertMaterial({map:texture,alphaTest:.5});
+  const itemMaterial=new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide});
   function geometry(id,small=false){const key=id+':'+small;if(!geometryCache.has(key))geometryCache.set(key,blockGeometry(id,small?.055:.24));return geometryCache.get(key);}
   function removeDrop(id){const d=drops.get(id);if(d){scene.remove(d.root);drops.delete(id);}}
   return {

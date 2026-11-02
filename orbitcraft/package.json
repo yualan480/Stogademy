@@ -10,8 +10,8 @@
     "start": "node server/index.js",
     "test": "node --test test/*.test.js",
     "build:cloudflare": "node cloudflare/build.js",
-    "dev:cloudflare": "npm run build:cloudflare && wrangler dev",
-    "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy"
+    "dev:cloudflare": "wrangler dev",
+    "deploy:cloudflare": "wrangler deploy"
   },
   "dependencies": {
     "three": "0.181.1",

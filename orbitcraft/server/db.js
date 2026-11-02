@@ -17,8 +17,11 @@ export function openStore(path) {
   db.prepare('INSERT OR IGNORE INTO metadata VALUES (?,?)').run('world',version);
   const save=db.prepare('INSERT INTO players VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,state=excluded.state,updated_at=excluded.updated_at');
   const block=db.prepare('INSERT INTO blocks VALUES (?,?,?,?) ON CONFLICT(x,y,z) DO UPDATE SET block=excluded.block');
-  const savePlayer=p=>save.run(p.id,p.name,JSON.stringify({x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined||0,placed:p.placed||0}),Date.now());
+  const savePlayer=p=>save.run(p.id,p.name,JSON.stringify({x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined||0,placed:p.placed||0,survival:p.survival,hotbar:p.hotbar}),Date.now());
   return {db,savePlayer,
+    loadSurvival:()=>{const r=db.prepare("SELECT value FROM metadata WHERE key='survival'").get();return r?JSON.parse(r.value):null;},
+    saveSurvival:state=>db.prepare("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(state)),
+    commit(p,{blocks=[],drops=[],survival,players=[]}){db.exec('BEGIN IMMEDIATE');try{for(const a of blocks)block.run(a.x,a.y,a.z,a.block);for(const d of drops)db.prepare('INSERT INTO drops VALUES (?,?)').run(d.id,JSON.stringify(d));if(p)savePlayer(p);for(const other of players)if(other!==p)savePlayer(other);if(survival)db.prepare("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(survival));db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}},
     loadPlayer:id=>{const p=db.prepare('SELECT state FROM players WHERE id=?').get(id);return p?JSON.parse(p.state):null;},
     changes:()=>db.prepare('SELECT * FROM blocks').all(),
     drops:()=>db.prepare('SELECT state FROM drops').all().map(r=>JSON.parse(r.state)),

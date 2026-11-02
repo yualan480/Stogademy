@@ -4,10 +4,10 @@ import * as CONFIG from './config.js';
 import { initOrbit } from './orbit.js?v=11';
 import { initCommunities } from './communities.js?v=2';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
-const { initShop } = await import('./shop.js?v=11').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
+const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
 const { initTournaments } = await import('./tournaments.js?v=2').catch(e => (console.warn('Tournaments unavailable', e), {}));
 const { initGamble } = await import('./gamble.js?v=5').catch(e => (console.warn('Orbit Casino unavailable', e), {}));
-const { initArena } = await import('./arena.js?v=2').catch(e => (console.warn('Orbit Game unavailable', e), {}));
+const { initArena } = await import('./arena.js?v=3').catch(e => (console.warn('Orbit Game unavailable', e), {}));
 const { dictateBtn, bindDictate } = await import('./dictate.js?v=1').catch(e => (console.warn('Voice typing unavailable', e), {}));
 const NO_AR = { decorate() {}, start() {}, stop() {}, load() {} };
 const NO_GB = { handles: v => v === 'gamble', render: m => { m.innerHTML = '<div class="empty"><h2>Orbit Casino is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, onNav() {}, stop() {} };
@@ -1208,7 +1208,7 @@ function renderMainInner(loading) {
   if (S.view === 'orbitcraft') {
     // Preserve a live game iframe when unrelated chat updates redraw the shell.
     if (!main.querySelector('[data-orbitcraft]')) {
-      main.innerHTML = `<div class="top gtop"><button class="ib gtog" id="octog" aria-label="Show or hide sidebar" title="Show or hide sidebar">${ic('chev')}</button>${menuBtn()}<span class="hashi">${ic('gamepad', 20)}</span><b class="title">Orbitcraft</b><span class="grow"></span><span class="muted">Shared public world</span></div><div class="gamer-wrap"><iframe data-orbitcraft class="gframe" src="../orbitcraft/?autojoin=1" title="Orbitcraft multiplayer sandbox" allow="fullscreen" allowfullscreen></iframe></div>`;
+      main.innerHTML = `<div class="top gtop"><button class="ib gtog" id="octog" aria-label="Show or hide sidebar" title="Show or hide sidebar">${ic('chev')}</button>${menuBtn()}<span class="hashi">${ic('gamepad', 20)}</span><b class="title">Orbitcraft</b><span class="grow"></span><span class="muted">Shared public world</span></div><div class="gamer-wrap"><iframe data-orbitcraft class="gframe" src="../orbitcraft/?autojoin=1&v=20261102-pvp5" title="Orbitcraft multiplayer sandbox" allow="fullscreen" allowfullscreen></iframe></div>`;
     }
     $('#octog', main).onclick = () => { S.sideOff = !S.sideOff; renderMain(); };
     bindMenu(); O.onView(S.view); O.gameOpen(true); return;

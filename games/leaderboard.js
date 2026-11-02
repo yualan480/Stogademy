@@ -750,7 +750,7 @@
   if (!window.OrbitBank && document.createElement) {
     try {
       var cs = document.currentScript, bs = document.createElement('script');
-      bs.src = (cs && cs.src ? cs.src.replace(/[^\/]*$/, '') : '') + 'orbit-bank.js?v=8';
+      bs.src = (cs && cs.src ? cs.src.replace(/[^\/]*$/, '') : '') + 'orbit-bank.js?v=9';
       (document.head || document.documentElement).appendChild(bs);
     } catch (e) { /* the bank is a bonus, never break a game */ }
   }

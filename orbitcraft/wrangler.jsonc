@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "study",
   "main": "cloudflare/worker.js",
+  "build": { "command": "node -e \"const fs=require('node:fs'); import(fs.existsSync('cloudflare/build.js') ? './cloudflare/build.js' : './orbitcraft/cloudflare/build.js');\"" },
   "compatibility_date": "2025-11-01",
   "assets": {
     "directory": ".site",

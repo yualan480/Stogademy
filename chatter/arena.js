@@ -61,7 +61,7 @@ export function initArena(c) {
     const L = s.loop || {}, holder = L.holder ? prof(L.holder) : null, mine = L.holder === S.me.id;
     const loop = `<div class="ar-loop"><span class="ar-hav">${holder ? av(holder) : '<span class="ar-none">?</span>'}</span>
       <div><small>Orbit Loop · one of one</small><b class="olname">${holder ? esc(holder.display_name) : 'Nobody yet'}${mine ? ' <em>(you)</em>' : ''}</b>
-      <small>${holder ? `held for ${ago(L.since)} · ${L.takes} transfer${L.takes === 1 ? '' : 's'}` : 'Staff hand it out at an event'}</small></div>
+      <small>${holder ? `held for ${ago(L.since)} · ${L.takes} transfer${L.takes === 1 ? '' : 's'}` : 'No current holder'}</small></div>
       <button class="ar-link" data-ar="hist" type="button">History</button></div>`;
     const bal = `<div class="ar-bal"><span><small>Unlocked</small><b>${fmt(s.balance - s.locked)}</b></span><span class="${s.locked ? 'lk' : ''}"><small>${s.locked ? 'Locked · ' + left(s.vault?.ends_at) : 'Locked'}</small><b>${fmt(s.locked)}</b></span></div>`;
     const chips = `<div class="ar-chips">${s.catalog.map(i => `<span class="ar-chip${i.qty ? ' has' : ''}" title="${esc(i.name)}: ${i.qty} owned, ${i.used}/${i.limit} gained this week">${GLYPH(i)}<b>${i.qty}</b></span>`).join('')}</div>`;
@@ -72,7 +72,7 @@ export function initArena(c) {
         <li><b>Steal:</b> pick a player on the board, pay ${fmt(s.cfg.theft_cost)} Orbits per attempt (kept even if it fails) and a success takes up to ${s.cfg.theft_pct}% of their unlocked Orbits. You can target the same player once every 24h. All thefts are anonymous.</li>
         <li><b>Defend:</b> a Galactic Vault locks a chosen amount for ${s.cfg.vault_hours}h (it can't be stolen or spent). Withdrawing early costs ${fmt(s.cfg.vault_early_fee)} and the Orbits become vulnerable. A Mirror Amulet reflects one theft: the thief loses what they would have taken. The Orbit Shield protects the Loop holder from challenges, not from theft.</li>
         <li><b>Investigate:</b> clues show game facts only, never messages or personal data. Clues can be vague or even wrong, so compare evidence and watch for bluffs. They never reveal exact balances, messages or alliances.</li>
-        <li><b>The Loop:</b> only one exists. Buy it from the Orbit Shop by paying more than 50,000 Orbits (and more than the latest price paid), or win it with a Sword of Stars. The Sword can't be bought: one random player gets it each week, and it can be used once every ${s.cfg.sword_cooldown_days} days. If the holder has an active Shield, the challenge fails and the Sword breaks. A Sword left unused by an inactive player (${s.cfg.sword_idle_days}+ days) is passed to someone else. Whether a Shield is up stays secret.</li>
+        <li><b>The Loop:</b> only one exists and it is not for sale. Only a player who owns a Sword of Stars can challenge the current holder to win it. The Sword can't be bought: one random player gets it each week, and it can be used once every ${s.cfg.sword_cooldown_days} days. If the holder has an active Shield, the challenge fails and the Sword breaks. A Sword left unused by an inactive player (${s.cfg.sword_idle_days}+ days) is passed to someone else. Whether a Shield is up stays secret.</li>
         <li><b>Limits:</b> weekly item limits count every source, reset each Monday (UTC) and never carry over. New players are protected. Earned ranks ignore stolen Orbits.</li></ul>
         <p class="muted ar-small">Everyone on Orbit is in the game, all the time. Your items always stay secret.</p></details></section>`;
   }
@@ -227,7 +227,7 @@ export function initArena(c) {
   }
   function histModal() {
     const h = A.st?.loop?.history || [];
-    modal('Orbit Loop history', `<ul class="ar-notes">${h.length ? h.map(x => `<li><b>${esc(x.name || 'Unknown')}</b> ${x.how === 'challenge' ? 'won it with a Sword of Stars' : x.how === 'event' ? 'received it at an event' : `bought it for ${fmt(x.price)}`} · ${ago(x.at)} ago</li>`).join('') : '<li>No transfers yet.</li>'}</ul>`, [{ label: 'Close', cls: 'ghost' }]);
+    modal('Orbit Loop history', `<ul class="ar-notes">${h.length ? h.map(x => `<li><b>${esc(x.name || 'Unknown')}</b> ${x.how === 'challenge' ? 'won it with a Sword of Stars' : x.how === 'restored' ? 'had ownership restored' : x.how === 'event' ? 'received it at an event' : `bought it for ${fmt(x.price)}`} · ${ago(x.at)} ago</li>`).join('') : '<li>No transfers yet.</li>'}</ul>`, [{ label: 'Close', cls: 'ghost' }]);
   }
 
   return { decorate, start, stop, load };

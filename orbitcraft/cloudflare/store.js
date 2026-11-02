@@ -11,8 +11,11 @@ export function cloudStore(storage){
  const old=sql.exec("SELECT value FROM metadata WHERE key='world'").toArray()[0];
  if(old && old.value!==version)throw new Error('World generation mismatch: migrate database first.');
  sql.exec("INSERT OR IGNORE INTO metadata VALUES ('world',?)",version);
- const savePlayer=p=>sql.exec('INSERT INTO players VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,state=excluded.state,updated_at=excluded.updated_at',p.id,p.name,JSON.stringify({x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined,placed:p.placed}),Date.now());
+ const savePlayer=p=>sql.exec('INSERT INTO players VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,state=excluded.state,updated_at=excluded.updated_at',p.id,p.name,JSON.stringify({x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined,placed:p.placed,survival:p.survival,hotbar:p.hotbar}),Date.now());
  return {savePlayer,
+ loadSurvival:()=>{const r=sql.exec("SELECT value FROM metadata WHERE key='survival'").toArray()[0];return r?JSON.parse(r.value):null;},
+ saveSurvival:state=>sql.exec("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify(state)),
+ commit:(p,{blocks=[],drops=[],survival,players=[]})=>storage.transactionSync(()=>{for(const a of blocks)sql.exec('INSERT INTO blocks VALUES (?,?,?,?) ON CONFLICT(x,y,z) DO UPDATE SET block=excluded.block',a.x,a.y,a.z,a.block);for(const d of drops)sql.exec('INSERT INTO drops VALUES (?,?)',d.id,JSON.stringify(d));if(p)savePlayer(p);for(const other of players)if(other!==p)savePlayer(other);if(survival)sql.exec("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify(survival));}),
  loadPlayer:id=>{const p=sql.exec('SELECT state FROM players WHERE id=?',id).toArray()[0];return p?JSON.parse(p.state):null;},
  changes:()=>sql.exec('SELECT * FROM blocks').toArray(),
  drops:()=>sql.exec('SELECT state FROM drops').toArray().map(r=>JSON.parse(r.state)),

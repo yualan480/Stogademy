@@ -38,7 +38,7 @@
   }
   function refresh() { return rpc('my_orbits').then(function (n) { setBal(n); return bal; }).catch(function () { return bal; }); }
   // what a round would pay (for the pop-up and the "Ways to earn" table); rounded to the nearest whole Orbit; the server decides the real amount
-  function preview(game, score) { var r = RATES[game]; score = Math.floor(Number(score)); return r && score > 0 ? Math.min(Math.round(score * r + 1e-9), 100000) : 0; }
+  function preview(game, score) { var r = RATES[game]; score = Math.floor(Number(score)); return Number.isFinite(r) && r > 0 && Number.isFinite(score) && score > 0 && score <= 10000000 ? Math.floor((score * Math.round(r * 1000) + 500) / 1000) : 0; }
   function queueGet() { try { return JSON.parse(get(QUEUE) || '[]') || []; } catch (e) { return []; } }
   function queuePut(q) { put(QUEUE, JSON.stringify(q.slice(-20))); }
   // pay a finished round. Resolves with the Orbits granted (0 if none). Failed claims are retried later.

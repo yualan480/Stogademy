@@ -42,7 +42,7 @@ export function initShop(c) {
 
   const SH = { items: [], byId: new Map(), mine: new Map(), cos: new Map(), tab: 'featured', loaded: false, loading: null, err: '', busy: '', reqs: [], reqErr: '' };
   const fmt = n => Number(n || 0).toLocaleString();
-  const LP = { holder: null, price: 0, start: 50000, takes: 0, ok: false, err: '', busy: false, draft: '', sub: false };   // the Orbit Loop (see migration-orbit-loop.sql)
+  const LP = { holder: null, takes: 0, ok: false, err: '', sub: false };   // read-only holder cosmetics; migration-loop-sword-only.sql owns transfer rules
   const SHAPE_OK = /^[a-z]{2,10}$/;
   const art = it => ({ c1: hex(it?.art?.c1, '#2f6bff'), c2: hex(it?.art?.c2, '#37e0ff'), glyph: typeof it?.art?.glyph === 'string' ? it.art.glyph.slice(0, 4) : '', shape: SHAPE_OK.test(it?.art?.shape || '') ? it.art.shape : '', tile: TILES.includes(it?.art?.tile) ? it.art.tile : 'circle' });
   const grad = it => { const a = art(it); return `linear-gradient(135deg, ${a.c1}, ${a.c2})`; };
@@ -215,14 +215,13 @@ export function initShop(c) {
       ${t === 'custom' ? customPage() : SH.loaded ? (list.length || CUSTOM_LABEL[t] ? `<div class="shp-grid">${list.map(card).join('')}${CUSTOM_LABEL[t] ? customCard(t) : ''}</div>` : `<p class="muted">${t === 'inventory' ? 'You do not own anything yet. Earn Orbits in games and events, then pick something from the shop.' : t === 'cursor' ? (['owner', 'admin', 'moderator'].includes(S.sv?.role) ? 'No cursors are in the shop yet. Run migration-shop-cursors.sql in the Orbit Supabase SQL Editor, then reload this page.' : 'New cursors are on the way. Check back soon!') : 'Nothing here yet.'}</p>`) : '<div class="sk"></div>'}
     </div><aside class="shp-side"><div class="shp-box"><h3>Your look</h3><ul>${eqRows}</ul></div>
       <div class="shp-box"><h3>Earn Orbits</h3><p class="muted">Play Orbit Games, join events and spend time on Orbit. Buying here never lowers your leaderboard rank.</p>
-      <button class="shp-btn" data-go="gamer">Play games</button></div>${loopBoxHtml()}</aside></div></div></div>`;
+      <button class="shp-btn" data-go="gamer">Play games</button></div></aside></div></div></div>`;
     main.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { SH.tab = b.dataset.st; c.renderMain(); });
     main.querySelectorAll('[data-cx]').forEach(b => b.onclick = () => customForm(b.dataset.cx));
     main.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => confirmBuy(b.dataset.buy));
     main.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => previewModal(b.dataset.pv));
     main.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => equip(b.dataset.eq));
     main.querySelectorAll('[data-go]').forEach(b => b.onclick = () => c.navTo(b.dataset.go));
-    bindLoopBox(main);
   }
 
   /* ───────── custom orders: type what you want, pay 5,000 Orbits, it is checked and generated for 5 minutes, then added to your items ───────── */
@@ -307,8 +306,7 @@ export function initShop(c) {
   async function refreshCos() { const r = await sb.from('shop_inventory').select('user_id,item_id').eq('equipped', true); if (!r.error) { if (!SH.byId.size) await load(); setCos(r.data || []); paintFonts(); } }
 
 
-  /* ───────── the Orbit Loop: only one exists, the highest price wins it ───────── */
-  const loopNeed = () => Math.max(LP.start, LP.price) + 1;   // must pay MORE than the 50,000 floor and more than the latest price paid
+  /* ───────── Orbit Loop ownership: read-only cosmetics, never a shop item ───────── */
   const holderName = () => (LP.holder ? (S.profiles.get(LP.holder)?.display_name || 'Someone') : '');
   async function ensureProfile(uid) {
     if (!uid || S.profiles.has(uid)) return;
@@ -316,13 +314,13 @@ export function initShop(c) {
     if (r.data) S.profiles.set(uid, r.data);
   }
   function setLoop(row) {
-    LP.holder = row?.holder || null; LP.price = Number(row?.price || 0); LP.start = Number(row?.start_price || 50000); LP.takes = Number(row?.takes || 0);
+    LP.holder = row?.holder || null; LP.takes = Number(row?.takes || 0);
   }
   async function loadLoop() {
     const r = await sb.from('orbit_loop').select('*').eq('id', 1).maybeSingle();
     if (r.error) { LP.ok = false; LP.err = /relation|does not exist|schema cache|function/i.test(r.error.message || '') ? 'The Orbit Loop is not set up yet. Run migration-orbit-loop.sql in Supabase.' : (r.error.message || 'Could not load the Orbit Loop.'); return; }
     LP.err = ''; LP.ok = !!r.data; setLoop(r.data); await ensureProfile(LP.holder);
-    patchLoop(); paintLoopBox(); watchLoop();
+    patchLoop(); watchLoop();
     try { if (LP.holder && LP.holder === S.me.id && !sessionStorage.getItem('ol-arrived')) { sessionStorage.setItem('ol-arrived', '1'); setTimeout(() => playArrival(S.me.id), 1400); } } catch {}
   }
   /* everyone sees the loop change hands live */
@@ -333,8 +331,8 @@ export function initShop(c) {
       if (Number(n.takes) <= LP.takes && n.holder === LP.holder) return;   // that was our own take, already on screen
       const before = LP.holder; setLoop(n); await ensureProfile(LP.holder);
       if (before === S.me.id && LP.holder !== S.me.id) toast(`${holderName()} took the Orbit Loop from you!`, true);
-      patchLoop(); paintLoopBox(true);
-      if (LP.holder !== S.me.id) playAlert(holderName(), LP.price);   // everyone online hears about it (the taker gets the big animation instead)
+      patchLoop();
+      if (LP.holder !== S.me.id) playAlert(holderName());   // everyone online hears about it (the taker gets the big animation instead)
     }).subscribe();
   }
   /* put the loop on (or take it off) every avatar already on screen, without redrawing the page */
@@ -347,102 +345,7 @@ export function initShop(c) {
     document.querySelectorAll('.mention[data-u]').forEach(el => el.classList.toggle('loopm', !!LP.holder && el.dataset.u === LP.holder));   // @mentions of the holder
     syncTrail();
   }
-  function loopBoxHtml() {
-    if (LP.err) return `<div class="shp-box olbox" id="olbox"><h3>The Orbit Loop</h3><p class="err">${esc(LP.err)}</p></div>`;
-    if (!LP.ok) return '<div class="shp-box olbox" id="olbox"><div class="sk"></div></div>';
-    const mine = LP.holder === S.me.id, held = !!LP.holder, need = loopNeed(), bal = S.orbits || 0;
-    const coin = '<img src="logo.svg" width="18" height="18" alt="">';
-    return `<div class="shp-box olbox" id="olbox" data-state="${mine ? 'mine' : held ? 'held' : 'free'}">
-      <span class="ol-tag">One of one</span><h3>The Orbit Loop</h3>
-      <div class="ol-stage"><span class="ol-glow"></span><u class="oloop big" aria-hidden="true"><s></s><s></s></u></div>
-      <div class="ol-last">${held ? `<span class="ol-by">Held by <b class="olname">${esc(holderName())}</b>${mine ? ' <em>(you)</em>' : ''}</span>` : '<span class="ol-by">Nobody holds it yet</span>'}</div>
-      <p class="muted ol-desc">Only one exists. It floats above your profile in chat, on profiles and on the leaderboard, and your name gets its own glowing font.</p>
-      <p class="${mine ? 'ol-mine' : 'muted'}">${mine ? 'It is floating above your profile now. Keep a Shield ready: anyone with a Sword of Stars can challenge you.' : `Pay more than ${fmt(need - 1)} Orbits to take it${held ? ' from the holder' : ''}. You can also win it with a Sword of Stars.`}</p>
-      ${mine ? '' : `<div class="ol-row"><input id="olprice" type="number" inputmode="numeric" min="${need}" step="1" placeholder="${fmt(need)}" value="${LP.draft !== '' ? esc(String(LP.draft)) : ''}" aria-label="Price in Orbits"><button class="shp-btn" id="oltake" type="button"${LP.busy ? ' disabled' : ''}>${LP.busy ? 'Taking…' : bal >= need ? `Buy the Loop · ${fmt(need)}+` : `Need ${fmt(need - bal)} more Orbits`}</button></div>`}
-    </div>`;
-  }
-  function bindLoopBox(root) {
-    const inp = root.querySelector('#olprice'), btn = root.querySelector('#oltake');
-    if (inp) { inp.oninput = () => { LP.draft = inp.value; }; inp.onkeydown = e => { if (e.key === 'Enter') takeLoop(); }; }
-    if (btn) btn.onclick = takeLoop;
-  }
-  function paintLoopBox(flash) {
-    const old = document.getElementById('olbox'); if (!old) return;
-    const focused = document.activeElement?.id === 'olprice';
-    const t = document.createElement('div'); t.innerHTML = loopBoxHtml(); const nb = t.firstElementChild; if (!nb) return;
-    old.replaceWith(nb); bindLoopBox(nb);
-    if (focused) nb.querySelector('#olprice')?.focus();
-    if (flash) { nb.classList.add('ol-flash'); setTimeout(() => nb.classList.remove('ol-flash'), 1500); }
-  }
-  async function takeLoop() {
-    if (LP.busy) return;
-    const price = Math.floor(Number(document.getElementById('olprice')?.value ?? LP.draft)), need = loopNeed();
-    if (!Number.isFinite(price) || price < 1) return toast('Type how many Orbits you want to pay.', true);
-    if (price < need) return toast(`You need to pay at least ${fmt(need)} Orbits to take the Orbit Loop.`, true);
-    if (price > (S.orbits || 0)) return toast(`You need ${fmt(price - (S.orbits || 0))} more Orbits for that price.`, true);
-    LP.busy = true; paintLoopBox();
-    const { data, error } = await sb.rpc('take_orbit_loop', { p_price: price });
-    LP.busy = false;
-    if (error) { toast(error.message || 'Could not take the Orbit Loop.', true); await loadLoop(); await c.loadOrbits(); return paintLoopBox(); }
-    c.setOrbits(data?.balance ?? Math.max(0, (S.orbits || 0) - price));
-    const r = document.querySelector('#olbox .ol-stage')?.getBoundingClientRect();
-    LP.holder = S.me.id; LP.price = price; LP.takes += 1; LP.draft = '';
-    playTakeover({ price, from: r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null, onImpact: () => { patchLoop(); c.renderSide(); if (S.view === 'shop') c.renderMain(); else paintLoopBox(); } });
-  }
-
-  /* the takeover: the loop is pulled out of the shop, spins, streaks across the screen on a comet trail and lands above your avatar */
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches && !document.documentElement.classList.contains('force-motion');
-  function playTakeover({ price, from, onImpact }) {
-    if (reduced()) { toast(`You took the Orbit Loop for ${fmt(price)} Orbits!`); onImpact?.(); return; }
-    const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2);
-    const src = from || { x: W / 2, y: H / 2 };
-    const ar = (document.querySelector('#mep .av') || document.querySelector('.me .av'))?.getBoundingClientRect();
-    const tgt = ar && ar.width ? { x: ar.left + ar.width / 2, y: ar.top - ar.height * 0.08, s: (ar.width * 1.28) / 170 } : { x: W / 2, y: H * 0.82, s: 0.4 };
-    const root = document.createElement('div'); root.className = 'olfx'; root.style.setProperty('--sx', src.x + 'px'); root.style.setProperty('--sy', src.y + 'px');
-    root.innerHTML = `<div class="olfx-dim"></div><div class="olfx-rays"></div><canvas></canvas><u class="oloop olfx-loop" aria-hidden="true"><s></s><s></s></u>
-      <div class="olfx-banner"><small>Orbit Loop taken</small><b class="olname">${esc(S.me.display_name || 'You')}</b><span>for ${fmt(price)} Orbits</span></div>`;
-    document.body.append(root);
-    const ring = (x, y, color, delay = 0) => setTimeout(() => { const r = document.createElement('i'); r.className = 'olfx-ring'; r.style.cssText = `left:${x}px;top:${y}px;--rc:${color}`; root.append(r); setTimeout(() => r.remove(), 1000); }, delay);
-    const cv = root.querySelector('canvas'); cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
-    const lp = root.querySelector('.olfx-loop'), banner = root.querySelector('.olfx-banner'), P = [];
-    const add = (x, y, vx, vy, life, size, hue) => P.push({ x, y, vx, vy, life, max: life, size, hue });
-    const CHARGE = 800, FLY = 1050, END = 3900, ctl = { x: (src.x + tgt.x) / 2 + 160, y: Math.min(src.y, tgt.y) - 220 };
-    const ease = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-    ring(src.x, src.y, '#ffd166'); ring(src.x, src.y, '#ff6bd6', 220); ring(src.x, src.y, '#37e0ff', 440);
-    const t0 = performance.now(); let last = t0, hit = false, done = false;
-    function frame(now) {
-      if (done) return;
-      const t = now - t0, dt = Math.min(48, now - last) / 16.67; last = now;
-      let x = src.x, y = src.y, sx = 1, sy = 1, rot = 0, hue = (t / 4) % 360;
-      if (t < CHARGE) {   // pulled out of the shop: it swells, spins up and drags stardust in
-        const k = t / CHARGE; sx = sy = 0.15 + 1.05 * (1 - Math.pow(1 - k, 3)); rot = k * k * 540;
-        for (let i = 0; i < 4; i++) { const a = Math.random() * 6.283, r = 140 + Math.random() * 130; add(src.x + Math.cos(a) * r, src.y + Math.sin(a) * r, -Math.cos(a) * r / 26, -Math.sin(a) * r / 26, 28, 2 + Math.random() * 3, hue + Math.random() * 80); }
-      } else if (t < CHARGE + FLY) {   // streaks across the screen on a curve, tipping flat like a halo as it nears you
-        const k = (t - CHARGE) / FLY, e = ease(k), u = 1 - e;
-        x = u * u * src.x + 2 * u * e * ctl.x + e * e * tgt.x; y = u * u * src.y + 2 * u * e * ctl.y + e * e * tgt.y;
-        sx = sy = 1.2 + (tgt.s - 1.2) * e; sy *= 1 - 0.656 * Math.pow(k, 2); rot = 540 + e * 720 * (1 - k * .15);
-        for (let i = 0; i < 5; i++) add(x + (Math.random() - .5) * 26, y + (Math.random() - .5) * 26, (Math.random() - .5) * 2.4, (Math.random() - .5) * 2.4, 30 + Math.random() * 18, 2 + Math.random() * 4, hue + Math.random() * 90);
-      } else {
-        x = tgt.x; y = tgt.y; sx = tgt.s; sy = tgt.s * 0.344; rot = 0;
-        if (!hit) {   // impact: shockwaves, a burst of sparks, the screen jolts, and the real loop appears above you
-          hit = true; ring(tgt.x, tgt.y, '#ffd166'); ring(tgt.x, tgt.y, '#ff6bd6', 120); ring(tgt.x, tgt.y, '#37e0ff', 240);
-          for (let i = 0; i < 110; i++) { const a = Math.random() * 6.283, v = 2 + Math.random() * 7; add(tgt.x, tgt.y, Math.cos(a) * v, Math.sin(a) * v - 1.5, 40 + Math.random() * 40, 2 + Math.random() * 4, Math.random() * 360); }
-          const app = document.querySelector('.app') || document.body; app.classList.add('olshake'); setTimeout(() => app.classList.remove('olshake'), 480);
-          lp.style.opacity = '0'; banner.classList.add('show'); onImpact?.();
-        }
-      }
-      lp.style.transform = `translate(${x}px,${y}px) translate(-50%,-50%) scale(${sx},${sy}) rotate(${rot}deg)`; lp.style.filter = `hue-rotate(${hue}deg) drop-shadow(0 0 ${14 * sx}px #ff9bf0)`;
-      g.clearRect(0, 0, W, H); g.globalCompositeOperation = 'lighter';
-      for (let i = P.length - 1; i >= 0; i--) {
-        const q = P[i]; q.life -= dt; if (q.life <= 0) { P.splice(i, 1); continue; }
-        q.x += q.vx * dt; q.y += q.vy * dt; if (hit) q.vy += 0.09 * dt;
-        const a = q.life / q.max, r = q.size * (0.4 + a); g.fillStyle = `hsla(${q.hue},100%,68%,${a})`; g.beginPath(); g.arc(q.x, q.y, r, 0, 6.283); g.fill();
-      }
-      if (t > END) { done = true; root.classList.add('out'); setTimeout(() => root.remove(), 600); return; }
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
 
   /* ───────── holder extras: arrival banner, change-of-hands alert, cursor ring trail ───────── */
   const isHolder = uid => !!uid && uid === LP.holder;
@@ -477,8 +380,8 @@ export function initShop(c) {
     const b = banner(`<small>The Loop Holder has arrived</small><b class="olname">${esc(S.profiles.get(uid)?.display_name || 'The Loop Holder')}</b>`, 'arrive');
     burstAt(b, ['#ffd166', '#ffe58a', '#ff9bf0'], [30, 62]);
   }
-  function playAlert(name, price) {
-    const b = banner(`<small>The Orbit Loop has changed hands!</small><b class="olname">${esc(name)}</b><span>took it for ${fmt(price)} Orbits</span>`, 'alert', 4800);
+  function playAlert(name) {
+    const b = banner(`<small>The Orbit Loop has changed hands!</small><b class="olname">${esc(name)}</b><span>is the new Loop holder</span>`, 'alert', 4800);
     burstAt(b, ['#ff6bd6', '#8f7bff', '#37e0ff'], [270, 330]);
   }
   /* app.js calls this when somebody newly appears in the online list: only a brand-new arrival of the holder counts */
@@ -519,7 +422,7 @@ export function initShop(c) {
     bg.querySelector('h2')?.classList.add('olname');
     const body = bg.querySelector('.modal > div:not(.actions)'); if (!body) return;
     if (body.firstElementChild) body.firstElementChild.style.paddingTop = '16px';
-    body.insertAdjacentHTML('beforeend', `<div class="olbadge"><u class="oloop mini" aria-hidden="true"><s></s></u><span>Holds the <b>Orbit Loop</b> · took it for <b>${fmt(LP.price)}</b> Orbits</span></div>`);
+    body.insertAdjacentHTML('beforeend', `<div class="olbadge"><u class="oloop mini" aria-hidden="true"><s></s></u><span>Holds the <b>Orbit Loop</b></span></div>`);
   }
 
   /* the collectibles this member owns, equipped one first: the Orbit home page floats them (collectible-float.js) */

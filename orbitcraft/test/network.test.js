@@ -23,3 +23,19 @@ test('two real WebSocket clients share movement, chat, edits, inventory, disconn
  assert.equal((await fetch(`http://127.0.0.1:${port}/orbitcraft/data/world.sqlite`)).status,404);
 });
 test('production server rejects unverified development identities',{timeout:15000},async()=>{const dir=mkdtempSync(join(tmpdir(),'orbitcraft-auth-'));const server=await start(join(dir,'world.sqlite'),18790,false);let c;try{c=await connect(18790,'dev-Imposter');const error=await c.wait('error');assert.match(error.message,/Sign in/);}finally{c?.ws.terminate();await stop(server);rmSync(dir,{recursive:true,force:true});}});
+
+test('two connected clients perform authoritative PvP, save death loot and respawn after restart',{timeout:20000},async t=>{
+ const {openStore}=await import('../server/db.js'),{Game}=await import('../server/game.js');
+ const dir=mkdtempSync(join(tmpdir(),'orbit-pvp-net-')),db=join(dir,'world.sqlite'),port=18791;
+ const seed=openStore(db),game=new Game(seed),alice=game.join({id:'dev-PvpAlice',name:'PvpAlice'},()=>{}),bob=game.join({id:'dev-PvpBob',name:'PvpBob'},()=>{}),blocks=[];
+ for(let x=-4;x<=4;x++)for(let z=-4;z<=4;z++){blocks.push({x,y:44,z,block:3});for(let y=45;y<=48;y++)blocks.push({x,y,z,block:0});}
+ seed.commit(null,{blocks});Object.assign(alice,{x:.5,y:45.01,z:.5,yaw:0,pitch:0});Object.assign(bob,{x:.5,y:45.01,z:-1.5,yaw:Math.PI,pitch:0});alice.inventory[122]=1;alice.hotbar=[122,2,3,5,0,0,0,0,0];bob.survival.health=4;seed.savePlayer(alice);seed.savePlayer(bob);seed.saveSurvival(game.survival.world);seed.close();
+ let server=await start(db,port);const clients=[];t.after(async()=>{clients.forEach(c=>c.ws.terminate());if(server)await stop(server);rmSync(dir,{recursive:true,force:true});});
+ const a=await connect(port,'dev-PvpAlice'),b=await connect(port,'dev-PvpBob');clients.push(a,b);assert.equal((await a.wait('welcome')).world.pvp,true);await b.wait('welcome');
+ a.send({type:'attack',target:'dev-PvpBob',damage:9999});await sleep(150);assert.equal((await b.wait('survival')).state.health,4);
+ const input={type:'input',yaw:0,pitch:0,mine:true},held=setInterval(()=>a.send(input),100);let hit;
+ try{a.send(input);hit=await b.wait('combat',m=>m.attacker==='dev-PvpAlice'&&m.target==='dev-PvpBob');assert.equal(hit.killed,true);assert.equal(hit.damage,4);await a.wait('combat',m=>m.target==='dev-PvpBob');assert.equal((await b.wait('survival',m=>m.state.health===0)).state.health,0);await b.wait('inventory',m=>Object.values(m.inventory).every(n=>n===0));assert.equal((await a.wait('survival',m=>m.state.durability[122]===58)).state.durability[122],58);}finally{clearInterval(held);a.send({type:'input',yaw:0,pitch:0,mine:false});}
+ for(const c of clients)c.ws.close();await sleep(150);await stop(server);server=null;
+ const persisted=openStore(db);assert.equal(persisted.loadPlayer('dev-PvpBob').survival.health,0);const drops=persisted.drops();assert.equal(drops.length,3);persisted.close();
+ server=await start(db,port);const returning=await connect(port,'dev-PvpBob');clients.push(returning);const welcome=await returning.wait('welcome');assert.equal(welcome.survival.health,0);assert.equal(welcome.drops.length,3);returning.send({type:'respawn'});assert.equal((await returning.wait('survival',m=>m.state.health===20)).state.health,20);assert.equal(new Set(welcome.drops.map(d=>d.id)).size,3);
+});

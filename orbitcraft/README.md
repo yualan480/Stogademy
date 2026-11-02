@@ -13,12 +13,12 @@ were changed.
 - Server-controlled movement, collision, jumping, swimming, timed mining and building.
 - Progressive block cracks and persistent dropped items that float and rotate.
 - Other connected players with Orbit usernames above their block avatars.
-- A persistent resource inventory, eight-slot hotbar, and log-to-plank crafting.
+- 36 inventory slots, nine hotbar slots included, an off-hand slot, and chests.
 - Public multiplayer chat with recent history saved.
 - Keyboard/mouse and touch controls.
 - Cloudflare Worker + SQLite Durable Object backend, and a Node.js local server.
 
-There are no bots or simulated online players. Local development identities
+The online count contains real connected players only. Animals and monsters are server-controlled NPCs. Local development identities
 represent real connections from the browsers you open; production requires a
 verified Orbit/Supabase session.
 
@@ -87,7 +87,7 @@ world-generation version and multiplayer authority are preserved.
 
 Hold the left mouse button (or hold the mobile **Hold to mine** button) while
 looking at a block. Cracks spread as the server's mining timer advances. Leaves
-take 0.35 seconds, dirt 0.65 seconds, logs 1.8 seconds and stone 2.6 seconds;
+take 0.35 seconds, dirt 0.65 seconds, logs 1.8 seconds and stone 2.6 seconds by hand; appropriate tools speed mining and a pickaxe is required for stone/ore drops;
 bedrock cannot be mined. Releasing, looking away, opening a menu or losing fresh
 input cancels that block's progress. Other connected players see the cracks too.
 
@@ -130,7 +130,7 @@ reconnection after at most 45 minutes; reconnect refreshes the Orbit session whe
 needed. Only one connection per Orbit account is permitted.
 
 The current capacity is 48 simultaneous connections, one finite public world,
-no PvP, no mobs, and no fluids simulation. Water supports swimming. Snow, logs,
+PvP enabled and no fluids simulation. Animals and hostile mobs are server-controlled. Water supports swimming. Snow, logs,
 leaves, sand, dirt, grass, stone and oak planks can be collected/placed; bedrock
 cannot be mined. There is no private-land protection yet: public players can
 edit shared builds. This is a playable first version, not a complete Minecraft
@@ -195,3 +195,97 @@ the mobile join screen. These checks expect the local development server on port
 
 No live deployment has been performed by creating this package. Publishing
 requires signing into your Cloudflare account using the steps above.
+
+
+## Browser survival
+
+This is Orbitcraft's custom browser survival game, not the official Minecraft
+Java software. Existing builds and edits remain intact. Natural, unedited stone
+now includes underground coal, iron, gold, diamond and ancient debris resources.
+
+- Hand crafting offers planks, sticks and tables. Place a table and right-click
+  it for the 3×3 recipe selector. Recipes show ingredients and consume them on
+  the server. Wooden, stone, iron, gold, diamond and netherite tools have mining
+  tiers, speed and saved durability. Ancient debris smelts into scrap; four scrap
+  and four gold craft an ingot for diamond-equipment upgrades.
+- Hearts represent 20 HP. Food restores hunger, saturation and health. Saturation
+  drains before hunger; hunger at six or below disables sprinting. Well-fed
+  players regenerate and starving players lose health. Fall damage is enabled.
+- Hunting cows, pigs, chickens and sheep supplies food and wool. Fishing rods
+  cast into nearby water; use again during the bite window. Hoe grass/dirt, plant
+  seeds, and harvest mature wheat. Water accelerates crop growth. Bread and
+  cooked meat/fish are available. Crop growth is two minutes while loaded,
+  accelerated near water. Obtain seeds and apples from leaves.
+- The server clock completes 24,000 ticks in 20 minutes of active play: ten
+  minutes of daylight, 90 seconds of transitions, and 8.5 minutes of night.
+  Zombies, skeletons, creepers, spiders and Endermen spawn in darkness. Endermen
+  become aggressive when attacked or looked at and teleport. Skeletons shoot,
+  creepers explode, spiders climb short obstacles, and shelters block sight.
+- Beds set a safe personal respawn when used at night; all living connected
+  players must sleep to skip night. Otherwise respawn uses the saved original
+  world spawn. Death drops carried items and equipped gear into the shared world.
+- 36 material-stack slots include the nine hotbar slots, with up to 64 items in
+  each. Click a backpack stack to swap it with your selected hotbar slot. The
+  separate off-hand button moves a stack to/from off-hand storage. Armor and
+  shields equip from the inventory; hold F to block attacks from the front.
+- Chests hold 27 stacks and share saved contents. Right-click to open, store your
+  selected stack, or click contents to withdraw. Furnaces consume fuel and smelt
+  one item per ten seconds; blast furnaces smelt ores in five seconds and reject
+  food. Output remains in the furnace until collected. Jobs save with the world.
+- Press R to eat, G/right-click to use, E for inventory, F5 to cycle first person,
+  third-person back and third-person front. The camera clips against solid
+  terrain. Mining feedback uses cracks only, with no bar or pickup notifications.
+
+The world clock, mobs, station contents, crops, player vitals, saturation,
+equipment, durability and slot layout save in the same private SQLite world
+store. The simulation pauses when no one is connected. This implementation uses
+recipe selection with automatically arranged ingredient previews, not cursor
+placement of arbitrary recipes. Durable equipment currently shares condition by
+item type; separate instances of the same tool do not have independent wear.
+Legacy inventory totals exceeding 36 stacks are preserved in storage; collection
+and recipes cannot grow an already overflowing bag. No deployment is performed
+by building the assets.
+
+
+## If the HUD is missing on the live site
+
+The live Cloudflare site and this workspace draft are separate versions. A read
+of `https://study.stogademy.workers.dev/orbitcraft/` during diagnosis showed the
+older page without `health-meter` or `hunger-meter`, and its JavaScript lacked
+the survival UI. That is a deployment mismatch, not a hidden HUD setting.
+
+The corrected package identifies itself as `orbitcraft-survival-pvp-5`. Its
+`/orbitcraft/health` response includes that release, and the game HTML includes
+an `orbitcraft-release` meta tag with the same value. The build verifies the HUD
+markup, sprites, styles and scripts in the packaged site against source. The
+Orbit game iframe and game entry assets have new version URLs.
+
+To update Cloudflare when deployment is authorized, run `npm run deploy:cloudflare`
+from the orbitcraft folder. This rebuilds and deploys the complete Worker plus
+assets. Updating only the workspace or uploading static files does not update
+the multiplayer server. Reload Orbit after deployment. Health/hunger appear
+once connected to the world and are intentionally hidden in the inventory.
+
+
+## Player-versus-player combat
+
+PvP is enabled for connected players in the public world. Aim at a player and
+hold left click, or hold the same mine/attack control on touch. The server casts
+one melee ray up to three blocks: the nearest living player or mob is selected,
+and solid blocks stop the ray. Clients cannot choose a victim or send damage.
+
+Bare hands deal one damage; owned, selected weapons use their tool damage and
+lose durability. Attacks share a 650 ms cooldown and player damage has a 700 ms
+recovery interval. Armor reduces damage and wears down. A raised off-hand shield
+reduces frontal damage; attacks from behind bypass it. Shield input must be fresh.
+
+Taking a hit wakes a sleeping player and cancels fishing. The attacker receives
+a brief crosshair hit marker; the victim gets a red edge flash and updated real
+health. Dead avatars disappear until respawn. Death drops the victim's inventory,
+armor and off-hand items once, and the existing bed/world-spawn rules apply.
+
+Victim health, gear and loot, plus attacker weapon wear and exhaustion, commit
+in one SQLite transaction in both Node and Cloudflare runtimes. Failed saves
+restore both players and do not emit a successful combat event or create loot.
+This update is prepared in the draft; a Cloudflare deployment is needed to
+change the live game's rules.
