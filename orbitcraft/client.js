@@ -104,7 +104,7 @@ async function join(){
  }catch(e){$('gate-status').textContent=e.message;$('join').disabled=false;$('login').hidden=dev;}
 }
 $('join').onclick=join;
-async function checkServer(){try{const r=await fetch('./health',{cache:'no-store'});if(!r.ok)throw new Error();const health=await r.json();if(!health.ok)throw new Error();dev=health.dev===true;$('dev-label').hidden=!dev;$('gate-status').textContent=dev?'Local development server · use different names in two browser windows to test multiplayer.':'One shared world · sign in with your Orbit account.';$('join').disabled=false;}catch{$('gate-status').textContent='The public world is unavailable. Please ask the site owner to start the world server.';$('join').disabled=true;}}
+async function checkServer(){try{const r=await fetch('./health',{cache:'no-store'});if(!r.ok)throw new Error();const health=await r.json();if(!health.ok)throw new Error();dev=health.dev===true;$('dev-label').hidden=!dev;$('gate-status').textContent=dev?'Local development server · use different names in two browser windows to test multiplayer.':'One shared world · sign in with your Orbit account.';$('join').disabled=false;if(new URLSearchParams(location.search).get('autojoin')==='1')await join();}catch{$('gate-status').textContent='The public world is unavailable. Please ask the site owner to start the world server.';$('join').disabled=true;}}
 $('join').disabled=true;checkServer();
 function inputReset(){for(const k of Object.keys(input))delete input[k];}
 function menuOpen(){return $('inventory').open||$('help').open||!$('chat-form').hidden||!$('gate').hidden;}
