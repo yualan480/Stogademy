@@ -16,9 +16,9 @@ try{
  await a.locator('#chat-button').click();await a.locator('#chat-input').fill('Hello from a real browser!');await a.locator('#chat-form button').click();await b.getByText('Hello from a real browser!',{exact:false}).last().waitFor();
  await a.locator('#inventory-button').click();await a.locator('#craft-button').click();await a.waitForFunction(()=>window.received.some(m=>m.type==='inventory'&&m.inventory[10]===4));await a.locator('[data-close="inventory"]').click();
  const initial=await a.evaluate(()=>window.received.find(m=>m.type==='welcome').you);
- await a.bringToFront();await a.locator('#world').click({position:{x:700,y:400}});await a.waitForFunction(()=>document.pointerLockElement?.id==='world');await a.waitForTimeout(100);await a.keyboard.down('w');await a.keyboard.down('Space');await a.waitForTimeout(650);await a.keyboard.up('w');await a.keyboard.up('Space');
-
- await b.waitForFunction(start=>window.received.some(m=>m.type==='state'&&m.players.some(p=>p.name.startsWith('BrowserAlice')&&Math.hypot(p.x-start.x,p.z-start.z)>.4)),initial);
+ await a.bringToFront();await a.locator('#world').click({position:{x:700,y:400}});await a.waitForFunction(()=>document.pointerLockElement?.id==='world');await a.waitForTimeout(150);await a.keyboard.down('w');await a.keyboard.down('Space');
+ try{await b.waitForFunction(start=>window.received.some(m=>m.type==='state'&&m.players.some(p=>p.name.startsWith('BrowserAlice')&&Math.hypot(p.x-start.x,p.z-start.z)>.4)),initial,{timeout:12000});}
+ finally{await a.keyboard.up('w');await a.keyboard.up('Space');}
  // Look down, place a block, and verify the OTHER browser receives the edit.
  await a.mouse.move(700,400);await a.mouse.move(1328,730,{steps:10});await a.waitForTimeout(150);await a.mouse.down({button:'right'});await a.mouse.up({button:'right'});
  await b.waitForFunction(()=>window.received.some(m=>m.type==='block'&&m.block===2),null,{timeout:6000});

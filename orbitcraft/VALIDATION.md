@@ -23,3 +23,18 @@ this task has no Cloudflare account session or private Orbit test account.
 Use the deployment steps in README.md, then join with two different real Orbit
 accounts to verify the live installation. Cloudflare local and Node local saves
 are separate databases, so test-world edits do not appear on the live site.
+
+## Orbit visual refresh
+
+- `npm test`: all 8 server and persistence tests passed after the visual update.
+- `node test/browser.check.js`: two connected desktop browsers passed movement,
+  shared building, chat, crafting, reload persistence, and mobile controls with
+  no uncaught JavaScript errors. Movement waits for the remote client to observe
+  displacement, rather than depending on a fixed keyboard-hold duration.
+- `npm run build:cloudflare`: passed with the new visuals module included.
+- The Orbit-branded join screen and desktop/mobile gameplay were visually
+  inspected using actual Chromium screenshots.
+- World generation, server authority, save schemas and stored block IDs were
+  not modified. No world migration or reset is needed for this presentation update.
+- These checks validate local gameplay/build output; they do not establish that
+  the Git-connected Cloudflare build has deployed this revision.

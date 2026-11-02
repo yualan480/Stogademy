@@ -68,6 +68,16 @@ Use the same Worker/account. After the first migration, preserve the binding and
 migration history on subsequent updates. Do not delete/recreate the Durable
 Object binding or change the public-world instance name to reset a problem.
 
+## Visual style
+
+The world uses original pixel textures for grass, soil, rock, sand, bark, log
+ends, planks, snow and cutout leaves, plus block-corner shading, daylight sky,
+block clouds and underwater haze. A first-person hand holds the selected
+resource and swings during interaction. Textured hotbar icons and Orbit’s navy,
+blue and orbital branding tie the game’s menus and overlays to the main site.
+These are presentation changes: existing terrain, inventories, structures,
+world-generation version and multiplayer authority are preserved.
+
 ## How the backend works
 
 The browser connects to same-origin `/orbitcraft/socket` using WebSockets. One
