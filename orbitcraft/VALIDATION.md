@@ -53,3 +53,20 @@ are separate databases, so test-world edits do not appear on the live site.
 - Terrain/save versions, server authority and backend hosting remain unchanged.
 - The canceled official-Java-server work was removed before this change was
   committed; no Java server, EULA acceptance or additional Minecraft host is used.
+
+## Timed mining and dropped items
+
+- 16 Node tests passed, covering minimum mining time, cancellation, stale input,
+  concurrent miners, exactly-once pickup, full inventories, database rollback,
+  drop persistence across restarts and an additive upgrade of an existing world.
+- Actual Cloudflare workerd checks passed timed mining, shared item drops,
+  proximity pickup and persisted block/inventory/drop state using SQLite. Only
+  the identity provider responses were controlled test fixtures.
+- Two real desktop browser clients verified shared cracks, block breaking,
+  visible rotating drops, delayed inventory changes, walking to collect, and
+  saved inventory after reload. The focused touch-browser check verified that
+  Join is unobstructed, hold-to-mine produces a drop, and release stops mining.
+  Actual crack/drop/mobile screenshots were inspected; no uncaught browser
+  errors occurred in the focused mobile check.
+- The asset build passed. No world-generation version or existing saved builds
+  were reset. Existing clients should reload after the server/client deployment.

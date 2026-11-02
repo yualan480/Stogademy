@@ -57,7 +57,7 @@ const tick=setInterval(()=>{
   for(const p of game.players.values()) {if(now-(p.lastInput||0)>350)p.input={};if(now>p.expiresAt)p.close();}
   game.tick();
 },50);
-const save=setInterval(()=>{for(const p of game.players.values())store.savePlayer(p);},2000);
+const save=setInterval(()=>{for(const p of game.players.values())store.savePlayer(p);game.flushDrops();},2000);
 server.listen(port,host,()=>console.log(`Orbitcraft listening on ${host}:${port}${dev?' (local development identities enabled)':''}`));
-function stop(){clearInterval(tick);clearInterval(save);for(const p of game.players.values())store.savePlayer(p);for(const ws of wss.clients)ws.close(1001,'Server restarting');wss.close();server.close(()=>{store.close();process.exit(0);});setTimeout(()=>process.exit(0),2000).unref();}
+function stop(){clearInterval(tick);clearInterval(save);game.flushDrops();for(const p of game.players.values())store.savePlayer(p);for(const ws of wss.clients)ws.close(1001,'Server restarting');wss.close();server.close(()=>{store.close();process.exit(0);});setTimeout(()=>process.exit(0),2000).unref();}
 process.on('SIGTERM',stop);process.on('SIGINT',stop);

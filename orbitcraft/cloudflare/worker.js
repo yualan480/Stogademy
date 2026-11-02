@@ -38,6 +38,6 @@ export class OrbitcraftWorld {
  }
  start(){if(this.timer)return;this.timer=setInterval(()=>{try{
   const now=Date.now();for(const p of this.game.players.values())if(now-(p.lastInput||0)>350)p.input={};
-  this.game.tick();if(now-this.lastSave>2000){for(const p of this.game.players.values())this.store.savePlayer(p);this.lastSave=now;}
+  this.game.tick();if(now-this.lastSave>2000){for(const p of this.game.players.values())this.store.savePlayer(p);this.game.flushDrops();this.lastSave=now;}
  }catch(e){console.error('Orbitcraft tick failed',e.name);for(const ws of this.connections)ws.close(1011,'World restarting');}},50);}
 }

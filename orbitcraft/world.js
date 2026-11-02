@@ -75,3 +75,7 @@ export function raycast(p,get,reach=6) {
   }
   return null;
 }
+
+// Hand-mining times in milliseconds. Bedrock has no break duration.
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200});
+export const PICKUP_DELAY_MS = 750;

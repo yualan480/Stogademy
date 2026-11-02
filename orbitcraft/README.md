@@ -10,7 +10,8 @@ were changed.
 - One public 128 × 128 × 56 block world, shared by everyone on this deployment.
 - Original pixel textures, first-person 3D blocks, trees and forests, desert,
   meadow, alpine mountains, water and underground caves.
-- Server-controlled movement, collision, jumping, swimming, mining and building.
+- Server-controlled movement, collision, jumping, swimming, timed mining and building.
+- Progressive block cracks and persistent dropped items that float and rotate.
 - Other connected players with Orbit usernames above their block avatars.
 - A persistent resource inventory, eight-slot hotbar, and log-to-plank crafting.
 - Public multiplayer chat with recent history saved.
@@ -82,12 +83,35 @@ and the inventory shows the actual log-to-plank recipe next to its craft action.
 These are presentation changes: existing terrain, inventories, structures,
 world-generation version and multiplayer authority are preserved.
 
+## Mining and dropped resources
+
+Hold the left mouse button (or hold the mobile **Hold to mine** button) while
+looking at a block. Cracks spread as the server's mining timer advances. Leaves
+take 0.35 seconds, dirt 0.65 seconds, logs 1.8 seconds and stone 2.6 seconds;
+bedrock cannot be mined. Releasing, looking away, opening a menu or losing fresh
+input cancels that block's progress. Other connected players see the cracks too.
+
+A broken block creates a small textured item that falls to the ground, bobs and
+rotates slowly. It is not immediately added to inventory. After a 0.75-second
+pickup delay, walking within about 1.35 blocks horizontally collects it when
+there is space. The server decides pickup and allows exactly one collector.
+Full inventories leave items on the ground. Drops persist when players leave
+and across server restarts, with no automatic despawn timer. A cap of 2,048
+uncollected items pauses further mining until players collect some of them.
+
+Block removal, drop creation and mining statistics commit together. Pickup
+atomically removes the drop and saves the collector's inventory. Falling item
+positions are saved periodically and when the last player leaves. The new
+SQLite table is additive: existing world terrain, builds, inventories and the
+world-generation version stay intact. Reload the game after deploying both
+the client and server update so the hold-to-mine controls match the server.
+
 ## How the backend works
 
 The browser connects to same-origin `/orbitcraft/socket` using WebSockets. One
 Durable Object, named `orbitcraft-public-v1`, owns the entire public world. Its
 SQLite database stores block deltas, player inventories, positions, statistics,
-and recent chat. The world terrain is deterministic; buildings and mined blocks
+dropped items and recent chat. The world terrain is deterministic; buildings and mined blocks
 are persisted as edits. No activity is required for the saves to remain stored.
 
 Supabase `/auth/v1/user` verifies the login token on the server. The server then
@@ -162,8 +186,10 @@ identity responses**, so it needs no private test account. It does not establish
 that a live user's Supabase permissions or the deployed site have been tested.
 
 `node test/browser.check.js` exercises two real Chromium browser connections,
-movement, shared placement, chat, crafting, reconnect saves, and mobile layout.
-It expects the local development server on port 8787 and Chromium at
+movement, mining cracks, rotating drops, proximity pickup, shared placement,
+chat, crafting, reconnect saves, and mobile controls.
+`node test/mining-mobile.check.js` also exercises actual touch hold/release and
+the mobile join screen. These checks expect the local development server on port 8787 and Chromium at
 `CHROMIUM_PATH` (or `/usr/bin/chromium`). Screenshots go to `ARTIFACT_DIR` (or
 `/workspace/artifacts`). On other systems set those paths before running it.
 

@@ -1,11 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,baseBlock,terrain,step,raycast } from './world.js';
+import { createResourceEffects } from './mining-visuals.js';
 import { createPlayerModel } from './players.js';
 import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const chunks=new Map(),pending=new Set(),dirty=new Set(),edits=new Map(),avatars=new Map();
-let socket,me=null,inventory={},selected=0,seq=0,dev=false,connected=false,lastNetwork=0,lastAction=0,mined=0,placed=0;
+let socket,me=null,inventory={},selected=0,seq=0,dev=false,connected=false,lastAction=0,mined=0,placed=0,miningHeld=false,miningFeedback=null,lastMiningSwing=0;
 document.documentElement.dataset.theme='dark';
 const input={},SESSION='sb-qtmrtxgkisshdtqshjre-auth-token',coarse=matchMedia('(pointer:coarse)').matches;
 let renderer;
@@ -18,6 +19,7 @@ const { texture, icon: blockIcon } = createTextures();
 scene.add(camera);
 const atmosphere = createAtmosphere(scene);
 const held = createHeldBlock(camera, texture);
+const resources=createResourceEffects(scene,texture);
 const material=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,alphaTest:.5});const waterMaterial=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide});
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006,1.006,1.006)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.8}));scene.add(outline);outline.visible=false;
 const get=(x,y,z)=>{if(!inside(x,y,z))return 0;const k=`${x},${y},${z}`;if(edits.has(k))return edits.get(k);const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:baseBlock(x,y,z);};
@@ -88,16 +90,21 @@ async function join(){
  socket.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch{return;}
   if(m.type==='welcome'){
    for(const c of chunks.values())if(c.group){scene.remove(c.group);c.group.children.forEach(m=>m.geometry.dispose());}chunks.clear();dirty.clear();pending.clear();edits.clear();for(const id of avatars.keys())removeAvatar(id);
-   me={...m.you,vy:0};inventory=m.inventory;mined=m.mined;placed=m.placed;connected=true;document.body.classList.remove('disconnected');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();toast(coarse?'Drag the world to look. Use the controls to move.':'Click the world to look around. Press ? for controls.');
+   resources.clear();resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;mined=m.mined;placed=m.placed;connected=true;document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();toast(coarse?'Drag the world to look. Use the controls to move.':'Click the world to look around. Press ? for controls.');
   }else if(m.type==='chunk'){
    const k=`${m.x},${m.z}`,binary=atob(m.data),data=Uint8Array.from(binary,c=>c.charCodeAt(0));if(data.length!==CHUNK*CHUNK*HEIGHT)return;
    for(const [key,id] of edits){const [x,y,z]=key.split(',').map(Number);if(Math.floor(x/CHUNK)===m.x&&Math.floor(z/CHUNK)===m.z)data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]=id;}
    const old=chunks.get(k);chunks.set(k,{data,group:old?.group});pending.delete(k);mark(m.x,m.z);
   }else if(m.type==='state'&&me){
+   resources.setMining(m.players);miningFeedback=m.players.find(p=>p.id===me.id)?.mining||null;
    const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const distance=Math.hypot(me.x-p.x,me.y-p.y,me.z-p.z);if(distance>1.4){Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});}else{me.x+=(p.x-me.x)*.2;me.z+=(p.z-me.z)*.2;if(!input.jump&&Math.abs(me.y-p.y)>.15){me.y+=(p.y-me.y)*.3;me.vy=p.vy;}}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}a.target=p;}}
    for(const id of avatars.keys())if(!ids.has(id))removeAvatar(id);$('online').textContent=`${m.players.length} online`;
   }else if(m.type==='block'){
+   if(m.block===0&&m.broken&&me&&Math.hypot(me.x-m.x,me.y-m.y,me.z-m.z)<32)resources.breakBlock(m.x,m.y,m.z,m.broken);
    edits.set(`${m.x},${m.y},${m.z}`,m.block);const c=chunks.get(`${Math.floor(m.x/CHUNK)},${Math.floor(m.z/CHUNK)}`);if(c)c.data[chunkIndex((m.x%CHUNK+CHUNK)%CHUNK,m.y,(m.z%CHUNK+CHUNK)%CHUNK)]=m.block;mark(Math.floor(m.x/CHUNK),Math.floor(m.z/CHUNK));
+  }else if(m.type==='drop'){resources.setDrops([m.drop]);
+  }else if(m.type==='drops'){resources.setDrops(m.drops);
+  }else if(m.type==='pickup'){resources.removeDrop(m.id);if(m.player===me?.id)toast(`+${m.count} ${BLOCKS[m.block]?.name||'block'}`);
   }else if(m.type==='inventory'){inventory=m.inventory;mined=m.mined;placed=m.placed;updateInventory();}
   else if(m.type==='chat')chat(m.name,m.text);
   else if(m.type==='notice')chat('',m.text,true);
@@ -105,13 +112,13 @@ async function join(){
   else if(m.type==='error'){toast(m.message);$('gate-status').textContent=m.message;}
  };
  socket.onerror=()=>{$('gate-status').textContent='Cannot reach the public world. Please retry shortly.';};
- socket.onclose=()=>{const was=connected;connected=false;me=null;inputReset();document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');$('online').textContent='0 online';if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
+ socket.onclose=()=>{const was=connected;connected=false;me=null;inputReset();resources.clear();miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
  }catch(e){$('gate-status').textContent=e.message;$('join').disabled=false;$('login').hidden=dev;}
 }
 $('join').onclick=join;
 async function checkServer(){try{const r=await fetch('./health',{cache:'no-store'});if(!r.ok)throw new Error();const health=await r.json();if(!health.ok)throw new Error();dev=health.dev===true;$('dev-label').hidden=!dev;$('gate-status').textContent=dev?'Local development server · use different names in two browser windows to test multiplayer.':'One shared world · sign in with your Orbit account.';$('join').disabled=false;if(new URLSearchParams(location.search).get('autojoin')==='1')await join();}catch{$('gate-status').textContent='The public world is unavailable. Please ask the site owner to start the world server.';$('join').disabled=true;}}
 $('join').disabled=true;checkServer();
-function inputReset(){for(const k of Object.keys(input))delete input[k];}
+function inputReset(){for(const k of Object.keys(input))delete input[k];setMining(false);}
 function menuOpen(){return $('inventory').open||$('help').open||!$('chat-form').hidden||!$('gate').hidden;}
 function controls(){return connected&&!menuOpen()&&(coarse||document.pointerLockElement===canvas);}
 function openDialog(id){inputReset();document.exitPointerLock?.();$(id).showModal();}
@@ -130,9 +137,16 @@ addEventListener('keydown',e=>{
 });addEventListener('keyup',e=>{if(keys[e.code])input[keys[e.code]]=false;});addEventListener('blur',inputReset);document.addEventListener('visibilitychange',()=>{if(document.hidden)inputReset();});document.addEventListener('pointerlockchange',inputReset);
 canvas.addEventListener('click',()=>{if(connected&&!coarse&&!menuOpen()){canvas.focus();canvas.requestPointerLock?.();}});
 addEventListener('mousemove',e=>{if(!me||document.pointerLockElement!==canvas)return;me.yaw-=e.movementX*.0025;me.pitch=Math.max(-1.54,Math.min(1.54,me.pitch-e.movementY*.0025));});
-function action(type){if(!connected||!me||Date.now()-lastAction<190)return;lastAction=Date.now();held.swing();send({type:'input',...input,yaw:me.yaw,pitch:me.pitch,seq:++seq});send({type,block:SLOTS[selected]});}
-canvas.addEventListener('mousedown',e=>{if(!controls())return;e.preventDefault();action(e.button===2?'place':'break');});canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('wheel',e=>{if(!connected)return;e.preventDefault();selected=(selected+(e.deltaY>0?1:7))%8;updateInventory();},{passive:false});
-$('touch-mine').onclick=()=>action('break');$('touch-place').onclick=()=>action('place');document.querySelectorAll('[data-key]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input[b.dataset.key]=true;};b.onpointerup=b.onpointercancel=()=>input[b.dataset.key]=false;});
+function sendInput(){if(me&&connected)send({type:'input',...(controls()?input:{}),mine:miningHeld&&controls(),yaw:me.yaw,pitch:me.pitch,seq:++seq});}
+setInterval(sendInput,50);
+function setMining(value){miningHeld=!!value;if(!miningHeld)miningFeedback=null;sendInput();}
+function action(type){if(!connected||!me||Date.now()-lastAction<190)return;lastAction=Date.now();setMining(false);held.swing();sendInput();send({type,block:SLOTS[selected]});}
+canvas.addEventListener('mousedown',e=>{if(!controls())return;e.preventDefault();if(e.button===0)setMining(true);else if(e.button===2)action('place');});
+addEventListener('mouseup',e=>{if(e.button===0)setMining(false);});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('wheel',e=>{if(!connected)return;e.preventDefault();setMining(false);selected=(selected+(e.deltaY>0?1:7))%8;updateInventory();},{passive:false});
+$('touch-mine').onpointerdown=e=>{e.preventDefault();if(!connected||menuOpen())return;$('touch-mine').setPointerCapture(e.pointerId);setMining(true);};
+$('touch-mine').onpointerup=$('touch-mine').onpointercancel=()=>setMining(false);
+$('touch-place').onclick=()=>action('place');document.querySelectorAll('[data-key]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input[b.dataset.key]=true;};b.onpointerup=b.onpointercancel=()=>input[b.dataset.key]=false;});
 let touch=null;canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){touch={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);}});canvas.addEventListener('pointermove',e=>{if(!touch||touch.id!==e.pointerId||!me)return;me.yaw-=(e.clientX-touch.x)*.006;me.pitch=Math.max(-1.54,Math.min(1.54,me.pitch-(e.clientY-touch.y)*.006));touch.x=e.clientX;touch.y=e.clientY;});canvas.addEventListener('pointerup',()=>touch=null);
 let previous=performance.now(),worldRequest=0,hudAt=0;
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-previous)/1000,.05);previous=now;
@@ -140,15 +154,17 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  if(me&&connected){
   if(controls())step(me,input,dt,get);
   camera.position.set(me.x,me.y+1.62,me.z);camera.rotation.set(me.pitch,me.yaw,0,'YXZ');
-  if(now-lastNetwork>50){lastNetwork=now;send({type:'input',...(controls()?input:{}),yaw:me.yaw,pitch:me.pitch,seq:++seq});}
   if(now-worldRequest>500){worldRequest=now;requestChunks();}
   const hit=raycast(me,get);outline.visible=!!hit;if(hit)outline.position.set(hit.x+.5,hit.y+.5,hit.z+.5);
-  if(now-hudAt>180){hudAt=now;$('target').textContent=hit?`${BLOCKS[hit.block].name} · ${hit.block===9?'Unbreakable':'Mine / place'}`:'';$('coordinates').textContent=`XYZ ${me.x.toFixed(1)} / ${me.y.toFixed(1)} / ${me.z.toFixed(1)}`;$('biome').textContent=terrain(Math.floor(me.x),Math.floor(me.z)).biome;}
+  if(now-hudAt>180){hudAt=now;$('target').textContent=hit?`${BLOCKS[hit.block].name} · ${hit.block===9?'Unbreakable':miningFeedback?Math.floor(miningFeedback.progress*100)+'% mined':'Hold to mine / place'}`:'';$('coordinates').textContent=`XYZ ${me.x.toFixed(1)} / ${me.y.toFixed(1)} / ${me.z.toFixed(1)}`;$('biome').textContent=terrain(Math.floor(me.x),Math.floor(me.z)).biome;}
  }else{outline.visible=false;camera.position.set(32+Math.sin(now*.00003)*7,37,43);camera.lookAt(0,15,0);}
- for(const a of avatars.values()){const t=a.target,d=Math.hypot(a.group.position.x-t.x,a.group.position.z-t.z);a.group.position.lerp(new THREE.Vector3(t.x,t.y,t.z),Math.min(1,dt*13));a.group.rotation.y=t.yaw;a.left.rotation.x=d>.01?Math.sin(now*.009)*.45:0;a.right.rotation.x=-a.left.rotation.x;a.arm.rotation.x=-a.left.rotation.x*.85;a.arm2.rotation.x=a.left.rotation.x*.85;a.head.rotation.x=Math.max(-.8,Math.min(.8,t.pitch||0));}
+ for(const a of avatars.values()){const t=a.target,d=Math.hypot(a.group.position.x-t.x,a.group.position.z-t.z);a.group.position.lerp(new THREE.Vector3(t.x,t.y,t.z),Math.min(1,dt*13));a.group.rotation.y=t.yaw;a.left.rotation.x=d>.01?Math.sin(now*.009)*.45:0;a.right.rotation.x=-a.left.rotation.x;a.arm.rotation.x=-a.left.rotation.x*.85;a.arm2.rotation.x=a.left.rotation.x*.85;a.head.rotation.x=Math.max(-.8,Math.min(.8,t.pitch||0));if(t.mining)a.arm2.rotation.x=-.9+Math.sin(now*.022)*.35;}
  const underwater=me&&get(Math.floor(me.x),Math.floor(me.y+1.62),Math.floor(me.z))===8;
  document.body.classList.toggle('underwater',!!underwater);
  scene.fog.color.set(underwater?'#3887a9':'#bdd8df');scene.fog.near=underwater?1:38;scene.fog.far=underwater?16:79;
+ const progress=connected&&miningFeedback&&miningHeld?miningFeedback.progress:0;$('mining-progress').hidden=!(progress>0);$('mining-progress').setAttribute('aria-valuenow',String(Math.floor(progress*100)));$('mining-progress-fill').style.width=(progress*100)+'%';
+ if(miningHeld&&controls()&&now-lastMiningSwing>220){lastMiningSwing=now;held.swing();}
+ resources.update(Date.now(),dt,camera);
  held.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&!menuOpen());
  atmosphere(now,camera);
  renderer.render(scene,camera);

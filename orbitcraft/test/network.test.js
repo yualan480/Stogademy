@@ -10,9 +10,16 @@ test('two real WebSocket clients share movement, chat, edits, inventory, disconn
  a.send({type:'chat',text:'Hello Bob!'});assert.equal((await b.wait('chat')).name,'Alice');
  a.send({type:'input',forward:true,jump:true,yaw:0,pitch:0,seq:1});await sleep(300);a.send({type:'input',yaw:0,pitch:-.9,seq:2});assert.ok(await b.wait('state',m=>m.players.find(p=>p.name==='Alice').z<welcome.you.z-.4));
  a.send({type:'place',block:2});const edit=await b.wait('block');assert.equal(edit.block,2);const inv=await a.wait('inventory');assert.equal(inv.inventory[2],23);
- await sleep(200);a.send({type:'break',x:999,y:999,z:999});const mined=await b.wait('block',m=>m.block===0);assert.ok(Math.abs(mined.x)<64);await a.wait('inventory');
+ await sleep(200);const began=Date.now(),mineInput={type:'input',mine:true,yaw:0,pitch:-.9};a.send(mineInput);const holding=setInterval(()=>a.send(mineInput),100);
+ let dropped;
+ try{await b.wait('state',m=>m.players.some(p=>p.name==='Alice'&&p.mining?.progress>0));const mined=await b.wait('block',m=>m.block===0);assert.ok(Math.abs(mined.x)<64);dropped=(await b.wait('drop')).drop;assert.equal(dropped.block,2);assert.ok(Date.now()-began>=600);const unchanged=await a.wait('inventory',m=>m.mined===1);assert.equal(unchanged.inventory[2],23);}
+ finally{clearInterval(holding);a.send({type:'input',yaw:0,pitch:-.9,mine:false});}
  a.ws.close();await b.wait('leave');b.ws.close();await sleep(150);await stop(server);server=null;
- server=await start(db,port);const c=await connect(port,'dev-Alice');clients.push(c);const saved=await c.wait('welcome');assert.equal(saved.placed,1);assert.equal(saved.mined,1);assert.equal(saved.history[0].text,'Hello Bob!');c.send({type:'chunks',chunks:[[Math.floor(edit.x/16),Math.floor(edit.z/16)]]});const chunk=await c.wait('chunk');assert.ok(Buffer.from(chunk.data,'base64').length>10000);
+ server=await start(db,port);const c=await connect(port,'dev-Alice');clients.push(c);const saved=await c.wait('welcome');assert.equal(saved.placed,1);assert.equal(saved.mined,1);assert.equal(saved.inventory[2],23);assert.ok(saved.drops.some(d=>d.id===dropped.id));assert.equal(saved.history[0].text,'Hello Bob!');
+ const walking=setInterval(()=>c.send({type:'input',forward:true,jump:true,yaw:0,pitch:-.9}),100);await sleep(350);clearInterval(walking);c.send({type:'input',yaw:0,pitch:-.9});
+ assert.equal((await c.wait('pickup',m=>m.id===dropped.id)).player,'dev-Alice');assert.equal((await c.wait('inventory',m=>m.inventory[2]===24)).inventory[2],24);
+ c.send({type:'chunks',chunks:[[Math.floor(edit.x/16),Math.floor(edit.z/16)]]});const chunk=await c.wait('chunk');const bytes=Buffer.from(chunk.data,'base64'),index=edit.y*256+((edit.z%16+16)%16)*16+((edit.x%16+16)%16);assert.equal(bytes[index],0);
+ c.ws.close();await sleep(100);await stop(server);server=null;server=await start(db,port);const d=await connect(port,'dev-Alice');clients.push(d);const collected=await d.wait('welcome');assert.equal(collected.inventory[2],24);assert.ok(!collected.drops.some(item=>item.id===dropped.id));
  assert.equal((await fetch(`http://127.0.0.1:${port}/orbitcraft/data/world.sqlite`)).status,404);
 });
 test('production server rejects unverified development identities',{timeout:15000},async()=>{const dir=mkdtempSync(join(tmpdir(),'orbitcraft-auth-'));const server=await start(join(dir,'world.sqlite'),18790,false);let c;try{c=await connect(18790,'dev-Imposter');const error=await c.wait('error');assert.match(error.message,/Sign in/);}finally{c?.ws.terminate();await stop(server);rmSync(dir,{recursive:true,force:true});}});
