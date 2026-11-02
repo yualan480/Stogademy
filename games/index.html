@@ -1992,7 +1992,7 @@
 :where(.pz-cap i){border-radius:var(--round,10px)}
 </style>
 <link rel="stylesheet" href="../mobile.css"><link rel="stylesheet" href="../cursor.css"><script src="../cursor.js"></script>  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap">
-</head>
+<script defer src="../game-fit.js?v=1"></script></head>
 <body>
 
   <header class="topbar">
@@ -3979,6 +3979,9 @@
             consoleEl.style.willChange = '';
             frame.style.willChange = '';
             endCalm();
+            // Leave the transformed console so later window resizes can fit the live game.
+            document.body.appendChild(box);
+            Object.assign(box.style, { position: 'fixed', inset: '0', zIndex: '85', opacity: '1' });
             box.classList.add('live');
             if (!sameOrigin) { window.location.href = game.href; return; }   // fallback if the frame can't be reached
             try { frame.contentWindow.focus(); } catch (err) { frame.focus(); }
