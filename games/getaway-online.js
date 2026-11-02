@@ -286,9 +286,17 @@
   }
 
   /* ================= the stream: the host runs the game, the guest watches it and sends buttons ================= */
-  var ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
-  // Players behind very strict networks may also need a TURN relay. Add one here if needed:
-  //   { urls: 'turn:your.turn.server:3478', username: '...', credential: '...' }
+  // TURN relay (Metered.ca, stogademy workspace): lets the video through even when a direct
+  // peer-to-peer connection is blocked, e.g. by a school network's firewall.
+  var ICE = {
+    iceServers: [
+      { urls: 'stun:stun.relay.metered.ca:80' },
+      { urls: 'turn:global.relay.metered.ca:80', username: 'c9a923aa0fead85fc62c6d3c', credential: 'WZ4D82SM3uEL4YF3' },
+      { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'c9a923aa0fead85fc62c6d3c', credential: 'WZ4D82SM3uEL4YF3' },
+      { urls: 'turn:global.relay.metered.ca:443', username: 'c9a923aa0fead85fc62c6d3c', credential: 'WZ4D82SM3uEL4YF3' },
+      { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'c9a923aa0fead85fc62c6d3c', credential: 'WZ4D82SM3uEL4YF3' }
+    ]
+  };
   var pc = null, dc = null, outStream = null, pendingIce = [], pingT = 0;
 
   var dcOpen = function () { return !!dc && dc.readyState === 'open'; };
