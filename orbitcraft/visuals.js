@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';
 
-export const TILE_COUNT = 13;
+export const TILE_COUNT = 16;
 const random = (x, y, seed) => {
   let n = Math.imul(x + seed * 71, 374761393) ^ Math.imul(y + seed * 13, 668265263);
   n = Math.imul(n ^ n >>> 13, 1274126177);
@@ -12,6 +12,11 @@ export function tileFor(id, normalY) {
   if (id === 5 && normalY !== 0) return 11;
   if (id === 7 && normalY === 0) return 12;
   return id - 1;
+}
+
+export function terrainDetail(x,z) {
+  const value=random(x,z,203);
+  return value>.985?14+(random(x,z,204)>.5?1:0):value>.82?13:null;
 }
 
 export function createTextures() {
@@ -60,6 +65,16 @@ export function createTextures() {
         color = distance > 6 ? '#735438' : '#b4925e';
         shade = distance > 6 ? .75 + grain * .2 : (Math.floor(distance) % 3 === 0 ? .67 : .92) + grain * .12;
       }
+      if(tile===13){
+        color='#668d3e';alpha=0;
+        for(const [tipX,tipY] of [[3,6],[8,2],[13,5]])if(y>=tipY&&Math.abs(x-(tipX+(8-tipX)*(y-tipY)/(15-tipY)))<1.2)alpha=1;
+      }else if(tile===14||tile===15){
+        alpha=0;color='#608743';
+        if((x===7||x===8)&&y>=5)alpha=1;
+        if(y>=10&&y<=12&&x>=4&&x<=10){alpha=1;color='#507d37';}
+        if(Math.abs(x-8)+Math.abs(y-4)<=4){alpha=1;color=tile===14?'#e3c85c':'#c95a48';}
+        if(Math.abs(x-8)<=1&&Math.abs(y-4)<=1)color='#e9c36a';
+      }
       const c = new THREE.Color(color).multiplyScalar(shade);
       context.fillStyle = '#' + c.getHexString();
       context.globalAlpha = alpha;
@@ -74,8 +89,16 @@ export function createTextures() {
   const icons = new Map();
   function icon(id) {
     if (!icons.has(id)) {
-      const c = document.createElement('canvas'); c.width = c.height = 16;
-      c.getContext('2d').drawImage(atlas, tileFor(id, 0) * 16, 0, 16, 16, 0, 0, 16, 16);
+      const c = document.createElement('canvas'); c.width = c.height = 48;
+      const draw=c.getContext('2d');draw.imageSmoothingEnabled=false;
+      function face(tile,points,shade){
+        draw.save();draw.beginPath();points.forEach(([x,y],i)=>i?draw.lineTo(x,y):draw.moveTo(x,y));draw.closePath();draw.clip();
+        const [o,u,,v]=points;draw.transform((u[0]-o[0])/16,(u[1]-o[1])/16,(v[0]-o[0])/16,(v[1]-o[1])/16,o[0],o[1]);
+        draw.drawImage(atlas,tile*16,0,16,16,0,0,16,16);draw.fillStyle=`rgba(0,0,0,${shade})`;draw.fillRect(0,0,16,16);draw.restore();
+      }
+      face(tileFor(id,0),[[4,12],[24,22],[24,46],[4,36]],.1);
+      face(tileFor(id,0),[[24,22],[44,12],[44,36],[24,46]],.28);
+      face(tileFor(id,1),[[24,2],[44,12],[24,22],[4,12]],0);
       icons.set(id, c.toDataURL());
     }
     return icons.get(id);
@@ -123,8 +146,8 @@ export function createHeldBlock(camera, texture) {
   const sleeve = new THREE.Mesh(new THREE.BoxGeometry(.18, .27, .19), sleeveMaterial);
   sleeve.position.set(.43, -.69, -.55); sleeve.rotation.copy(hand.rotation); sleeve.renderOrder = 1000; group.add(sleeve);
   const material = new THREE.MeshLambertMaterial({ map: texture, alphaTest: .5, depthTest: false, fog: false });
-  const block = new THREE.Mesh(new THREE.BoxGeometry(.29, .29, .29), material);
-  block.position.set(.43, -.34, -.72); block.rotation.set(.12, -.5, -.1); block.renderOrder = 1001; group.add(block);
+  const block = new THREE.Mesh(new THREE.BoxGeometry(.24, .24, .24), material);
+  block.position.set(.43, -.35, -.76); block.rotation.set(.12, -.5, -.1); block.renderOrder = 1001; group.add(block);
   let selected = null, swingAt = -1000;
   return {
     select(id, count) {

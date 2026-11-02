@@ -75,6 +75,10 @@ ends, planks, snow and cutout leaves, plus block-corner shading, daylight sky,
 block clouds and underwater haze. A first-person hand holds the selected
 resource and swings during interaction. Textured hotbar icons and Orbit’s navy,
 blue and orbital branding tie the game’s menus and overlays to the main site.
+Player models have original pixel faces, hair, clothing and shoulder/hip-based
+walk animations. Grass tufts and small flowers add surface detail without
+changing terrain or adding items. Hotbar blocks use isometric texture previews,
+and the inventory shows the actual log-to-plank recipe next to its craft action.
 These are presentation changes: existing terrain, inventories, structures,
 world-generation version and multiplayer authority are preserved.
 

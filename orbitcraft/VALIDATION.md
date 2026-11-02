@@ -38,3 +38,18 @@ are separate databases, so test-world edits do not appear on the live site.
   not modified. No world migration or reset is needed for this presentation update.
 - These checks validate local gameplay/build output; they do not establish that
   the Git-connected Cloudflare build has deployed this revision.
+
+## Browser-world appearance refinement
+
+- Kept the existing browser multiplayer game and its automatic tab join.
+- Added original pixel player skins, face/hair/clothing details, shoulder/hip
+  animation, decorative grass/flowers, isometric block icons and a preview of
+  the existing working log-to-plank recipe.
+- Eight server tests passed, including shared block edits and inventory/world
+  persistence after restart. The two-browser play check passed movement,
+  building, chat, crafting, reload persistence and mobile controls without
+  uncaught JavaScript errors. Actual desktop, inventory and mobile screenshots
+  were inspected. The Cloudflare asset build passed.
+- Terrain/save versions, server authority and backend hosting remain unchanged.
+- The canceled official-Java-server work was removed before this change was
+  committed; no Java server, EULA acceptance or additional Minecraft host is used.
