@@ -18,7 +18,7 @@ export class Game {
     const k=`${cx},${cz}`;if(this.chunks.has(k)){const data=this.chunks.get(k);this.chunks.delete(k);this.chunks.set(k,data);return data;}
     const c=new Uint8Array(CHUNK*CHUNK*HEIGHT);
     for(let y=0;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)c[chunkIndex(x,y,z)]=this.edits.get(key(cx*CHUNK+x,y,cz*CHUNK+z))??resourceBlock(cx*CHUNK+x,y,cz*CHUNK+z);
-    this.chunks.set(k,c);while(this.chunks.size>MAX_CACHED_CHUNKS)this.chunks.delete(this.chunks.keys().next().value);return c;
+    this.chunks.set(k,c);this.survival?.water.seedChunk(cx,cz,c);while(this.chunks.size>MAX_CACHED_CHUNKS)this.chunks.delete(this.chunks.keys().next().value);return c;
   }
   spawn() {
     for(let r=0;r<25;r++)for(let x=-r;x<=r;x++)for(let z=-r;z<=r;z++) {
@@ -53,8 +53,8 @@ export class Game {
   }
   flushDrops(){this.store.saveSurvival(this.survival.world);const items=[...this.dirtyDrops].map(id=>this.drops.get(id)).filter(Boolean);this.store.saveDrops(items);this.dirtyDrops.clear();}
   applyBlock(a,type){
-    this.edits.set(key(a.x,a.y,a.z),type);
-    const c=this.chunks.get(`${Math.floor(a.x/CHUNK)},${Math.floor(a.z/CHUNK)}`);if(c)c[chunkIndex((a.x%CHUNK+CHUNK)%CHUNK,a.y,(a.z%CHUNK+CHUNK)%CHUNK)]=type;
+    const old=this.get(a.x,a.y,a.z);this.edits.set(key(a.x,a.y,a.z),type);
+    const c=this.chunks.get(`${Math.floor(a.x/CHUNK)},${Math.floor(a.z/CHUNK)}`);if(c)c[chunkIndex((a.x%CHUNK+CHUNK)%CHUNK,a.y,(a.z%CHUNK+CHUNK)%CHUNK)]=type;this.survival?.water.changed(a,type,old);
   }
   mine(p,now){
     if(!p.input.mine||now-(p.lastInput??-Infinity)>350){p.mining=null;p.mineError=null;return;}

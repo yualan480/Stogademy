@@ -2,6 +2,7 @@ import {isTorch,isPlant,inShape} from './shapes.js';
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
+export const JUMP_DURATION_SECONDS=.6,JUMP_GRAVITY=28,JUMP_VELOCITY=8.4;
 export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 56, CHUNK = 16, SEA = 13;
 export const BLOCKS = {
   1: { name: 'Grass', color: '#70a745' }, 2: { name: 'Dirt', color: '#926342' },
@@ -61,13 +62,14 @@ export function step(p,input,dt,get) {
   const n=Math.hypot(f,s)||1; f/=n;s/=n;
   const flying=p.survival?.mode==='creative'&&p.survival.flying;
   const speed=flying?8:input.sneak?1.3:water?2.7:input.sprint&&(p.survival?.hunger??20)>6?6:4.3, yaw=p.yaw||0;
-  p.vy=flying?(Number(!!input.jump)-Number(!!input.sneak))*6:Math.max(-22,(p.vy||0)-(water?5:22)*dt);
-  if(!flying&&input.jump && (grounded||water)) p.vy=water?4:8.2;
+  p.vy=flying?(Number(!!input.jump)-Number(!!input.sneak))*6:Math.max(-22,(p.vy||0)-(water?5:JUMP_GRAVITY)*dt);
+  if(!flying&&input.jump && (grounded||water)) p.vy=water?4:JUMP_VELOCITY-JUMP_GRAVITY*dt/2;
   const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*speed*dt,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*speed*dt;
   for(const [axis,d] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
     const count=Math.max(1,Math.ceil(Math.abs(d)/.15));
     for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(input.sneak&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {if(axis==='y')p.vy=0;break;} }
   }
+  if(p.vy<0&&collides({...p,y:p.y-.015},get))p.vy=0;
 }
 export function stepBoat(p,input,dt,get){step(p,{...input,jump:false,sneak:false},dt,get);const x=Math.floor(p.x),z=Math.floor(p.z);for(let y=Math.floor(p.y);y>=Math.floor(p.y)-2;y--)if(get(x,y,z)===8&&get(x,y+1,z)!==8){const target=y+.85;if(p.y<target+.5&&!collides({...p,y:target},get)){p.y=target;p.vy=0;}break;}p.fallTop=p.y;}
 export function raycast(p,get,reach=6) {

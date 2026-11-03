@@ -1,3 +1,4 @@
+import {furnaceXP} from './experience.js';
 import {stacks,setLayout} from '../inventory.js';
 import {ITEMS,SMELTING,FUEL} from '../items.js';
 import {matchGrid} from '../crafting-grid.js';
@@ -32,6 +33,6 @@ export function containerSlot(s,p,c,area,index){
  if(area==='grid'&&c.kind!=='furnace'&&c.kind!=='chest'){if(!Number.isInteger(index)||index<0||index>=c.grid.length)return null;return {get:()=>c.grid[index],accept:()=>true,put:value=>c.grid[index]=value};}
  const a=context(s,p,c.kind),key=a&&`${a.x},${a.y},${a.z}`;
  if(area==='chest'&&c.kind==='chest'){if(!Number.isInteger(index)||index<0||index>=27)return null;return {get:()=>chestStacks(s,key)[index],accept:()=>true,put:value=>{const list=chestStacks(s,key),bag=s.world.chests[key],old=list[index];if(old)bag[old.id]-=old.count;if(value)bag[value.id]=(bag[value.id]||0)+value.count;list[index]=value;s.world.chestLayouts[key]=list.map(v=>v?.id||0);s.world.chestCounts[key]=list.map(v=>v?.count||0);}};}
- if(c.kind==='furnace'&&['input','fuel','output'].includes(area)){const f=s.world.furnaces[key]??={output:{},fuel:0};if(area==='output')return {get:()=>{const e=Object.entries(f.output||{}).find(([,n])=>n>0);return e?{id:+e[0],count:e[1]}:null;},accept:()=>false,put:value=>{const e=Object.entries(f.output||{}).find(([,n])=>n>0);if(e)f.output[e[0]]=value?.count||0;}};const field=area==='input'?'input':'fuelStack';return {get:()=>f[field],accept:id=>!!(area==='input'?SMELTING[id]:FUEL[id]),put:value=>f[field]=value};}
+ if(c.kind==='furnace'&&['input','fuel','output'].includes(area)){const f=s.world.furnaces[key]??={output:{},fuel:0};if(area==='output')return {get:()=>{const e=Object.entries(f.output||{}).find(([,n])=>n>0);return e?{id:+e[0],count:e[1]}:null;},accept:()=>false,put:value=>{const e=Object.entries(f.output||{}).find(([,n])=>n>0);if(e){const taken=e[1]-(value?.count||0);if(taken>0)furnaceXP(s,p,f,taken);f.output[e[0]]=value?.count||0;}}};const field=area==='input'?'input':'fuelStack';return {get:()=>f[field],accept:id=>!!(area==='input'?SMELTING[id]:FUEL[id]),put:value=>f[field]=value};}
  return null;
 }

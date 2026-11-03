@@ -1,17 +1,18 @@
+import {createXPVisuals} from './experience-visuals.js?v=20261103-flow-xp17';
 import {isTorch,isPlant,blockBoxes} from './shapes.js';
-import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261103-snow16';
-import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261103-snow16';
-import {createKeybinds} from './keybinds.js?v=20261103-snow16';
-import {createPauseMenu} from './pause-menu.js?v=20261103-snow16';
-import {furnitureModel} from './block-models.js?v=20261103-snow16';
-import {createShortcuts} from './game-shortcuts.js?v=20261103-snow16';
+import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261103-flow-xp17';
+import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261103-flow-xp17';
+import {createKeybinds} from './keybinds.js?v=20261103-flow-xp17';
+import {createPauseMenu} from './pause-menu.js?v=20261103-flow-xp17';
+import {furnitureModel} from './block-models.js?v=20261103-flow-xp17';
+import {createShortcuts} from './game-shortcuts.js?v=20261103-flow-xp17';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-snow16';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-flow-xp17';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,raycast,solid,collides } from './world.js';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261103-snow16';
-import { createPlayerModel } from './players.js?v=20261103-snow16';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-snow16';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261103-flow-xp17';
+import { createPlayerModel } from './players.js?v=20261103-flow-xp17';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-flow-xp17';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();
@@ -35,13 +36,14 @@ scene.add(camera);
 const atmosphere = createAtmosphere(scene);
 const held = createHeldBlock(camera, texture);
 const leftHeld=createHeldBlock(camera,texture,{left:true});
-const resources=createResourceEffects(scene,texture);
+const resources=createResourceEffects(scene,texture);const xpEffects=createXPVisuals(scene);
 const bedDirections=new Map(),torchPositions=new Map(),torchLights=Array.from({length:coarse?2:4},()=>{const light=new THREE.PointLight(0xffb56c,0,12,1.5);scene.add(light);return light;});let torchLightAt=0;
 const firstShield=new THREE.Group();camera.add(firstShield);for(const [w,h,d,color]of [[.31,.43,.06,0x999b9b],[.26,.37,.07,0x987345]]){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color,depthTest:false,fog:false}));m.renderOrder=1002;firstShield.add(m);}
 function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='left'?'offhandId':'heldId',meshKey=side==='left'?'offhandMesh':'itemMesh',arm=side==='left'?model.arm:model.arm2;if(model[key]===id)return;model[key]=id;if(model[meshKey]){arm.remove(model[meshKey]);model[meshKey].geometry.dispose();model[meshKey].material.dispose();model[meshKey]=null;}if(!id)return;const mesh=new THREE.Mesh(blockGeometry(id,.23),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.name=side==='left'?'left-hand-item':'right-hand-item';mesh.position.set(0,-.55,-.15);mesh.rotation.x=-.45;arm.add(mesh);model[meshKey]=mesh;}
 
 
 const material=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,alphaTest:.5});const waterMaterial=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide});
+waterMaterial.onBeforeCompile=shader=>{shader.uniforms.flowTime={value:0};waterMaterial.userData.flowShader=shader;shader.fragmentShader='uniform float flowTime;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#ifdef USE_MAP\n diffuseColor *= texture2D(map, vec2(vMapUv.x, fract(vMapUv.y + flowTime * .16)));\n #endif');};
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006,1.006,1.006)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.8}));scene.add(outline);outline.visible=false;
 const get=(x,y,z)=>{if(!inside(x,y,z))return 0;const k=`${x},${y},${z}`;if(edits.has(k))return edits.get(k);const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:connected?9:resourceBlock(x,y,z);};
 const faces=[
@@ -121,7 +123,7 @@ function inventorySlot(id,index,hotbar=false,countOverride,inDialog=false){
  const b=document.createElement('button'),count=countOverride??inventory[id]??0,name=itemName(id);
  b.title=count?`${name} (${count})`:'Empty slot';b.setAttribute('aria-label',b.title);b.classList.toggle('active',hotbar&&index===selected);b.setAttribute('aria-pressed',String(hotbar&&index===selected));
  if(count>0){const swatch=document.createElement('span');swatch.className='swatch';swatch.style.backgroundImage=`url("${blockIcon(id)}")`;b.append(swatch);if(count>1){const amount=document.createElement('span');amount.className='amount';amount.textContent=count;b.append(amount);}}
- if(hotbar){const key=document.createElement('kbd');key.textContent=index+1;b.append(key);b.onclick=()=>chooseSlot(index);}
+ if(hotbar){b.dataset.hotbarIndex=index;if(count>0&&ITEMS[id]?.durability){const ratio=Math.max(0,Math.min(1,(survival.state.durability?.[id]??ITEMS[id].durability)/ITEMS[id].durability)),bar=document.createElement('i');bar.className='durability-strip';bar.style.setProperty('--durability',ratio*100+'%');bar.style.setProperty('--durability-color',`hsl(${ratio*120} 90% 45%)`);b.append(bar);}const key=document.createElement('kbd');key.textContent=index+1;b.append(key);b.onclick=()=>chooseSlot(index);}
  if(!hotbar&&count>0)b.onclick=e=>send(e.shiftKey&&ITEMS[id]?.slot?{type:'equip',item:id}:{type:'swap',from:index,to:selected});
  if(inDialog){b.dataset.slotArea='bag';b.dataset.slotIndex=index;b.onclick=e=>{if(e.shiftKey&&ITEMS[id]?.slot&&survival.state.container?.kind==='hand'&&!survival.state.container?.cursor)send({type:'equip',item:id});else survival.containerClick(index,e);};b.oncontextmenu=e=>survival.containerClick(index,e);}
  return b;
@@ -155,7 +157,7 @@ async function join(){
  socket.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch{return;}
   if(m.type==='welcome'){
    for(const c of chunks.values())if(c.group){scene.remove(c.group);c.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});}chunks.clear();bedDirections.clear();torchPositions.clear();dirty.clear();pending.clear();edits.clear();for(const id of avatars.keys())removeAvatar(id);
-   resources.clear();predictionHistory.clear();correction.set(0,0,0);if(ownPlayer){scene.remove(ownPlayer.group);ownPlayer.group.traverse(o=>{o.geometry?.dispose();if(o.material)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.map&&material.map!==texture)material.map.dispose();material.dispose();}});}ownPlayer=createPlayerModel(m.you.id);ownPlayer.group.name='local-player';scene.add(ownPlayer.group);resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;connected=true;survival.update(m.survival||{health:20,hunger:20});document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();$('chat').classList.remove('chat-recent');clearTimeout(chatTimer);
+   resources.clear();xpEffects.clear();predictionHistory.clear();correction.set(0,0,0);if(ownPlayer){scene.remove(ownPlayer.group);ownPlayer.group.traverse(o=>{o.geometry?.dispose();if(o.material)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.map&&material.map!==texture)material.map.dispose();material.dispose();}});}ownPlayer=createPlayerModel(m.you.id);ownPlayer.group.name='local-player';scene.add(ownPlayer.group);resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;connected=true;survival.update(m.survival||{health:20,hunger:20});document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();$('chat').classList.remove('chat-recent');clearTimeout(chatTimer);
   }else if(m.type==='chunk'){
    if(!Number.isInteger(m.x)||!Number.isInteger(m.z)||!retainChunk(m.x,m.z)){pending.delete(`${m.x},${m.z}`);return;}
    for(const bed of m.beds||[]){const direction={x:bed.head.x-bed.foot.x,z:bed.head.z-bed.foot.z};for(const a of [bed.foot,bed.head])bedDirections.set(`${a.x},${a.y},${a.z}`,direction);}
@@ -180,7 +182,7 @@ async function join(){
   }else if(m.type==='inventory'){inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;updateInventory();}
   else if(m.type==='combat'){markHit(scene,m.target,m.killed);if(m.target===me?.id){if(ownPlayer){ownPlayer.group.userData.damageAt=performance.now();if(m.killed)ownPlayer.group.userData.deathAt=performance.now();}$('damage-flash').classList.add('on');clearTimeout(combatFlashTimer);combatFlashTimer=setTimeout(()=>$('damage-flash').classList.remove('on'),230);}if(m.attacker===me?.id){$('crosshair').classList.add('hit');clearTimeout(hitMarkerTimer);hitMarkerTimer=setTimeout(()=>$('crosshair').classList.remove('hit'),180);}}
   else if(m.type==='survival'){if(m.state.health>0&&survival.state.health<=0&&ownPlayer){delete ownPlayer.group.userData.deathAt;delete ownPlayer.group.userData.damageAt;}const changed=JSON.stringify(bagSlots)!==JSON.stringify(m.state.slots);bagSlots=m.state.slots||bagSlots;hotbarSlots=m.state.hotbar||hotbarSlots;survival.update(m.state);if(changed)updateInventory();if(previewActor){applyEquipment(previewActor,{...m.state.equipment,...(m.state.offhand?.id===181?{shield:181}:{})});updatePreview();}}
-  else if(m.type==='survival-world'){survival.world(m);for(const c of m.crops||[]){const key=`${c.x},${c.y},${c.z}`;if(cropStages.get(key)!==c.stage){cropStages.set(key,c.stage);mark(Math.floor(c.x/CHUNK),Math.floor(c.z/CHUNK));}}}
+  else if(m.type==='survival-world'){xpEffects.set(m.xpOrbs||[]);survival.world(m);for(const c of m.crops||[]){const key=`${c.x},${c.y},${c.z}`;if(cropStages.get(key)!==c.stage){cropStages.set(key,c.stage);mark(Math.floor(c.x/CHUNK),Math.floor(c.z/CHUNK));}}}
   else if(m.type==='chest-state')survival.chest(m.chest);
   else if(m.type==='projectile')survival.projectile(m);
   else if(m.type==='bed-status'){toast(m.text);}
@@ -191,7 +193,7 @@ async function join(){
   else if(m.type==='error'){toast(m.message);$('gate-status').textContent=m.message;}
  };
  socket.onerror=()=>{$('gate-status').textContent='Cannot reach the public world. Please retry shortly.';};
- socket.onclose=()=>{const was=connected;connected=false;for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();me=null;inputReset();resources.clear();miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';$('join').hidden=false;if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
+ socket.onclose=()=>{const was=connected;connected=false;for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();me=null;inputReset();resources.clear();xpEffects.clear();miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';$('join').hidden=false;if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
  }catch(e){$('gate-status').textContent=e.message;$('join').disabled=false;$('login').hidden=dev;$('join').hidden=false;}
 }
 $('join').onclick=join;$('wake-button').onclick=()=>send({type:'wake'});
@@ -280,10 +282,10 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  if(miningHeld&&controls()&&now-lastMiningSwing>220){lastMiningSwing=now;held.swing();}
  leftHeld.select(survival.state.offhand?.id||0,survival.state.offhand?.count||0);leftHeld.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&perspective===0&&survival.state.health>0&&!menuOpen()&&survival.state.offhand?.id!==181);
  firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.scale.setScalar(Math.max(.6,Math.min(1,camera.aspect/1.25)));firstShield.position.lerp(new THREE.Vector3((input.block?-.18:-.4)*Math.min(1,camera.aspect/1.25),input.block?-.24:-.45,input.block?-.5:-.7),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
- resources.update(Date.now(),dt,camera);
+ resources.update(Date.now(),dt,camera);xpEffects.animate(now,dt);
  held.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&!survival.state.sleeping&&!menuOpen()&&perspective===0&&survival.state.health>0,input.eat&&!!ITEMS[hotbarSlots[selected]]?.food&&inventory[hotbarSlots[selected]]>0&&survival.state.hunger<20);
  atmosphere(now,camera,survival.state.time||6000);
- renderer.render(scene,camera);
+ if(waterMaterial.userData.flowShader)waterMaterial.userData.flowShader.uniforms.flowTime.value=now/1000;renderer.render(scene,camera);
 }
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 addEventListener('pagehide',()=>socket?.close(1000,'Leaving world'));

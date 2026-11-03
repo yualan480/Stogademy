@@ -513,3 +513,35 @@ toward the cursor, using the displayed canvas bounds so GUI scaling works.
 Pointer-driven renders are limited to one animation frame at a time and run
 only while the inventory is open. The separate Eat binding/R shortcut has been
 removed; hold-right-click eating and mobile touch eating remain available.
+
+### Water flow, experience HUD and jump timing
+
+Water is now simulated authoritatively at a bounded rate (64 active updates
+every quarter-second). Poured water and exposed natural water fall first, spread
+up to seven horizontal levels around solid obstacles, wash out plants/torches,
+and recede after losing their source. Flow level metadata and block edits save
+together; flow resumes after restart and pauses outside simulation distance.
+Chunk loading seeds exposed water edges, and mining/building/buckets schedule
+neighbor updates. The render shader scrolls water texels to show movement.
+
+The compact nine-slot hotbar now includes actual equipment armor points, an
+experience progress bar, green level number and colored tool/shield durability
+strips. Animal kills grant two XP, player-killed monsters five XP, mature crop
+harvests one XP, and collected smelted output one XP per item. Small green pixel
+orbs move toward nearby living players and save XP atomically on pickup. Raw
+materials/fuel alone do not grant XP, and repeatedly clicking empty furnace
+output cannot grant more. Orbs persist with the world; death clears XP and drops
+a bounded share. Increasing level costs follow the classic survival progression.
+The armor and XP HUD also obey F1 and inventory hiding.
+
+Normal dry-ground jumps use shared gravity 28 and launch velocity 8.4, integrated
+with a half-step launch correction so return to the same height takes 0.6 seconds
+at both server 20 Hz and client 60 Hz. Jump height is about 1.26 blocks; swimming
+and creative flight retain separate controls.
+
+Validation adds water descent/obstacle routing/range/draining/persistence/pause
+and rollback checks; animal/crop/furnace orb rewards and pickup rollback; level
+math and 0.6-second jump checks at both step rates. Browser checks verify visible
+XP progression, armor points, durability strips, animated water without shader
+errors, and HUD hiding. The earlier snow, cursor-following preview and removal
+of the separate Eat binding remain in this release.

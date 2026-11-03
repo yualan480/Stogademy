@@ -1,4 +1,4 @@
-import {drawItem} from './item-art.js?v=20261103-snow16';
+import {drawItem} from './item-art.js?v=20261103-flow-xp17';
 import {isTorch,isPlant} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';

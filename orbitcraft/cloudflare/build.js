@@ -21,12 +21,12 @@ const shop=await readFile(resolve(out,'chatter/shop.js'),'utf8');
 for(const retired of ['take_orbit_loop','loopBoxHtml','id="olprice"','id="oltake"']){
  if(shop.includes(retired))throw new Error('Packaged Orbit Shop still contains the retired Loop purchase path: '+retired);
 }
-for(const file of ['chatter/shop.js','chatter/arena.js','chatter/app.js','chatter/index.html','games/orbit-bank.js','games/leaderboard.js','games/index.html','games/admin.html','orbitcraft/index.html','orbitcraft/client.js','orbitcraft/survival-ui.js','orbitcraft/containers-ui.js','orbitcraft/crafting-grid.js','orbitcraft/items.js','orbitcraft/visuals.js','orbitcraft/mining-visuals.js','orbitcraft/game-shortcuts.js','orbitcraft/keybinds.js','orbitcraft/pause-menu.js','orbitcraft/block-models.js','orbitcraft/chunks.js','orbitcraft/shapes.js','orbitcraft/item-art.js','orbitcraft/entity-effects.js','orbitcraft/assets/fonts/PixelifySans.ttf','orbitcraft/assets/hud/recipe-book.svg','orbitcraft/assets/hud/furnace-flame.svg','orbitcraft/style.css','orbitcraft/release.js','orbitcraft/assets/block-textures.png']){
+for(const file of ['chatter/shop.js','chatter/arena.js','chatter/app.js','chatter/index.html','games/orbit-bank.js','games/leaderboard.js','games/index.html','games/admin.html','orbitcraft/index.html','orbitcraft/client.js','orbitcraft/survival-ui.js','orbitcraft/containers-ui.js','orbitcraft/crafting-grid.js','orbitcraft/items.js','orbitcraft/visuals.js','orbitcraft/mining-visuals.js','orbitcraft/game-shortcuts.js','orbitcraft/keybinds.js','orbitcraft/pause-menu.js','orbitcraft/block-models.js','orbitcraft/chunks.js','orbitcraft/shapes.js','orbitcraft/item-art.js','orbitcraft/entity-effects.js','orbitcraft/experience.js','orbitcraft/experience-visuals.js','orbitcraft/assets/hud/armor.svg','orbitcraft/assets/hud/armor-empty.svg','orbitcraft/assets/fonts/PixelifySans.ttf','orbitcraft/assets/hud/recipe-book.svg','orbitcraft/assets/hud/furnace-flame.svg','orbitcraft/style.css','orbitcraft/release.js','orbitcraft/assets/block-textures.png']){
  const [source,built]=await Promise.all([readFile(resolve(root,file)),readFile(resolve(out,file))]);
  if(!source.equals(built))throw new Error('Packaged site differs from current source: '+file);
 }
 const gamePage=await readFile(resolve(out,'orbitcraft/index.html'),'utf8');
-for(const required of [RELEASE,'id="survival-hud"','id="health-meter"','id="hunger-meter"','id="hotbar"']){
+for(const required of [RELEASE,'id="survival-hud"','id="health-meter"','id="hunger-meter"','id="hotbar"','id="experience-bar"','id="armor-meter"']){
  if(!gamePage.includes(required))throw new Error('Packaged Orbitcraft HUD is missing '+required);
 }
 for(const name of ['heart','heart-empty','hunger','hunger-empty']){
