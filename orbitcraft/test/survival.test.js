@@ -40,3 +40,14 @@ test('quick attack messages hit mobs and players without waiting for a mining ti
  g.handle(p,{type:'attack'});assert.equal(q.survival.health,19);q.x=6;f.advance(750);
  const cow=g.survival.spawn('cow',.5,45.01,-1);g.handle(p,{type:'attack'});assert.equal(cow.health,19);
 });
+
+test('empty-hand punches hurt players and mobs less than every owned sword',t=>{
+ const f=setup(t),{g,p}=f,q=opponent(f),mob=g.survival.spawn('cow',.5,45.01,-1.5);
+ const hit=(id,count,target)=>{p.inventory=id?{[id]:count}:{};p.hotbar=Array(9).fill(0);p.hotbar[0]=id;p.selected=0;p.lastAttack=-Infinity;q.lastHurt=-Infinity;q.survival.health=20;q.x=target==='player'?.5:6;mob.x=target==='mob'?.5:6;mob.health=20;g.handle(p,{type:'attack',damage:9999});return 20-(target==='player'?q.survival.health:mob.health);};
+ for(const target of ['player','mob']){
+  assert.equal(hit(0,0,target),1,'empty hands must damage '+target);
+  assert.equal(hit(2,1,target),1,'holding dirt still punches');
+  assert.equal(hit(162,0,target),1,'a sword the player does not own grants no weapon damage');
+  for(const id of [122,132,142,152,162,172]){const damage=hit(id,1,target);assert.equal(damage,ITEMS[id].damage);assert.ok(damage>1,'every sword must be stronger than a punch');}
+ }
+});

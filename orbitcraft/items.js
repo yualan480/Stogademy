@@ -1,4 +1,5 @@
 // Shared item definitions and recipes. The server validates every transaction.
+export const PUNCH_DAMAGE=1; // Half a heart before armor or shields.
 export const ITEMS={};
 const add=(id,name,extra={})=>ITEMS[id]={id,name,...extra};
 for(const [id,name] of [[11,'Cobblestone'],[12,'Gravel'],[13,'Coal ore'],[14,'Iron ore'],[15,'Diamond ore'],[16,'Gold ore'],[17,'Ancient debris'],[18,'Crafting table'],[19,'Furnace'],[20,'Bed'],[21,'Farmland'],[22,'Wheat crop'],[23,'Chest'],[24,'Blast furnace']])add(id,name,{block:true});

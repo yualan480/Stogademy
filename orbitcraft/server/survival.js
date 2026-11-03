@@ -1,6 +1,6 @@
 import {containerMessage,returnContainer,startFurnace} from './containers.js';
 import {stacks,swapSlots} from '../inventory.js';
-import { ITEMS,RECIPES,SMELTING,FUEL,defaultHotbar,isBlock } from '../items.js';
+import { ITEMS,RECIPES,SMELTING,FUEL,defaultHotbar,isBlock,PUNCH_DAMAGE } from '../items.js';
 import { inside,solid,collides,step,raycast,terrain,hash,resourceBlock,MINING_MS } from '../world.js';
 const xyz=a=>`${a.x},${a.y},${a.z}`;
 const clone=a=>JSON.parse(JSON.stringify(a));
@@ -75,7 +75,7 @@ export class Survival{
   if(p.survival.health<=0||p.survival.sleeping)return false;
   const target=this.meleeTarget(p);if(!target)return false;
   const now=this.g.now();if(now-(p.lastAttack??-Infinity)<650)return true;
-  const id=this.selected(p),damage=this.tool(p)?.damage||1;
+  const id=this.selected(p),damage=this.tool(p)?.damage??PUNCH_DAMAGE;
   if(target.player){
    const victim=target.player;if(now-(victim.lastHurt??-Infinity)<700)return true;
    let dealt=0;
