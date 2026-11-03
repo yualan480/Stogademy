@@ -8,9 +8,9 @@ test('two real WebSocket clients share movement, chat, edits, inventory, disconn
  const a=await connect(port,'dev-Alice'),b=await connect(port,'dev-Bob');clients.push(a,b);const welcome=await a.wait('welcome');await b.wait('welcome');
  const state=await a.wait('state',m=>m.players.length===2);assert.deepEqual(new Set(state.players.map(p=>p.name)),new Set(['Alice','Bob']));
  a.send({type:'chat',text:'Hello Bob!'});assert.equal((await b.wait('chat')).name,'Alice');
- a.send({type:'input',forward:true,jump:true,yaw:0,pitch:0,seq:1});await sleep(300);a.send({type:'input',yaw:0,pitch:-.9,seq:2});assert.ok(await b.wait('state',m=>m.players.find(p=>p.name==='Alice').z<welcome.you.z-.4));
+ a.send({type:'input',forward:true,jump:false,yaw:0,pitch:0,seq:1});await sleep(300);a.send({type:'input',yaw:0,pitch:-.9,seq:2});assert.ok(await b.wait('state',m=>m.players.find(p=>p.name==='Alice').z<welcome.you.z-.4));
  a.send({type:'place',block:2});const edit=await b.wait('block');assert.equal(edit.block,2);const inv=await a.wait('inventory');assert.equal(inv.inventory[2],23);
- await sleep(200);const began=Date.now(),mineInput={type:'input',mine:true,yaw:0,pitch:-.9};a.send(mineInput);const holding=setInterval(()=>a.send(mineInput),100);
+ await sleep(200);const current=[...a.messages].reverse().find(m=>m.type==='state')?.players.find(p=>p.name==='Alice'),dx=edit.x+.5-current.x,dz=edit.z+.5-current.z,dy=edit.y+.5-current.y-1.62;const began=Date.now(),mineInput={type:'input',mine:true,yaw:Math.atan2(-dx,-dz),pitch:Math.atan2(dy,Math.hypot(dx,dz))};a.send(mineInput);const holding=setInterval(()=>a.send(mineInput),100);
  let dropped;
  try{await b.wait('state',m=>m.players.some(p=>p.name==='Alice'&&p.mining?.progress>0));const mined=await b.wait('block',m=>m.block===0);assert.ok(Math.abs(mined.x)<64);dropped=(await b.wait('drop')).drop;assert.equal(dropped.block,2);assert.ok(Date.now()-began>=600);const unchanged=await a.wait('inventory',m=>m.mined===1);assert.equal(unchanged.inventory[2],23);}
  finally{clearInterval(holding);a.send({type:'input',yaw:0,pitch:-.9,mine:false});}

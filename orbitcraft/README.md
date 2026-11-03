@@ -439,3 +439,17 @@ addresses, the old/new world borders, nearest-first/fair request scheduling,
 bounded cache eviction, persistence, pause/resume of farms/furnaces/entities,
 vertical independence, multiplayer activity and a real browser round trip beyond
 the old border with streamed meshes unloading and a saved build reloading.
+
+### Hold to eat
+
+Hold right-click with food selected for 1.6 seconds to eat. The first-person
+food/hand bobs toward the mouth and third-person players raise the food arm;
+nearby players receive the eating state. Continuing to hold repeats the full
+duration for each item until hunger is full or the food runs out.
+
+The server measures each hold and consumes food, restores hunger/saturation and
+heals in a single saved transaction. Releasing, switching slots, mining, opening
+a menu, dying, losing input heartbeats or already-full hunger cancels progress.
+Hold the rebound Eat/Use key or the touch Eat/Use button for the same behavior.
+Legacy eat/use packets cannot consume food instantly. No progress bar is added.
+The F5 camera-cycle function was also restored and checked with the eating pose.

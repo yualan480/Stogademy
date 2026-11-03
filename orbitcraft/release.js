@@ -1,2 +1,2 @@
 // Shared by the static game and both multiplayer server runtimes.
-export const RELEASE = 'orbitcraft-expanded-chunks-13';
+export const RELEASE = 'orbitcraft-hold-eating-14';

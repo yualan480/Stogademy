@@ -1,3 +1,4 @@
+import {tickEating} from './eating.js';
 import {bedPair,removeBed} from './beds.js';
 import {containerShortcut} from './container-shortcuts.js';
 import {playerControl} from './player-controls.js';
@@ -13,13 +14,14 @@ export class Survival{
  init(p){p.survival={health:20,hunger:20,saturation:5,exhaustion:0,durability:{},equipment:{},regen:0,starve:0,...p.survival};p.hotbar=Array.isArray(p.hotbar)&&p.hotbar.length===9?p.hotbar:[...defaultHotbar];p.selected=0;p.fallTop=p.y;returnContainer(p);}
  state(p){return {...p.survival,hotbar:p.hotbar,slots:stacks(p),selected:p.selected,time:this.world.time,chestSlots:p.station&&this.g.get(p.station.x,p.station.y,p.station.z)===23?chestStacks(this,xyz(p.station)):null,chest:p.station&&this.g.get(p.station.x,p.station.y,p.station.z)===23?this.world.chests[xyz(p.station)]||{}:null,furnace:p.station&&Math.hypot(p.station.x-p.x,p.station.z-p.z)<6?this.world.furnaces[xyz(p.station)]||{output:{}}:null,fishing:p.fishing?{bite:p.fishing.bite,end:p.fishing.end}:null};}
  send(p){p.send({type:'survival',state:this.state(p)});}
+ eat(p){tickEating(this,p);}
  selected(p){return p.hotbar[p.selected]||0;}
  tool(p){const id=this.selected(p);return p.inventory[id]>0?ITEMS[id]:null;}
  nearby(p,id,range=4){for(let x=Math.floor(p.x)-range;x<=p.x+range;x++)for(let y=Math.floor(p.y)-2;y<=p.y+2;y++)for(let z=Math.floor(p.z)-range;z<=p.z+range;z++)if(this.g.get(x,y,z)===id&&Math.hypot(x+.5-p.x,y+.5-p.y,z+.5-p.z)<=range)return {x,y,z};return null;}
  night(){const t=this.world.time%24000;return t>=13500&&t<23700;}
  dark(x,y,z){if(this.night())return true;for(let h=Math.floor(y)+2;h<56;h++)if(solid(this.g.get(Math.floor(x),h,Math.floor(z))))return true;return false;}
  atomic(p,fn,{also=[]}={}){
-  const participants=[...new Set([p,...also].filter(Boolean))],fields=['inventory','survival','hotbar','mined','placed','lastHurt','lastAttack','input','mining','fishing'];
+  const participants=[...new Set([p,...also].filter(Boolean))],fields=['inventory','survival','hotbar','mined','placed','lastHurt','lastAttack','input','mining','fishing','eating'];
   const before=new Map(participants.map(player=>[player,clone(Object.fromEntries(fields.map(k=>[k,player[k]])))])),worldBefore=clone(this.world),blocks=[],drops=[];
   try{
    fn({block:(a,id)=>blocks.push({...a,block:id}),drop:(id,count,a)=>{if(count>0)drops.push({id:crypto.randomUUID(),block:id,count,x:a.x+.5,y:a.y+.5,z:a.z+.5,durability:ITEMS[id]?.durability?(p?.survival.durability[id]??ITEMS[id].durability):undefined,created:this.g.now(),pickupAt:this.g.now()+750,vy:1,grounded:false});}});
@@ -40,7 +42,7 @@ export class Survival{
  return [[({3:11,13:101,14:102,15:106,16:104,21:2})[id]||id,1]];}
  mine(p,hit){if([20,26].includes(hit.block)){this.atomic(p,tx=>{removeBed(this,hit,tx);this.wear(p,this.selected(p));p.survival.exhaustion+=.15;p.mined++;});return;}const result=this.harvest(p,hit);this.atomic(p,tx=>{tx.block({...hit,broken:hit.block},0);if(this.g.get(hit.x,hit.y+1,hit.z)===25){tx.block({...hit,y:hit.y+1},0);tx.drop(25,1,{...hit,y:hit.y+1});}for(const [id,count]of result)tx.drop(id,count,hit);const furnace=this.world.furnaces[xyz(hit)];if(furnace){for(const [id,count]of Object.entries(furnace.output||{}))tx.drop(+id,count,hit);if(furnace.job)tx.drop(furnace.job.out,1,hit);for(const stack of [furnace.input,furnace.fuelStack])if(stack)tx.drop(stack.id,stack.count,hit);delete this.world.furnaces[xyz(hit)];}const chest=this.world.chests[xyz(hit)];if(chest){for(const [id,n]of Object.entries(chest))tx.drop(+id,n,hit);delete this.world.chests[xyz(hit)];}delete this.world.crops[xyz(hit)];this.wear(p,this.selected(p));p.survival.exhaustion+=.15;p.mined++;});}
  craft(p,m){const recipe=RECIPES.find(r=>r.id===(m.recipe||'planks'));if(!recipe)throw Error('Unknown recipe.');if(recipe.station==='table'&&!this.nearby(p,18))throw Error('Stand near a placed crafting table.');if(ITEMS[recipe.out]?.durability&&p.inventory[recipe.out]>0)throw Error('You already have this tool or armor.');for(const [id,n] of Object.entries(recipe.ingredients))if((p.inventory[id]||0)<n)throw Error('You need more ingredients.');if((p.inventory[recipe.out]||0)+recipe.count>9999)throw Error('Inventory stack is full.');this.atomic(p,()=>{for(const [id,n]of Object.entries(recipe.ingredients))p.inventory[id]-=n;p.inventory[recipe.out]=(p.inventory[recipe.out]||0)+recipe.count;if(ITEMS[recipe.out]?.durability)p.survival.durability[recipe.out]=ITEMS[recipe.out].durability;const empty=p.hotbar.findIndex(id=>!id||!p.inventory[id]);if(empty>=0&&!p.hotbar.includes(recipe.out))p.hotbar[empty]=recipe.out;});}
- handle(p,m){if(m.type==='select'){if(Number.isInteger(m.slot)&&m.slot>=0&&m.slot<9){p.selected=m.slot;p.mining=null;}return true;}
+ handle(p,m){if(m.type==='select'){if(Number.isInteger(m.slot)&&m.slot>=0&&m.slot<9){if(m.slot!==p.selected)p.eating=null;p.selected=m.slot;p.mining=null;}return true;}
  if(m.type==='respawn'){if(p.survival.health>0)return true;const bed=p.survival.respawn;let point=bed&&this.g.get(bed.bx,bed.by,bed.bz)===20?{x:bed.x,y:bed.y,z:bed.z}:null;if(!point||collides(point,this.g.get)){point=this.world.spawn;if(collides(point,this.g.get))point=this.g.spawn();}Object.assign(p,point,{vy:0});p.survival.health=20;p.survival.hunger=20;p.survival.saturation=5;p.input={};p.fallTop=p.y;this.g.store.savePlayer(p);this.send(p);return true;}
  if(p.survival.health<=0)return m.type!=='chat'&&m.type!=='chunks';
  if(playerControl(this,p,m))return true;
@@ -52,7 +54,7 @@ export class Survival{
  if(m.type==='assign'){if(Number.isInteger(m.slot)&&m.slot>=0&&m.slot<9&&p.inventory[m.item]>0)this.atomic(p,()=>{const from=stacks(p).findIndex(s=>s?.id===m.item);swapSlots(p,from,m.slot);});return true;}
  if(m.type==='equip'){const id=m.item,item=ITEMS[id];if(item?.slot){this.atomic(p,()=>{const slot=item.slot;if(slot==='shield'){if(p.survival.offhand?.id===181){p.inventory[181]=(p.inventory[181]||0)+p.survival.offhand.count;p.survival.offhand=null;}else if(p.inventory[181]>0){const old=p.survival.offhand;if(old)p.inventory[old.id]=(p.inventory[old.id]||0)+old.count;p.inventory[181]--;p.survival.offhand={id:181,count:1};}return;}if(p.survival.equipment[slot]===id){delete p.survival.equipment[slot];p.inventory[id]=(p.inventory[id]||0)+1;}else if(p.inventory[id]>0){const old=p.survival.equipment[slot];if(old)p.inventory[old]=(p.inventory[old]||0)+1;p.inventory[id]--;p.survival.equipment[slot]=id;}});}return true;}
  if(m.type==='craft'){this.craft(p,m);return true;}
- if(m.type==='eat'){const id=this.selected(p),food=ITEMS[id]?.food;if(food&&p.inventory[id]>0&&p.survival.hunger<20)this.atomic(p,()=>{p.inventory[id]--;p.survival.hunger=Math.min(20,p.survival.hunger+food);p.survival.saturation=Math.min(p.survival.hunger,(p.survival.saturation||0)+food*([110,115].includes(id)?1.6:1.2));p.survival.health=Math.min(20,p.survival.health+Math.max(1,food/2));});return true;}
+ if(m.type==='eat'){p.input.eat=true;p.lastInput=this.g.now();this.eat(p);return true;}
  if(m.type==='use'){this.use(p);return true;}
  if(m.type==='smelt'){this.smelt(p,m);return true;}if(m.type==='collect-furnace'){const a=(this.nearby(p,19)||this.nearby(p,24)),f=a&&this.world.furnaces[xyz(a)];if(f)this.atomic(p,()=>{for(const [id,count]of Object.entries(f.output||{}))p.inventory[id]=(p.inventory[id]||0)+count;f.output={};});return true;}
  return false;}
@@ -105,7 +107,7 @@ export class Survival{
   if(p.survival.health<=0)this.dropPlayer(p,tx);
  }
  hurt(p,damage,source){if(p.survival.health<=0||this.g.now()-(p.lastHurt??-Infinity)<700)return;this.atomic(p,tx=>this.applyDamage(p,damage,source,tx));}
- dropPlayer(p,tx){returnContainer(p);for(const [id,count]of Object.entries(p.inventory))if(count>0)tx.drop(+id,count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});for(const id of Object.values(p.survival.equipment))tx.drop(id,1,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});if(p.survival.offhand)tx.drop(p.survival.offhand.id,p.survival.offhand.count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});p.survival.offhand=null;p.inventory={};p.survival.equipment={};p.survival.durability={};p.survival.sleeping=false;p.survival.health=0;p.input={};p.mining=null;}
+ dropPlayer(p,tx){returnContainer(p);for(const [id,count]of Object.entries(p.inventory))if(count>0)tx.drop(+id,count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});for(const id of Object.values(p.survival.equipment))tx.drop(id,1,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});if(p.survival.offhand)tx.drop(p.survival.offhand.id,p.survival.offhand.count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});p.survival.offhand=null;p.inventory={};p.survival.equipment={};p.survival.durability={};p.survival.sleeping=false;p.survival.health=0;p.input={};p.mining=null;p.eating=null;}
  die(p){this.atomic(p,tx=>this.dropPlayer(p,tx));}
 
  spawn(kind,x,y,z){if(this.world.mobs.length>=512||this.world.mobs.filter(m=>this.g.simulated(m)).length>=48||!inside(Math.floor(x),Math.floor(y),Math.floor(z)))return null;const m={id:crypto.randomUUID(),kind,x,y,z,yaw:0,vy:0,health:kind==='spider'?16:kind==='chicken'?4:kind==='pig'||kind==='sheep'?10:20,hostile:['zombie','skeleton','creeper','spider','enderman'].includes(kind),next:0};if(collides(m,this.g.get))return null;this.world.mobs.push(m);return m;}
@@ -117,7 +119,7 @@ export class Survival{
  tick(dt){if(!this.g.players.size)return;this.shiftClocks(dt*20,true);this.world.time+=dt*20;this.acc+=dt;
  // Daylight is peaceful, including caves and hostile creatures saved overnight.
  if(!this.night())this.world.mobs=this.world.mobs.filter(m=>!m.hostile);
- for(const p of this.g.players.values()){const s=p.survival;if(s.health<=0){p.input={};continue;}if(this.g.now()-(p.lastInput||0)>350)p.input.block=false;if(s.hunger<=6)p.input.sprint=false;
+ for(const p of this.g.players.values()){tickEating(this,p);const s=p.survival;if(s.health<=0){p.input={};continue;}if(this.g.now()-(p.lastInput||0)>350)p.input.block=false;if(s.hunger<=6)p.input.sprint=false;
  const moving=p.input.forward||p.input.back||p.input.left||p.input.right;s.exhaustion+=dt*(moving?(p.input.sprint?.22:.08):.012);if(s.exhaustion>=4){s.exhaustion-=4;if(s.saturation>0)s.saturation=Math.max(0,s.saturation-1);else s.hunger=Math.max(0,s.hunger-1);}
  s.regen=(s.regen||0)+dt;if(s.regen>=4){s.regen=0;if(s.hunger>=16&&s.health<20){s.health=Math.min(20,s.health+1);s.exhaustion+=1;}if(s.hunger===0)this.hurt(p,1);}
  if(s.mode==='creative'&&s.flying){p.fallTop=p.y;continue;}

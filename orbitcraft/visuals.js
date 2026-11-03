@@ -248,12 +248,12 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
       uv.needsUpdate = true;
     },
     swing() { swingAt = performance.now(); },
-    update(now, moving, visible) {
+    update(now, moving, visible, eating=false) {
       group.visible = visible;
       const swing = Math.sin(Math.min(1, (now - swingAt) / 220) * Math.PI);
       const narrow=Math.min(1,camera.aspect/1.25),scale=Math.max(.6,narrow);hand.scale.setScalar(scale);sleeve.scale.setScalar(scale);block.scale.setScalar(scale);
       group.position.set((moving ? Math.sin(now * .009) * .012 : 0)+(left?1:-1)*.43*(1-narrow), (moving ? Math.abs(Math.cos(now * .009)) * .018 : 0) - swing * .08, -swing * .1);
-      group.rotation.x = -swing * .22;
+      group.rotation.set(-swing*.22,0,0);group.userData.eating=!!eating;if(eating){const bite=Math.sin(now*.028);group.position.set(-.24+.015*bite,.22+.035*Math.abs(bite),.15);group.rotation.set(-.12,0,.12+.035*bite);}
     }
   };
 }
