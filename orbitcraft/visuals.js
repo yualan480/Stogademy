@@ -2,13 +2,13 @@ import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';
 import { ITEMS } from './items.js';
 const itemIds=Object.keys(ITEMS).map(Number).filter(id=>id>=100);
-const itemTiles=new Map(itemIds.map((id,i)=>[id,35+i]));
+const itemTiles=new Map(itemIds.map((id,i)=>[id,36+i]));
 
 export const TEXTURE_TILES = Object.freeze([
   'grass_top','dirt','stone','sand','oak_bark','oak_leaves','snow',
   'water','bedrock','oak_planks','grass_side','oak_end','snowy_grass_side',
   'grass_plant','poppy','poppy_variant','cobblestone','gravel','coal_ore','iron_ore','diamond_ore',
-  'gold_ore','ancient_debris','crafting_top','crafting_side','furnace_top','furnace_side','bed','farmland','wheat','chest_top','chest_side','furnace_wall','crafting_tools','torch',...itemIds.map(id=>'item_'+id)
+  'gold_ore','ancient_debris','crafting_top','crafting_side','furnace_top','furnace_side','bed','farmland','wheat','chest_top','chest_side','furnace_wall','crafting_tools','torch','chest_wall',...itemIds.map(id=>'item_'+id)
 ]);
 export const TILE_COUNT = TEXTURE_TILES.length;
 const random = (x, y, seed) => {
@@ -18,10 +18,10 @@ const random = (x, y, seed) => {
 };
 export function tileFor(id, normalY, normalZ=0) {
   if(id>=100)return itemTiles.get(id)??1;
-  if(id===25)return 34;
+  if(id===25)return 34;if(id===26)return 27;
   if(id===18)return normalY>0?23:normalY<0?9:normalZ>0?24:33;
   if(id===19||id===24)return normalY>0?25:normalY<0?2:normalZ>0?26:32;
-  if(id===23)return normalY>0?30:31;if(id===24)return normalY>0?25:26;
+  if(id===23)return normalY>0?30:normalY<0?9:normalZ>0?31:35;if(id===24)return normalY>0?25:26;
   if(id>=11)return ({11:16,12:17,13:18,14:19,15:20,16:21,17:22,18:normalY>0?23:24,19:normalY>0?25:26,20:27,21:normalY>0?28:1,22:29})[id]??1;
   if (id === 1) return normalY > 0 ? 0 : normalY < 0 ? 1 : 10;
   if (id === 5 && normalY !== 0) return 11;
@@ -151,6 +151,8 @@ export async function createTextures() {
    if(tile===24||tile===33){rect(0,0,16,3,'#654126');rect(1,3,2,12,'#d0a064');rect(13,3,2,12,'#684226');for(const y of [6,10,14])rect(3,y,10,1,'#82552f');rect(0,15,16,1,'#4d311e');if(tile===24){rect(5,6,1,8,'#513d2a');rect(4,5,3,3,'#bcb5a4');rect(5,5,1,2,'#e5d8b6');rect(10,6,1,8,'#513d2a');rect(9,5,3,2,'#b8b3a6');rect(9,6,1,3,'#aaa592');}else{rect(5,5,2,8,'#59402a');rect(4,4,5,3,'#aaa38f');rect(11,8,1,6,'#58402a');rect(10,7,3,2,'#bbb6a4');}}
    if(stone){rect(0,0,16,1,'#4f514d');rect(0,15,16,1,'#53544f');rect(0,0,1,16,'#5d5f59');rect(15,0,1,16,'#565852');if(tile!==26){for(const [x,y,w]of [[2,3,5],[9,5,5],[3,11,8],[9,13,4]]){rect(x,y,w,1,'#afb0a9');rect(x,y+1,w,1,'#686b64');}}else{rect(2,2,12,6,'#5c5e58');rect(3,3,10,4,'#242722');rect(4,4,8,2,'#10120f');rect(2,9,12,6,'#5c5d57');rect(3,10,10,5,'#252721');rect(4,11,8,4,'#11130f');rect(2,8,12,1,'#b0b2a9');}}
   }
+  for(const tile of [30,31,35]){const rect=(x,y,w,h,color)=>{context.fillStyle=color;context.fillRect(tile*16+x,y,w,h);};for(let y=0;y<16;y++)for(let x=0;x<16;x++)rect(x,y,1,1,['#9b642b','#a77031','#ae7936','#b5803e'][Math.floor(random(x,y,53)*4)]);rect(0,0,16,2,'#46331d');rect(0,14,16,2,'#42301c');rect(0,0,2,16,'#4e391f');rect(14,0,2,16,'#4d361d');if(tile!==30){rect(2,4,12,1,'#855526');rect(2,9,12,1,'#9a652c');rect(2,11,12,1,'#98612b');}}
+  {const x=27*16;context.clearRect(x,0,16,16);const polygon=(points,color)=>{context.fillStyle=color;context.beginPath();points.forEach(([a,b],i)=>i?context.lineTo(x+a,b):context.moveTo(x+a,b));context.closePath();context.fill();};polygon([[1,7],[10,2],[15,5],[6,10]],'#fafaf3');polygon([[1,7],[6,10],[6,13],[1,10]],'#bdbdb5');polygon([[6,10],[15,5],[15,8],[6,13]],'#d5d5cd');polygon([[1,10],[6,13],[15,8],[15,10],[6,15],[1,12]],'#6c512d');context.fillStyle='#514025';context.fillRect(x+1,11,2,4);context.fillRect(x+13,9,2,4);polygon([[10,3],[14,5],[11,7],[7,5]],'#fff');}
   for(const id of itemIds){const tile=itemTiles.get(id),item=ITEMS[id],x0=tile*16;context.clearRect(x0,0,16,16);const rect=(x,y,w,h,color)=>{context.fillStyle=color;context.fillRect(x0+x,y,w,h);};const tier=id>=170&&id<175?'#4b424b':id>=160&&id<165?'#45d4cb':id>=150&&id<155?'#ebc948':id>=140&&id<145?'#c9cdd0':id>=130&&id<135?'#8a9292':'#a77945';
    if(item.tool){for(let i=0;i<10;i++)rect(3+i,13-i,2,2,'#7a512d');if(item.tool==='pickaxe') {rect(5,1,10,3,tier);rect(12,3,3,4,tier);}else if(item.tool==='axe'){rect(8,1,6,6,tier);rect(6,2,2,3,tier);}else if(item.tool==='sword'){for(let i=0;i<9;i++)rect(5+i,10-i,3,3,tier);rect(4,10,6,2,'#61533f');}else if(item.tool==='shovel')rect(10,1,4,5,tier);else{rect(6,1,9,2,tier);rect(6,1,2,4,tier);}}
    else if(item.slot){const color=id>=210&&id<214?'#554650':id>=200&&id<204?'#52cfc7':id>=220?'#e6be45':'#c3cbd0';if(item.slot==='shield'){rect(3,1,10,11,'#999a9b');rect(5,3,6,10,'#936e44');rect(6,13,4,2,'#999a9b');}else if(item.slot==='helmet'){rect(2,3,12,8,color);rect(5,7,6,5,'#0000');context.clearRect(x0+5,8,6,4);}else if(item.slot==='boots'){rect(2,5,4,8,color);rect(10,5,4,8,color);}else if(item.slot==='leggings'){rect(3,2,10,5,color);rect(3,7,4,8,color);rect(9,7,4,8,color);}else{rect(2,3,12,4,color);rect(4,6,8,9,color);context.clearRect(x0+6,2,4,3);}}
@@ -176,7 +178,7 @@ export async function createTextures() {
         const [o,u,,v]=points;draw.transform((u[0]-o[0])/16,(u[1]-o[1])/16,(v[0]-o[0])/16,(v[1]-o[1])/16,o[0],o[1]);
         draw.drawImage(atlas,tile*16,0,16,16,0,0,16,16);draw.fillStyle=`rgba(0,0,0,${shade})`;draw.fillRect(0,0,16,16);draw.restore();
       }
-      if(id>=100||id===25){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
+      if(id>=100||id===25||id===20){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
       face(tileFor(id,0,1),[[4,12],[24,22],[24,46],[4,36]],.1);
       face(tileFor(id,0),[[24,22],[44,12],[44,36],[24,46]],.28);
       face(tileFor(id,1),[[24,2],[44,12],[24,22],[4,12]],0);
@@ -222,8 +224,8 @@ export function createAtmosphere(scene) {
 
 export function createHeldBlock(camera, texture, {left=false}={}) {
   const group = new THREE.Group();group.name=left?'first-person-offhand':'first-person-mainhand';if(left)group.scale.x=-1; camera.add(group);
-  const handMaterial = new THREE.MeshLambertMaterial({ color: 0xc99a72, depthTest: false, fog: false });
-  const sleeveMaterial = new THREE.MeshLambertMaterial({ color: 0x229b9d, depthTest: false, fog: false });
+  const handMaterial = new THREE.MeshLambertMaterial({ color: 0xac7f69, depthTest: false, fog: false });
+  const sleeveMaterial = new THREE.MeshLambertMaterial({ color: 0x079f9d, depthTest: false, fog: false });
   const hand = new THREE.Mesh(new THREE.BoxGeometry(.17, .34, .18), handMaterial);
   hand.position.set(.41, -.48, -.64); hand.rotation.set(-.38, -.2, -.18); hand.renderOrder = 1000; group.add(hand);
   const sleeve = new THREE.Mesh(new THREE.BoxGeometry(.18, .27, .19), sleeveMaterial);
@@ -235,11 +237,11 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
   return {
     select(id, count) {
       group.userData.itemId=count>0?id:0;
-      if(id!==selected&&id){block.geometry.dispose();block.geometry=id>=100||id===25?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
+      if(id!==selected&&id){block.geometry.dispose();block.geometry=id>=100||id===25||id===20?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
       const uv = block.geometry.attributes.uv;
-      for (let face = 0; face < (id>=100||id===25?1:6); face++) {
+      for (let face = 0; face < (id>=100||id===25||id===20?1:6); face++) {
         const tile = tileFor(id, face === 2 ? 1 : face === 3 ? -1 : 0,face===4?1:face===5?-1:0);
         for (let v = 0; v < 4; v++) uv.setXY(face * 4 + v, (tile * 16 + .2 + (v % 2) * 15.6) / (TILE_COUNT * 16), (.2 + (v < 2 ? 1 : 0) * 15.6) / 16);
       }

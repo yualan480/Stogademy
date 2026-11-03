@@ -1,3 +1,4 @@
+import {placeBed} from './beds.js';
 import { stacks } from '../inventory.js';
 import { Survival } from './survival.js';
 import { isBlock,ITEMS } from '../items.js';
@@ -92,7 +93,7 @@ export class Game {
     this.broadcast({type:'state',time:now,players:[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}))});
     // Generate at most one requested chunk per tick, round-robin. Cold joins
     // must not block movement while generating 25 chunks in one message.
-    const active=[...this.players.values()];for(let i=0;i<active.length;i++){const index=((this.chunkCursor||0)+i)%active.length,p=active[index];if(!p.pendingChunks?.size)continue;const [k,[x,z]]=p.pendingChunks.entries().next().value;p.pendingChunks.delete(k);if(Math.abs(x-Math.floor(p.x/CHUNK))>3||Math.abs(z-Math.floor(p.z/CHUNK))>3)continue;p.send({type:'chunk',x,z,data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;}
+    const active=[...this.players.values()];for(let i=0;i<active.length;i++){const index=((this.chunkCursor||0)+i)%active.length,p=active[index];if(!p.pendingChunks?.size)continue;const [k,[x,z]]=p.pendingChunks.entries().next().value;p.pendingChunks.delete(k);if(Math.abs(x-Math.floor(p.x/CHUNK))>3||Math.abs(z-Math.floor(p.z/CHUNK))>3)continue;p.send({type:'chunk',x,z,beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;}
 
   }
   handle(p,m) {
@@ -121,14 +122,15 @@ export class Game {
     if(m.type!=='place')return;
     if(this.now()-p.lastEdit<180)return;p.lastEdit=this.now();
     const hit=raycast(p,this.get);if(!hit)throw new Error('Look at a block within six blocks.');
-    const id=m.block;
-    if(!isBlock(id)||[8,9,21,22].includes(id)||(p.inventory[id]||0)<1)throw new Error('Collect that block before placing it.');
+    const offhand=m.hand==='offhand',held=p.hotbar?.[p.selected],source=p.survival.offhand;
+    const id=offhand?source?.id:m.block;
+    if(offhand&&p.inventory[held]>0&&!(ITEMS[held]?.tool||held===180))throw Error('Hold a tool in your right hand to build with the off-hand.');
+    if(!isBlock(id)||[8,9,21,22,26].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
     const a=hit.place;
-    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===25)throw new Error('Cannot place here.');
+    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===25)throw Error('Cannot place here.');
+    if(id===20){placeBed(this.survival,p,a,offhand);return;}
     if(id===25&&(this.get(a.x,a.y,a.z)!==0||!solid(this.get(a.x,a.y-1,a.z))))throw Error('Place torches on a dry, solid block.');
-    if(id!==25&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw new Error('A player is standing there.');
-    p.inventory[id]--;p.placed++;
-    try{this.store.edit(p,a,id);}catch(e){p.inventory[id]++;p.placed--;throw e;}
-    this.applyBlock(a,id);this.broadcast({type:'block',x:a.x,y:a.y,z:a.z,block:id});this.inventory(p);
+    if(id!==25&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');
+    this.survival.atomic(p,tx=>{if(offhand){if(!--source.count)p.survival.offhand=null;}else p.inventory[id]--;p.placed++;tx.block(a,id);});
   }
 }

@@ -50,7 +50,7 @@ export const chunkIndex=(x,y,z)=>y*CHUNK*CHUNK+z*CHUNK+x;
 export function overlaps(x,y,z,p) { return x+1>p.x-.3 && x<p.x+.3 && y+1>p.y && y<p.y+1.8 && z+1>p.z-.3 && z<p.z+.3; }
 export function collides(p,get) {
   if(p.x< -SIZE/2+.3 || p.x>SIZE/2-.3 || p.z< -SIZE/2+.3 || p.z>SIZE/2-.3 || p.y<1 || p.y>HEIGHT-1.8) return true;
-  for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+1.799);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) if(solid(get(x,y,z))) return true;
+  for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+1.799);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) {const id=get(x,y,z),height=id===20||id===26?.6:id===23?.875:1;if(solid(id)&&p.y<y+height&&p.y+1.799>y)return true;}
   return false;
 }
 export function step(p,input,dt,get) {
@@ -75,14 +75,14 @@ export function raycast(p,get,reach=6) {
   for(let t=0;t<=reach;t+=.035) {
     const a={x:Math.floor(eye.x+d.x*t),y:Math.floor(eye.y+d.y*t),z:Math.floor(eye.z+d.z*t)};
     const b=get(a.x,a.y,a.z);
-    if(solid(b)||b===22||b===25)return {...a,block:b,place:previous};
+    if((solid(b)&&(![20,26,23].includes(b)||eye.y+d.y*t<a.y+(b===23?.875:.6)))||b===22||b===25)return {...a,block:b,place:[20,26,23].includes(b)&&previous&&previous.x===a.x&&previous.y===a.y&&previous.z===a.z?{...a,y:a.y+1}:previous};
     previous=a;
   }
   return null;
 }
 
 // Hand-mining times in milliseconds. Bedrock has no break duration.
-export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200});
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900});
 export const PICKUP_DELAY_MS = 750;
 
 // Resources only overlay natural stone; stored edits always take precedence.

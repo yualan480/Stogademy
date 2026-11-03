@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.js';
-import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-stations11';
+import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-menus12';
 
 export function blockGeometry(id,size){
-  const geometry=id>=100||id===25?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
-  for(let face=0;face<(id>=100||id===25?1:6);face++){
+  const geometry=id>=100||id===25||id===20?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
+  for(let face=0;face<(id>=100||id===25||id===20?1:6);face++){
     const tile=tileFor(id,face===2?1:face===3?-1:0,face===4?1:face===5?-1:0);
     for(let v=0;v<4;v++)uv.setXY(face*4+v,(tile*16+.2+(v%2)*15.6)/(TILE_COUNT*16),(.2+(v<2?1:0)*15.6)/16);
   }

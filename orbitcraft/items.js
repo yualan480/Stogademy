@@ -2,7 +2,7 @@
 export const PUNCH_DAMAGE=1; // Half a heart before armor or shields.
 export const ITEMS={};
 const add=(id,name,extra={})=>ITEMS[id]={id,name,...extra};
-for(const [id,name] of [[11,'Cobblestone'],[12,'Gravel'],[13,'Coal ore'],[14,'Iron ore'],[15,'Diamond ore'],[16,'Gold ore'],[17,'Ancient debris'],[18,'Crafting table'],[19,'Furnace'],[20,'Bed'],[21,'Farmland'],[22,'Wheat crop'],[23,'Chest'],[24,'Blast furnace'],[25,'Torch']])add(id,name,{block:true});
+for(const [id,name] of [[11,'Cobblestone'],[12,'Gravel'],[13,'Coal ore'],[14,'Iron ore'],[15,'Diamond ore'],[16,'Gold ore'],[17,'Ancient debris'],[18,'Crafting table'],[19,'Furnace'],[20,'Bed'],[21,'Farmland'],[22,'Wheat crop'],[23,'Chest'],[24,'Blast furnace'],[25,'Torch'],[26,'Bed head']])add(id,name,{block:true});
 for(const [id,name] of [[100,'Stick'],[101,'Coal'],[102,'Raw iron'],[103,'Iron ingot'],[104,'Raw gold'],[105,'Gold ingot'],[106,'Diamond'],[107,'Netherite scrap'],[108,'Netherite ingot'],[109,'Raw meat'],[110,'Cooked meat'],[111,'Wheat'],[112,'Bread'],[113,'Seeds'],[114,'Raw fish'],[115,'Cooked fish'],[116,'Wool'],[117,'Apple'],[118,'Rotten flesh'],[119,'Bone'],[180,'Fishing rod'],[181,'Shield'],[230,'Gunpowder'],[231,'String'],[232,'Oak boat']])add(id,name);
 for(const [id,food] of [[109,3],[110,8],[112,5],[114,2],[115,6],[117,4],[118,2]])ITEMS[id].food=food;
 export const TIERS=[{name:'Wooden',base:120,material:10,tier:0,speed:2,uses:59},{name:'Stone',base:130,material:11,tier:1,speed:4,uses:131},{name:'Iron',base:140,material:103,tier:2,speed:6,uses:250},{name:'Gold',base:150,material:105,tier:0,speed:12,uses:32},{name:'Diamond',base:160,material:106,tier:3,speed:8,uses:1561},{name:'Netherite',base:170,material:108,tier:4,speed:9,uses:2031}];
@@ -27,5 +27,5 @@ for(const [id,item] of Object.entries(ITEMS))if(item.slot&&Number(id)!==181){con
 export const SMELTING={11:3,102:103,104:105,17:107,109:110,114:115};
 export const FUEL={101:8,5:2,10:1,100:.5};
 export const itemName=id=>ITEMS[id]?.name||({1:'Grass block',2:'Dirt',3:'Stone',4:'Sand',5:'Oak log',6:'Oak leaves',7:'Snow',8:'Water',9:'Bedrock',10:'Oak planks'})[id]||'Item';
-export const isBlock=id=>id>0&&id<=25;
+export const isBlock=id=>id>0&&id<=26;
 export const defaultHotbar=[2,3,5,10,4,1,6,7,0];

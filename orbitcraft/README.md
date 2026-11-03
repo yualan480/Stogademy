@@ -384,3 +384,21 @@ visited slot. Mouse release still commits the server-validated transaction
 atomically. Background updates preserve the preview, and closing/cancelling
 removes it without duplicating resources. A drag cannot select more slots than
 there are carried items.
+
+### Classic menus, controls and furniture
+
+Escape opens the classic pause layout. Options opens editable keybindings, saved
+on this browser, including mouse actions and hotbar keys. Left Ctrl now toggles
+sprint with a tap; double-tapping forward also enables it. Closing inventory,
+stations, chat or the pause menu requests pointer lock automatically.
+
+A right-hand tool leaves block placement to the off-hand stack. The server
+validates the source hand and consumes that stack atomically. Crafting, chest
+and furnace panels use local pixel lettering and classic gray slot layouts.
+Chest models have a separate lid, dark seam and metal latch. The classic
+character has teal clothing, blue trousers and original pixel skin painting.
+
+New white beds occupy two adjacent supported cells, oriented with the player.
+Both halves are persisted together; using either half sleeps/sets spawn and
+breaking either half drops one bed. Blocked placement and failed persistence
+roll back both halves and the item. Existing single-cell beds remain usable.
