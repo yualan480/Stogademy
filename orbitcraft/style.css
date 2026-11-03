@@ -103,3 +103,9 @@ body.playing .swatch{image-rendering:pixelated;transform:none}
 #inventory #furnace-status{font-size:8px;text-align:center;margin:2px 0}#inventory .inventory-label{font-size:14px;margin:1px 0 5px;color:#444}
 #inventory #recipe-list:not([hidden]){position:relative;z-index:2}#inventory #recipe-needs:not([hidden]){position:relative;z-index:2;background:#c6c6c6}
 @media(max-width:370px){#inventory #recipe-book{left:145px;top:82px}#inventory[data-station="table"] #recipe-book,#inventory[data-station="furnace"] #recipe-book{left:0;top:68px}}
+/* Auto-sized station panels: approximately twice classic pixel scale on desktop. */
+#inventory{width:360px;max-width:none;max-height:none;overflow:visible}#inventory #chest-items{grid-template-columns:repeat(9,minmax(0,1fr));gap:1px;max-height:none;overflow:visible;margin:0 0 10px}#inventory #chest-items .ingredient{width:100%;height:auto;aspect-ratio:1}#inventory[data-station="chest"] .inventory-upper,#inventory[data-station="chest"] #chest-deposit{display:none}#inventory[data-station="chest"] #chest-controls::before{content:'Chest';display:block;font:14px monospace;margin-bottom:5px}
+body.gui-hidden #hud,body.gui-hidden #hotbar,body.gui-hidden #survival-hud,body.gui-hidden #chat,body.gui-hidden #crosshair,body.gui-hidden #coordinates,body.gui-hidden #tool-condition,body.gui-hidden #toast,body.gui-hidden #target{visibility:hidden}
+#debug-screen{position:absolute;left:8px;top:80px;z-index:8;white-space:pre-wrap;background:#0008;color:#fff;font:12px/1.5 monospace;padding:8px;text-shadow:1px 1px #111;pointer-events:none}#debug-screen[hidden]{display:none}
+
+body.gui-hidden #debug-screen,body.gui-hidden #touch-controls,body.gui-hidden #fishing-status,body.gui-hidden #sleep-status{visibility:hidden}

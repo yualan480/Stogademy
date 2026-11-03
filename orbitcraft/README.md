@@ -322,3 +322,28 @@ Station destruction drops its remaining input and fuel. All slot operations use
 the existing transactional persistence and rollback. Right-click in the world
 suppresses the browser menu; the cursor is released only for an inventory/station
 interface. Shift-click armor still equips it.
+
+### GUI scale and classic controls
+
+Inventory, crafting tables, furnaces and chests automatically scale up to 2.2×
+while fitting the available width and height. The carried icon follows the
+correct scaled pointer position. Per-slot stack counts now persist alongside
+legacy aggregate counts; old saves remain compatible.
+
+WASD walks, Space jumps, Shift sneaks with ledge protection, Ctrl or double-W
+sprints. Q drops one item, Ctrl+Q drops the selected stack, and F swaps that
+stack with the off-hand. A shield now blocks while right-click is held.
+Double-Space toggles flight only for a server-authorized creative player;
+Space/Shift ascend/descend. The public world remains survival.
+
+Shift-click quickly transfers to/from chest, furnace and crafting slots.
+Shift-double-click transfers all matching items between bag and chest.
+Number keys select a hotbar slot in the world and swap the hovered container
+slot into that hotbar slot in an interface. Left-drag divides a carried stack
+evenly; right-drag puts one into each visited slot. The server validates every
+transfer and preserves individual split stacks and shared chest contents.
+
+F1 toggles HUD, F2 downloads a world PNG, F3 toggles live coordinates/FPS/biome,
+F5 cycles three perspectives, F11 toggles fullscreen. F3+A reloads surrounding
+chunks without dropping edited terrain; F3+B toggles server-sized entity
+hitboxes. Browser or OS-reserved shortcuts can be handled by the browser.

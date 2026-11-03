@@ -21,7 +21,7 @@ const shop=await readFile(resolve(out,'chatter/shop.js'),'utf8');
 for(const retired of ['take_orbit_loop','loopBoxHtml','id="olprice"','id="oltake"']){
  if(shop.includes(retired))throw new Error('Packaged Orbit Shop still contains the retired Loop purchase path: '+retired);
 }
-for(const file of ['chatter/shop.js','chatter/arena.js','chatter/app.js','chatter/index.html','games/orbit-bank.js','games/leaderboard.js','games/index.html','games/admin.html','orbitcraft/index.html','orbitcraft/client.js','orbitcraft/survival-ui.js','orbitcraft/containers-ui.js','orbitcraft/crafting-grid.js','orbitcraft/style.css','orbitcraft/release.js','orbitcraft/assets/block-textures.png']){
+for(const file of ['chatter/shop.js','chatter/arena.js','chatter/app.js','chatter/index.html','games/orbit-bank.js','games/leaderboard.js','games/index.html','games/admin.html','orbitcraft/index.html','orbitcraft/client.js','orbitcraft/survival-ui.js','orbitcraft/containers-ui.js','orbitcraft/crafting-grid.js','orbitcraft/game-shortcuts.js','orbitcraft/style.css','orbitcraft/release.js','orbitcraft/assets/block-textures.png']){
  const [source,built]=await Promise.all([readFile(resolve(root,file)),readFile(resolve(out,file))]);
  if(!source.equals(built))throw new Error('Packaged site differs from current source: '+file);
 }

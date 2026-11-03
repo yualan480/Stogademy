@@ -58,13 +58,14 @@ export function step(p,input,dt,get) {
   const grounded=collides({...p,y:p.y-.065},get);
   let f=Number(!!input.forward)-Number(!!input.back),s=Number(!!input.right)-Number(!!input.left);
   const n=Math.hypot(f,s)||1; f/=n;s/=n;
-  const speed=water?2.7:input.sprint&&(p.survival?.hunger??20)>6?6:4.3, yaw=p.yaw||0;
-  p.vy=Math.max(-22,(p.vy||0)-(water?5:22)*dt);
-  if(input.jump && (grounded||water)) p.vy=water?4:8.2;
+  const flying=p.survival?.mode==='creative'&&p.survival.flying;
+  const speed=flying?8:input.sneak?1.3:water?2.7:input.sprint&&(p.survival?.hunger??20)>6?6:4.3, yaw=p.yaw||0;
+  p.vy=flying?(Number(!!input.jump)-Number(!!input.sneak))*6:Math.max(-22,(p.vy||0)-(water?5:22)*dt);
+  if(!flying&&input.jump && (grounded||water)) p.vy=water?4:8.2;
   const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*speed*dt,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*speed*dt;
   for(const [axis,d] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
     const count=Math.max(1,Math.ceil(Math.abs(d)/.15));
-    for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(!collides(next,get)) p[axis]=next[axis];else {if(axis==='y')p.vy=0;break;} }
+    for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(input.sneak&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {if(axis==='y')p.vy=0;break;} }
   }
 }
 export function raycast(p,get,reach=6) {

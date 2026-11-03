@@ -26,7 +26,7 @@ try{
   await game.locator('#inventory-button').click();
   await game.locator('#inventory[open]').waitFor();
   const bag=await game.evaluate(()=>{const d=document.querySelector('#inventory'),r=d.getBoundingClientRect();return {width:r.width,x:r.x,right:r.right,viewport:innerWidth,armor:document.querySelectorAll('#equipment button').length,slots:document.querySelectorAll('#inventory-grid button').length+document.querySelectorAll('#inventory-hotbar button').length,preview:document.querySelector('#character-preview').getBoundingClientRect().height,offhand:document.querySelector('#inventory-upper')?.contains(document.querySelector('#offhand-button'))??document.querySelector('.inventory-upper').contains(document.querySelector('#offhand-button')),overflow:d.scrollWidth>d.clientWidth};});
-  assert.equal(bag.armor,4);assert.equal(bag.slots,36);assert.ok(bag.width<=360&&bag.x>=0&&bag.right<=bag.viewport+1);assert.ok(bag.preview>=100);assert.ok(bag.offhand);assert.equal(bag.overflow,false);
+  assert.equal(bag.armor,4);assert.equal(bag.slots,36);assert.ok(bag.width<=bag.viewport-20&&bag.x>=0&&bag.right<=bag.viewport+1);if(mode!=='mobile')assert.ok(bag.width>500,'Desktop panel should use a large GUI scale');assert.ok(bag.preview>=100);assert.ok(bag.offhand);assert.equal(bag.overflow,false);
   if(mode==='desktop')await page.screenshot({path:artifacts+'/orbitcraft-inventory-reference.png'});
   assert.deepEqual(errors,[]);await context.close();console.log(`PASS ${mode}: visible pixel hearts, drumsticks and nine gray slots; aligned and inside viewport; release ${RELEASE}.`);
  }

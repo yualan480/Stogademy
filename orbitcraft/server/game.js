@@ -102,7 +102,7 @@ export class Game {
     if(m.type==='input') {
       if(!Number.isFinite(m.yaw)||!Number.isFinite(m.pitch))return;
       p.yaw=m.yaw%(Math.PI*2);p.pitch=Math.max(-1.54,Math.min(1.54,m.pitch));p.seq=Number.isSafeInteger(m.seq)?m.seq:0;
-      p.input=Object.fromEntries(['forward','back','left','right','jump','sprint','mine','block'].map(k=>[k,m[k]===true]));p.lastInput=this.now();if(!p.input.mine){p.mining=null;p.mineError=null;}return;
+      p.input=Object.fromEntries(['forward','back','left','right','jump','sprint','sneak','mine','block'].map(k=>[k,m[k]===true]));p.lastInput=this.now();if(!p.input.mine){p.mining=null;p.mineError=null;}return;
     }
     if(m.type==='chunks') {
       const cx=Math.floor(p.x/CHUNK),cz=Math.floor(p.z/CHUNK);
