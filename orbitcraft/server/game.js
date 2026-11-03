@@ -1,3 +1,4 @@
+import {chunkOf,chunkKey,inRange,renderDistance,SIMULATION_DISTANCE,MAX_CACHED_CHUNKS} from '../chunks.js';
 import {placeBed} from './beds.js';
 import { stacks } from '../inventory.js';
 import { Survival } from './survival.js';
@@ -12,10 +13,10 @@ export class Game {
     return c?c[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:this.edits.get(key(x,y,z))??resourceBlock(x,y,z);
   };
   chunk(cx,cz) {
-    const k=`${cx},${cz}`;if(this.chunks.has(k))return this.chunks.get(k);
+    const k=`${cx},${cz}`;if(this.chunks.has(k)){const data=this.chunks.get(k);this.chunks.delete(k);this.chunks.set(k,data);return data;}
     const c=new Uint8Array(CHUNK*CHUNK*HEIGHT);
     for(let y=0;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)c[chunkIndex(x,y,z)]=this.edits.get(key(cx*CHUNK+x,y,cz*CHUNK+z))??resourceBlock(cx*CHUNK+x,y,cz*CHUNK+z);
-    this.chunks.set(k,c);return c;
+    this.chunks.set(k,c);while(this.chunks.size>MAX_CACHED_CHUNKS)this.chunks.delete(this.chunks.keys().next().value);return c;
   }
   spawn() {
     for(let r=0;r<25;r++)for(let x=-r;x<=r;x++)for(let z=-r;z<=r;z++) {
@@ -29,16 +30,25 @@ export class Game {
   }
   join(identity,send) {
     if(this.players.has(identity.id))throw new Error('This account is already playing. Close the other tab first.');
-    const saved=this.store.loadPlayer(identity.id),p={...this.spawn(),yaw:0,pitch:0,inventory:{2:24,3:8,5:8},mined:0,placed:0,...saved,...identity,vy:0,input:{},send,lastEdit:0,lastChat:0,seq:0,mining:null,mineError:null,pendingChunks:new Map()};
+    const saved=this.store.loadPlayer(identity.id),p={...this.spawn(),yaw:0,pitch:0,inventory:{2:24,3:8,5:8},mined:0,placed:0,...saved,...identity,vy:0,input:{},send,lastEdit:0,lastChat:0,seq:0,mining:null,mineError:null,pendingChunks:new Map(),sentChunks:new Set(),viewDistance:3,streaming:false};
     if(collides(p,this.get)||[...this.players.values()].some(other=>Math.hypot(p.x-other.x,p.z-other.z)<.75))Object.assign(p,this.spawn());
     this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
   }
-  leave(p) {if(this.players.get(p.id)!==p)return;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();}
+  leave(p) {if(this.players.get(p.id)!==p)return;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();this.pruneChunks();}
   public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health};}
   inventory(p){p.send({type:'inventory',inventory:p.inventory,mined:p.mined,placed:p.placed,slots:stacks(p),hotbar:p.hotbar});}
   broadcast(message){for(const p of this.players.values())p.send(message);}
   publicDrop(d){return {id:d.id,block:d.block,count:d.count,x:d.x,y:d.y,z:d.z,created:d.created};}
-  publicDrops(){return [...this.drops.values()].map(d=>this.publicDrop(d));}
+  publicDrops(p){return [...this.drops.values()].filter(d=>!p||this.visibleTo(p,d)).map(d=>this.publicDrop(d));}
+  visibleTo(p,a,extra=0){return inRange(p,a,(p.viewDistance??3)+extra);}
+  simulated(a){return [...this.players.values()].some(p=>p.survival?.health>0&&inRange(p,a,SIMULATION_DISTANCE));}
+  broadcastNear(message,a){for(const p of this.players.values())if(this.visibleTo(p,a,1))p.send(message);}
+  movementBlock(p,x,y,z){return p.streaming&&inside(x,y,z)&&!p.sentChunks.has(chunkKey(Math.floor(x/CHUNK),Math.floor(z/CHUNK)))?9:this.get(x,y,z);}
+  pruneChunks(){
+    const players=[...this.players.values()],retained=(p,cx,cz)=>{const c=chunkOf(p.x,p.z),r=Math.max(SIMULATION_DISTANCE,p.viewDistance??3)+1;return Math.abs(cx-c.x)<=r&&Math.abs(cz-c.z)<=r;};
+    for(const key of this.chunks.keys()){const [x,z]=key.split(',').map(Number);if(!players.some(p=>retained(p,x,z)))this.chunks.delete(key);}
+    for(const p of players){for(const key of p.sentChunks){const [x,z]=key.split(',').map(Number);if(!inRange(p,{x:x*CHUNK,z:z*CHUNK},p.viewDistance+1))p.sentChunks.delete(key);}for(const [key,[x,z]]of p.pendingChunks){const c=chunkOf(p.x,p.z);if(Math.abs(x-c.x)>p.viewDistance||Math.abs(z-c.z)>p.viewDistance)p.pendingChunks.delete(key);}}
+  }
   flushDrops(){this.store.saveSurvival(this.survival.world);const items=[...this.dirtyDrops].map(id=>this.drops.get(id)).filter(Boolean);this.store.saveDrops(items);this.dirtyDrops.clear();}
   applyBlock(a,type){
     this.edits.set(key(a.x,a.y,a.z),type);
@@ -63,6 +73,7 @@ export class Game {
   moveDrops(dt,now){
     let pickups=0;const inventories=new Set();
     for(const d of this.drops.values()){
+      if(!this.simulated(d))continue;
       const oldY=d.y,oldV=d.vy;
       if(!d.grounded||!solid(this.get(Math.floor(d.x),Math.floor(d.y-.2),Math.floor(d.z)))){
         d.vy=Math.max(-8,(d.vy||0)-10*dt);const next=d.y+d.vy*dt;
@@ -80,20 +91,26 @@ export class Game {
         const oldDurability=p.survival.durability[d.block];if(d.durability!=null)p.survival.durability[d.block]=Math.min(oldDurability??d.durability,d.durability);
         try{this.store.collectDrop(p,d.id);}catch(error){p.inventory[d.block]-=d.count;if(oldDurability===undefined)delete p.survival.durability[d.block];else p.survival.durability[d.block]=oldDurability;continue;}
         this.drops.delete(d.id);this.dirtyDrops.delete(d.id);this.dropMoves.delete(d.id);
-        pickups++;this.broadcast({type:'pickup',id:d.id,player:p.id,block:d.block,count:d.count});inventories.add(p);break;
+        pickups++;this.broadcastNear({type:'pickup',id:d.id,player:p.id,block:d.block,count:d.count},d);inventories.add(p);break;
       }
     }
     for(const p of inventories)this.inventory(p);
-    if(++this.frames%2===0&&this.dropMoves.size){this.broadcast({type:'drops',drops:[...this.dropMoves.values()]});this.dropMoves.clear();}
+    if(++this.frames%2===0&&this.dropMoves.size){for(const p of this.players.values())p.send({type:'drops',drops:[...this.dropMoves.values()].filter(d=>this.visibleTo(p,d))});this.dropMoves.clear();}
   }
   tick(dt=.05){
     dt=Math.min(.1,Math.max(0,dt));const now=this.now();
-    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;step(p,p.input,dt,this.get);if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
+    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;step(p,p.input,dt,(x,y,z)=>this.movementBlock(p,x,y,z));if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
     this.moveDrops(dt,now);this.survival.tick(dt);
-    this.broadcast({type:'state',time:now,players:[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}))});
-    // Generate at most one requested chunk per tick, round-robin. Cold joins
-    // must not block movement while generating 25 chunks in one message.
-    const active=[...this.players.values()];for(let i=0;i<active.length;i++){const index=((this.chunkCursor||0)+i)%active.length,p=active[index];if(!p.pendingChunks?.size)continue;const [k,[x,z]]=p.pendingChunks.entries().next().value;p.pendingChunks.delete(k);if(Math.abs(x-Math.floor(p.x/CHUNK))>3||Math.abs(z-Math.floor(p.z/CHUNK))>3)continue;p.send({type:'chunk',x,z,beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;}
+    const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
+    for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
+    if(this.frames%20===0)this.pruneChunks();
+    // One full-height column per tick, nearest first and round-robin between players.
+    const active=[...this.players.values()];for(let i=0;i<active.length;i++){
+      const index=((this.chunkCursor||0)+i)%active.length,p=active[index],center=chunkOf(p.x,p.z);
+      const candidates=[...p.pendingChunks].filter(([, [x,z]])=>Math.abs(x-center.x)<=p.viewDistance&&Math.abs(z-center.z)<=p.viewDistance).sort((a,b)=>(a[1][0]-center.x)**2+(a[1][1]-center.z)**2-((b[1][0]-center.x)**2+(b[1][1]-center.z)**2));
+      if(!candidates.length){p.pendingChunks.clear();continue;}const [key,[x,z]]=candidates[0];p.pendingChunks.delete(key);p.sentChunks.add(key);
+      p.send({type:'chunk',x,z,beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;
+    }
 
   }
   handle(p,m) {
@@ -108,9 +125,10 @@ export class Game {
     if(m.type==='chunks') {
       const cx=Math.floor(p.x/CHUNK),cz=Math.floor(p.z/CHUNK);
       if(!Array.isArray(m.chunks))return;
-      for(const a of m.chunks.slice(0,25)) {
+      p.streaming=true;if(m.distance!==undefined)p.viewDistance=renderDistance(m.distance);this.pruneChunks();
+      for(const a of m.chunks.slice(0,81)) {
         if(!Array.isArray(a))continue;const [x,z]=a;
-        if(!Number.isInteger(x)||!Number.isInteger(z)||x< -SIZE/CHUNK/2||x>=SIZE/CHUNK/2||z< -SIZE/CHUNK/2||z>=SIZE/CHUNK/2||Math.abs(x-cx)>2||Math.abs(z-cz)>2)continue;
+        if(!Number.isInteger(x)||!Number.isInteger(z)||x< -SIZE/CHUNK/2||x>=SIZE/CHUNK/2||z< -SIZE/CHUNK/2||z>=SIZE/CHUNK/2||Math.abs(x-cx)>p.viewDistance||Math.abs(z-cz)>p.viewDistance)continue;
         p.pendingChunks.set(x+','+z,[x,z]);
       }return;
     }

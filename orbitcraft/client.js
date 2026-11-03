@@ -1,23 +1,26 @@
-import {createKeybinds} from './keybinds.js?v=20261103-menus12';
-import {createPauseMenu} from './pause-menu.js?v=20261103-menus12';
-import {furnitureModel} from './block-models.js?v=20261103-menus12';
-import {createShortcuts} from './game-shortcuts.js?v=20261103-menus12';
+import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261103-chunks13';
+import {createKeybinds} from './keybinds.js?v=20261103-chunks13';
+import {createPauseMenu} from './pause-menu.js?v=20261103-chunks13';
+import {furnitureModel} from './block-models.js?v=20261103-chunks13';
+import {createShortcuts} from './game-shortcuts.js?v=20261103-chunks13';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-menus12';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-chunks13';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,raycast,solid,collides } from './world.js';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261103-menus12';
-import { createPlayerModel } from './players.js?v=20261103-menus12';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-menus12';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261103-chunks13';
+import { createPlayerModel } from './players.js?v=20261103-chunks13';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-chunks13';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();
-const chunks=new Map(),pending=new Set(),dirty=new Set(),edits=new Map(),avatars=new Map();
+const chunks=new Map(),pending=new Map(),dirty=new Set(),edits=new Map(),avatars=new Map();
 let socket,me=null,inventory={},selected=0,seq=0,dev=false,connected=false,lastAction=0,mined=0,placed=0,miningHeld=false,miningFeedback=null,lastMiningSwing=0,perspective=0,ownPlayer=null;
 const predictionHistory=new Map(),correction=new THREE.Vector3();
 document.documentElement.dataset.theme='dark';
 let lastForwardTap=-Infinity,lastJumpTap=-Infinity,sprintLatch=false;
 const input={},SESSION='sb-qtmrtxgkisshdtqshjre-auth-token',coarse=matchMedia('(pointer:coarse)').matches;
+let viewDistance=coarse?2:3;try{viewDistance=clampRenderDistance(Number(localStorage.getItem('orbitcraft-render-distance-v1')||viewDistance));}catch{}
+const distanceSettings=document.createElement('div');distanceSettings.className='distance-settings';distanceSettings.innerHTML='<label for="render-distance">Render Distance: <output id="render-distance-value"></output></label><input id="render-distance" type="range" min="1" max="4" step="1"><p>Simulation distance: 2 chunks. Distant farms, furnaces and creatures pause until a player returns.</p>';bindings.dialog.querySelector('#keybind-list').before(distanceSettings);$('render-distance').value=viewDistance;$('render-distance-value').textContent=viewDistance+' chunks';$('render-distance').oninput=e=>{viewDistance=clampRenderDistance(Number(e.target.value));$('render-distance-value').textContent=viewDistance+' chunks';try{localStorage.setItem('orbitcraft-render-distance-v1',viewDistance);}catch{}pending.clear();requestChunks();};
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}catch{ $('gate-status').textContent='Orbitcraft needs WebGL. Enable hardware acceleration or try another browser.';throw new Error('WebGL unavailable'); }
 let worldPixelRatio=Math.min(devicePixelRatio,1.5),averageFrame=16,resolutionAt=0;
@@ -38,7 +41,7 @@ function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='
 
 const material=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,alphaTest:.5});const waterMaterial=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide});
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006,1.006,1.006)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.8}));scene.add(outline);outline.visible=false;
-const get=(x,y,z)=>{if(!inside(x,y,z))return 0;const k=`${x},${y},${z}`;if(edits.has(k))return edits.get(k);const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:resourceBlock(x,y,z);};
+const get=(x,y,z)=>{if(!inside(x,y,z))return 0;const k=`${x},${y},${z}`;if(edits.has(k))return edits.get(k);const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:connected?9:resourceBlock(x,y,z);};
 const faces=[
  {n:[1,0,0],v:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]],s:.82},
  {n:[-1,0,0],v:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]],s:.72},
@@ -72,14 +75,20 @@ function meshChunk(k){
  }
  torchPositions.set(k,torches);
  if(chunk.group){scene.remove(chunk.group);chunk.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});}
- chunk.group=new THREE.Group();for(const f of furniture){const model=furnitureModel(f.id,texture,{x:f.dx,z:f.dz});model.position.set(f.x,f.y,f.z);chunk.group.add(model);}groups.forEach((g,i)=>{if(!g.p.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(g.p,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(g.n,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(g.uv,2));geometry.setAttribute('color',new THREE.Float32BufferAttribute(g.c,3));geometry.computeBoundingSphere();chunk.group.add(new THREE.Mesh(geometry,i?waterMaterial:material));});scene.add(chunk.group);
+ chunk.group=new THREE.Group();for(const f of furniture){const model=furnitureModel(f.id,texture,{x:f.dx,z:f.dz});model.position.set(f.x,f.y,f.z);chunk.group.add(model);}groups.forEach((g,i)=>{if(!g.p.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(g.p,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(g.n,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(g.uv,2));geometry.setAttribute('color',new THREE.Float32BufferAttribute(g.c,3));geometry.computeBoundingSphere();chunk.group.add(new THREE.Mesh(geometry,i?waterMaterial:material));});chunk.group.name='chunk:'+k;chunk.group.visible=!me||inRange(me,{x:cx*CHUNK,z:cz*CHUNK},viewDistance);scene.add(chunk.group);
 }
 function mark(cx,cz){for(const [dx,dz] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]])if(chunks.has(`${cx+dx},${cz+dz}`))dirty.add(`${cx+dx},${cz+dz}`);}
-function requestChunks(){if(!me||!connected)return;const cx=Math.floor(me.x/CHUNK),cz=Math.floor(me.z/CHUNK),want=[];
- for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){const x=cx+dx,z=cz+dz,k=`${x},${z}`;if(x< -4||x>=4||z< -4||z>=4)continue;if(!chunks.has(k)&&!pending.has(k)){want.push([x,z]);pending.add(k);}}
- want.sort((a,b)=>Math.hypot(a[0]-cx,a[1]-cz)-Math.hypot(b[0]-cx,b[1]-cz));if(want.length)send({type:'chunks',chunks:want});
- for(const [k,c] of chunks){const [x,z]=k.split(',').map(Number);if(Math.abs(x-cx)>3||Math.abs(z-cz)>3){if(c.group){scene.remove(c.group);c.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});}chunks.delete(k);torchPositions.delete(k);dirty.delete(k);}}
+function disposeChunk(c){if(c?.group){scene.remove(c.group);c.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});}}
+function retainChunk(x,z){return me&&inRange(me,{x:x*CHUNK,z:z*CHUNK},viewDistance+1);}
+function requestChunks(){if(!me||!connected)return;const want=[],now=performance.now();
+ for(const [x,z]of wantedChunks(me,viewDistance,SIZE)){const k=`${x},${z}`;if(!chunks.has(k)&&(!pending.has(k)||now-pending.get(k)>15000)){want.push([x,z]);pending.set(k,now);}}
+ // Sending an empty request still updates the server's render-distance setting.
+ send({type:'chunks',distance:viewDistance,chunks:want});
+ for(const [k,c]of chunks){const [x,z]=k.split(',').map(Number);if(!retainChunk(x,z)){disposeChunk(c);chunks.delete(k);torchPositions.delete(k);dirty.delete(k);mark(x,z);}else if(c.group)c.group.visible=inRange(me,{x:x*CHUNK,z:z*CHUNK},viewDistance);}
+ for(const k of pending.keys()){const [x,z]=k.split(',').map(Number);if(!retainChunk(x,z))pending.delete(k);}
+ for(const map of [edits,bedDirections,cropStages])for(const key of map.keys()){const [x,y,z]=key.split(',').map(Number);if(!retainChunk(Math.floor(x/CHUNK),Math.floor(z/CHUNK)))map.delete(key);}
 }
+
 function send(m){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(m));}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('on');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('on'),3500);}
 function chat(name,text,notice=false){const p=document.createElement('p');if(notice)p.className='notice';else{const b=document.createElement('b');b.textContent=name+': ';p.append(b);}p.append(document.createTextNode(text));$('messages').append(p);while($('messages').children.length>70)$('messages').firstChild.remove();$('messages').scrollTop=$('messages').scrollHeight;}
@@ -140,6 +149,7 @@ async function join(){
    for(const c of chunks.values())if(c.group){scene.remove(c.group);c.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});}chunks.clear();bedDirections.clear();torchPositions.clear();dirty.clear();pending.clear();edits.clear();for(const id of avatars.keys())removeAvatar(id);
    resources.clear();predictionHistory.clear();correction.set(0,0,0);if(ownPlayer){scene.remove(ownPlayer.group);ownPlayer.group.traverse(o=>{o.geometry?.dispose();if(o.material)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.map&&material.map!==texture)material.map.dispose();material.dispose();}});}ownPlayer=createPlayerModel(m.you.id);ownPlayer.group.name='local-player';scene.add(ownPlayer.group);resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;connected=true;survival.update(m.survival||{health:20,hunger:20});document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();toast(coarse?'Drag the world to look. Use the controls to move.':'Click the world to look around. Press ? for controls.');
   }else if(m.type==='chunk'){
+   if(!Number.isInteger(m.x)||!Number.isInteger(m.z)||!retainChunk(m.x,m.z)){pending.delete(`${m.x},${m.z}`);return;}
    for(const bed of m.beds||[]){const direction={x:bed.head.x-bed.foot.x,z:bed.head.z-bed.foot.z};for(const a of [bed.foot,bed.head])bedDirections.set(`${a.x},${a.y},${a.z}`,direction);}
    const k=`${m.x},${m.z}`,binary=atob(m.data),data=Uint8Array.from(binary,c=>c.charCodeAt(0));if(data.length!==CHUNK*CHUNK*HEIGHT)return;
    for(const [key,id] of edits){const [x,y,z]=key.split(',').map(Number);if(Math.floor(x/CHUNK)===m.x&&Math.floor(z/CHUNK)===m.z)data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]=id;}
@@ -147,12 +157,14 @@ async function join(){
   }else if(m.type==='state'&&me){
    resources.setMining(m.players);miningFeedback=m.players.find(p=>p.id===me.id)?.mining||null;
    const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const snapshot=predictionHistory.get(p.seq),expected=snapshot?{x:p.x+me.x-snapshot.x,y:p.y+me.y-snapshot.y,z:p.z+me.z-snapshot.z}:p;const distance=Math.hypot(me.x-p.x,me.y-p.y,me.z-p.z);if(distance>3){Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});correction.set(0,0,0);predictionHistory.clear();}else{correction.set(expected.x-me.x,expected.y-me.y,expected.z-me.z);if(!input.jump&&Math.abs(expected.y-me.y)>.3)me.vy=p.vy;}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}a.target=p;a.group.visible=(p.health??20)>0;applyEquipment(a,p.equipment);showHeldItem(a,p.held||0);showHeldItem(a,p.offhand===181?0:p.offhand||0,'left');}}
-   for(const id of avatars.keys())if(!ids.has(id))removeAvatar(id);$('online').textContent=`${m.players.length} online`;
+   for(const id of avatars.keys())if(!ids.has(id))removeAvatar(id);$('online').textContent=`${m.online??m.players.length} online`;
   }else if(m.type==='block'){
+   if(!me||!retainChunk(Math.floor(m.x/CHUNK),Math.floor(m.z/CHUNK)))return;
    if(m.bedDirection)bedDirections.set(`${m.x},${m.y},${m.z}`,m.bedDirection);else if(![20,26].includes(m.block))bedDirections.delete(`${m.x},${m.y},${m.z}`);
    if(m.block===0&&m.broken&&me&&Math.hypot(me.x-m.x,me.y-m.y,me.z-m.z)<32)resources.breakBlock(m.x,m.y,m.z,m.broken);
    edits.set(`${m.x},${m.y},${m.z}`,m.block);const c=chunks.get(`${Math.floor(m.x/CHUNK)},${Math.floor(m.z/CHUNK)}`);if(c)c.data[chunkIndex((m.x%CHUNK+CHUNK)%CHUNK,m.y,(m.z%CHUNK+CHUNK)%CHUNK)]=m.block;mark(Math.floor(m.x/CHUNK),Math.floor(m.z/CHUNK));
   }else if(m.type==='drop'){resources.setDrops([m.drop]);
+  }else if(m.type==='drops-view'){resources.setDrops(m.drops,true);
   }else if(m.type==='drops'){resources.setDrops(m.drops);
   }else if(m.type==='pickup'){resources.removeDrop(m.id);
   }else if(m.type==='inventory'){inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;updateInventory();}
@@ -188,9 +200,7 @@ function openChat(){if(!connected)return;inputReset();$('chat-form').hidden=fals
 $('chat-button').onclick=openChat;$('chat-form').onsubmit=e=>{e.preventDefault();send({type:'chat',text:$('chat-input').value});$('chat-input').value='';$('chat-form').hidden=true;focusWorld();};
 function movementAction(code){const action=bindings.action(code);return ['forward','back','left','right','jump','sneak'].includes(action)?action:null;}
 function toggleSprint(){sprintLatch=!sprintLatch;input.sprint=sprintLatch;sendInput();}
-const shortcuts=createShortcuts({canvas,renderer,scene,camera,controls,bindings,player:()=>me,state:()=>survival.state,send,fps:()=>Math.round(1000/averageFrame),biome:()=>$('biome').textContent,reload(){for(const [key,c]of chunks){if(c.group){scene.remove(c.group);c.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});c.group=null;}dirty.add(key);}pending.clear();send({type:'chunks',chunks:[...chunks.keys()].map(k=>k.split(',').map(Number)).filter(([x,z])=>me&&Math.abs(x-Math.floor(me.x/CHUNK))<=2&&Math.abs(z-Math.floor(me.z/CHUNK))<=2).slice(0,25)});requestChunks();}});
-function cyclePerspective(){perspective=(perspective+1)%3;$('perspective-button').textContent=['First person','Third person · back','Third person · front'][perspective];}
-$('perspective-button').onclick=cyclePerspective;
+const shortcuts=createShortcuts({canvas,renderer,scene,camera,controls,bindings,player:()=>me,state:()=>survival.state,send,fps:()=>Math.round(1000/averageFrame),biome:()=>$('biome').textContent,chunkInfo:()=>({size:SIZE,render:viewDistance,simulation:SIMULATION_DISTANCE,loaded:chunks.size,pending:pending.size}),reload(){for(const c of chunks.values())disposeChunk(c);chunks.clear();torchPositions.clear();dirty.clear();pending.clear();edits.clear();bedDirections.clear();cropStages.clear();requestChunks();}});
 addEventListener('keydown',e=>{
  if(bindings.capture(e))return;
  if(shortcuts.keydown(e))return;
@@ -249,7 +259,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  for(const a of avatars.values()){const t=a.target,d=Math.hypot(a.group.position.x-t.x,a.group.position.z-t.z);a.group.position.lerp(new THREE.Vector3(t.x,t.y,t.z),Math.min(1,dt*13));a.group.rotation.y=t.yaw;a.left.rotation.x=d>.01?Math.sin(now*.009)*.45:0;a.right.rotation.x=-a.left.rotation.x;a.arm.rotation.x=-a.left.rotation.x*.85;a.arm2.rotation.x=a.left.rotation.x*.85;a.head.rotation.x=Math.max(-.8,Math.min(.8,t.pitch||0));if(t.mining)a.arm2.rotation.x=-.9+Math.sin(now*.022)*.35;}
  const underwater=me&&get(Math.floor(me.x),Math.floor(me.y+1.62),Math.floor(me.z))===8;
  document.body.classList.toggle('underwater',!!underwater);
- const daylight=survival.animate(now,dt);sun.intensity=1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=.2+daylight*1.5;scene.fog.color.set(underwater?'#3887a9':'#b9d4ff').multiplyScalar(underwater?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=underwater?1:38;scene.fog.far=underwater?16:79;
+ const daylight=survival.animate(now,dt);sun.intensity=1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=.2+daylight*1.5;scene.fog.color.set(underwater?'#3887a9':'#b9d4ff').multiplyScalar(underwater?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=underwater?1:Math.max(8,(viewDistance-1)*CHUNK);scene.fog.far=underwater?16:viewDistance*CHUNK;
  if(miningHeld&&controls()&&now-lastMiningSwing>220){lastMiningSwing=now;held.swing();}
  leftHeld.select(survival.state.offhand?.id||0,survival.state.offhand?.count||0);leftHeld.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&perspective===0&&survival.state.health>0&&!menuOpen()&&survival.state.offhand?.id!==181);
  firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.scale.setScalar(Math.max(.6,Math.min(1,camera.aspect/1.25)));firstShield.position.lerp(new THREE.Vector3((input.block?-.18:-.4)*Math.min(1,camera.aspect/1.25),input.block?-.24:-.45,input.block?-.5:-.7),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;

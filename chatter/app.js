@@ -1208,7 +1208,7 @@ function renderMainInner(loading) {
   if (S.view === 'orbitcraft') {
     // Preserve a live game iframe when unrelated chat updates redraw the shell.
     if (!main.querySelector('[data-orbitcraft]')) {
-      main.innerHTML = `<div class="top gtop"><button class="ib gtog" id="octog" aria-label="Show or hide sidebar" title="Show or hide sidebar">${ic('chev')}</button>${menuBtn()}<span class="hashi">${ic('gamepad', 20)}</span><b class="title">Orbitcraft</b><span class="grow"></span><span class="muted">Shared public world</span></div><div class="gamer-wrap"><iframe data-orbitcraft class="gframe" src="../orbitcraft/?autojoin=1&v=20261103-menus12" title="Orbitcraft multiplayer sandbox" allow="fullscreen" allowfullscreen></iframe></div>`;
+      main.innerHTML = `<div class="top gtop"><button class="ib gtog" id="octog" aria-label="Show or hide sidebar" title="Show or hide sidebar">${ic('chev')}</button>${menuBtn()}<span class="hashi">${ic('gamepad', 20)}</span><b class="title">Orbitcraft</b><span class="grow"></span><span class="muted">Shared public world</span></div><div class="gamer-wrap"><iframe data-orbitcraft class="gframe" src="../orbitcraft/?autojoin=1&v=20261103-chunks13" title="Orbitcraft multiplayer sandbox" allow="fullscreen" allowfullscreen></iframe></div>`;
     }
     $('#octog', main).onclick = () => { S.sideOff = !S.sideOff; renderMain(); };
     bindMenu(); O.onView(S.view); O.gameOpen(true); return;

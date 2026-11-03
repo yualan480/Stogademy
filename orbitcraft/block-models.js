@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {blockGeometry} from './mining-visuals.js?v=20261103-menus12';
+import {blockGeometry} from './mining-visuals.js?v=20261103-chunks13';
 export function furnitureModel(id,texture,direction={x:0,z:-1}){
  const group=new THREE.Group(),wood=new THREE.MeshLambertMaterial({map:texture}),cloth=new THREE.MeshLambertMaterial({color:0xe7e7df}),pillow=new THREE.MeshLambertMaterial({color:0xffffff}),frame=new THREE.MeshLambertMaterial({color:0x5a4026});
  for(const m of [wood,cloth,pillow,frame])m.userData.owned=true;

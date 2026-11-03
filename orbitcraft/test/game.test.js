@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from '../server/db.js';
 import { Game } from '../server/game.js';
-import { baseBlock,resourceBlock, terrain, HEIGHT, CHUNK, chunkIndex, raycast,collides,step,MINING_MS,PICKUP_DELAY_MS } from '../world.js';
+import { baseBlock,resourceBlock, terrain, HEIGHT, CHUNK, SIZE, chunkIndex, raycast,collides,step,MINING_MS,PICKUP_DELAY_MS } from '../world.js';
 function fixture(t){const dir=mkdtempSync(join(tmpdir(),'orbitcraft-'));const path=join(dir,'world.sqlite');let store=openStore(path),now=10000;const options={now:()=>now},game=new Game(store,options);t.after(()=>{try{store.close();}catch{}rmSync(dir,{recursive:true,force:true});});return {game,store,path,advance(ms,refresh=true){for(let left=ms;left>0;left-=50){now+=Math.min(50,left);if(refresh)for(const p of game.players.values())game.handle(p,{type:'input',...p.input,yaw:p.yaw,pitch:p.pitch});game.tick(Math.min(50,left)/1000);}},reopen(){store.close();store=openStore(path);return new Game(store,options);}};}
 function player(g,id='one'){const out=[];const p=g.join({id,name:id},m=>out.push(m));p.out=out;return p;}
 function begin(g,p){g.handle(p,{type:'input',yaw:p.yaw,pitch:p.pitch,mine:true});}
@@ -19,7 +19,7 @@ test('generated world has all biomes, trees, water, caves and deterministic chun
  assert.equal(biomes.size,4);assert.ok(trees&&water&&caves);
  for(const [cx,cz] of [[-1,0],[0,0],[1,1]]){const chunk=g.chunk(cx,cz);for(let y=0;y<HEIGHT;y+=3)for(let z=0;z<CHUNK;z+=5)for(let x=0;x<CHUNK;x+=5)assert.equal(chunk[chunkIndex(x,y,z)],resourceBlock(cx*CHUNK+x,y,cz*CHUNK+z));}
 });
-test('authoritative movement collides and bounds the world',t=>{const {game:g}=fixture(t);const p=player(g);const start={...p};for(let i=0;i<15;i++)step(p,{forward:true,jump:true},.05,g.get);assert.ok(Math.hypot(p.x-start.x,p.z-start.z)>1);assert.equal(collides(p,g.get),false);g.handle(p,{type:'input',x:100000,yaw:NaN,pitch:0});assert.ok(p.x<64);p.x=63.6;p.y=52;p.z=0;for(let i=0;i<20;i++)step(p,{right:true},.05,g.get);assert.ok(p.x<=63.7);});
+test('authoritative movement collides and bounds the world',t=>{const {game:g}=fixture(t);const p=player(g);const start={...p};for(let i=0;i<15;i++)step(p,{forward:true,jump:true},.05,g.get);assert.ok(Math.hypot(p.x-start.x,p.z-start.z)>1);assert.equal(collides(p,g.get),false);g.handle(p,{type:'input',x:100000,yaw:NaN,pitch:0});assert.ok(p.x<SIZE/2);p.x=SIZE/2-.4;p.y=52;p.z=0;for(let i=0;i<20;i++)step(p,{right:true},.05,g.get);assert.ok(p.x<=SIZE/2-.3);});
 test('mining, delayed item pickup and building persist after restart',t=>{
  const f=fixture(t),g=f.game,p=player(g);aim(p,p.x,p.y-1,p.z);const hit=raycast(p,g.get),old=p.inventory[hit.block]||0;
  mine(f,p);assert.equal(g.get(hit.x,hit.y,hit.z),0);assert.equal(p.inventory[hit.block]||0,old);assert.equal(p.mined,1);assert.equal(g.drops.size,1);

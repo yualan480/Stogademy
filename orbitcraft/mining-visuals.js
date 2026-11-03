@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-menus12';
+import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-chunks13';
 
 export function blockGeometry(id,size){
   const geometry=id>=100||id===25||id===20?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;

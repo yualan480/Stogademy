@@ -1,7 +1,7 @@
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
-export const VERSION = 1, SEED = 481203, SIZE = 128, HEIGHT = 56, CHUNK = 16, SEA = 13;
+export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 56, CHUNK = 16, SEA = 13;
 export const BLOCKS = {
   1: { name: 'Grass', color: '#70a745' }, 2: { name: 'Dirt', color: '#926342' },
   3: { name: 'Stone', color: '#9298a0' }, 4: { name: 'Sand', color: '#e7ce8c' },
@@ -22,7 +22,7 @@ export function terrain(x,z) {
   const mountain = noise(x+130,z-81,33), moisture = noise(x-200,z+510,25);
   const height = Math.floor(10 + noise(x,z,29)*10 + noise(x+30,z-30,9)*4 + Math.max(0,mountain-.48)*65);
   const biome = height > 31 ? 'Alpine' : moisture < .32 ? 'Desert' : moisture > .51 ? 'Forest' : 'Meadow';
-  const value={height:Math.min(HEIGHT-7,height),biome};if(terrainMemo.size<32768)terrainMemo.set(key,value);return value;
+  const value={height:Math.min(HEIGHT-7,height),biome};if(terrainMemo.size>=32768)terrainMemo.delete(terrainMemo.keys().next().value);terrainMemo.set(key,value);return value;
 }
 const treeAt=(x,z)=> { const t=terrain(x,z);return t.biome==='Forest' && t.height>SEA+1 && hash(x,81,z)>.978 ? t.height : -100; };
 export function baseBlock(x,y,z) {
@@ -39,7 +39,7 @@ export function baseBlock(x,y,z) {
   if(y<=SEA) return 8;
   // Cache deterministic tree centers per column; this changes no terrain.
   const key=x+','+z;let trees=treeColumns.get(key);
-  if(!trees){trees=[];for(let tx=x-2;tx<=x+2;tx++)for(let tz=z-2;tz<=z+2;tz++){if(hash(tx,81,tz)<=.978)continue;const h=treeAt(tx,tz);if(h>0)trees.push({tx,tz,h});}if(treeColumns.size<32768)treeColumns.set(key,trees);}
+  if(!trees){trees=[];for(let tx=x-2;tx<=x+2;tx++)for(let tz=z-2;tz<=z+2;tz++){if(hash(tx,81,tz)<=.978)continue;const h=treeAt(tx,tz);if(h>0)trees.push({tx,tz,h});}if(treeColumns.size>=32768)treeColumns.delete(treeColumns.keys().next().value);treeColumns.set(key,trees);}
   for(const {tx,tz,h}of trees){
     if(tx===x && tz===z && y>h && y<=h+4) return 5;
     if(y>=h+3 && y<=h+5 && Math.abs(tx-x)+Math.abs(tz-z)+(y===h+5?1:0)<=3) return 6;

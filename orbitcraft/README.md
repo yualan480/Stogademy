@@ -7,7 +7,7 @@ were changed.
 
 ## What you receive
 
-- One public 128 × 128 × 56 block world, shared by everyone on this deployment.
+- One public 1,024 × 1,024 × 56 block world, shared by everyone on this deployment.
 - Original pixel textures, first-person 3D blocks, trees and forests, desert,
   meadow, alpine mountains, water and underground caves.
 - Server-controlled movement, collision, jumping, swimming, timed mining and building.
@@ -402,3 +402,40 @@ New white beds occupy two adjacent supported cells, oriented with the player.
 Both halves are persisted together; using either half sleeps/sets spawn and
 breaking either half drops one bed. Blocked placement and failed persistence
 roll back both halves and the item. Existing single-cell beds remain usable.
+
+### Expanded world and chunk lifecycle
+
+The shared map now spans X/Z -512 through 511 (64 × 64 chunks). Each chunk
+contains a complete 16 × 16 × 56 column. The original generation seed, height,
+version and database identity are unchanged: the existing central terrain is
+byte-identical, and edits, player inventories and stations remain in SQLite.
+No world reset or migration is needed.
+
+Clients request nearby columns nearest first. Esc → Options sets render distance
+to 1–4 chunks; the default is 3 on desktop and 2 on touch devices. A one-chunk
+retention band avoids constant rebuilding at borders. Leaving that band releases
+chunk geometry and local edit/bed/crop/light caches. Only nearby player, mob and
+dropped-item states are streamed; online count still includes the whole server.
+F3 shows chunk coordinates, loaded/loading columns and both distances. F3+A
+reloads current columns from the authoritative server. Missing columns block
+movement until received, preventing falling through terrain or temporary builds.
+
+The server generates one requested column per tick, prioritizing distance and
+rotating between players. Requests and queues are bounded to the allowed view.
+Distant dense terrain buffers are evicted and the global buffer cache is capped
+at 256 chunks; sparse saved edits remain authoritative when regenerating.
+Terrain/tree memoization is also bounded during long exploration.
+
+Simulation uses a fixed horizontal radius of 2 chunks around every living player,
+independent of Y or render distance. Mobs, item physics/pickup, crops and fuelled
+furnaces tick in that area. Outside it, entity motion and farm/furnace progress
+pause. Timers retain their remaining duration across returns and restarts; they
+do not catch up for unloaded time. Another nearby player keeps the area active.
+Sleep advances daylight without fast-forwarding crop and furnace jobs. Daylight
+continues to remove hostile mobs, including persisted distant hostiles.
+
+Validation includes legacy terrain checksums, positive/negative and edge chunk
+addresses, the old/new world borders, nearest-first/fair request scheduling,
+bounded cache eviction, persistence, pause/resume of farms/furnaces/entities,
+vertical independence, multiplayer activity and a real browser round trip beyond
+the old border with streamed meshes unloading and a saved build reloading.

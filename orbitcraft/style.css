@@ -135,3 +135,5 @@ body:not(.playing) #offhand-hud{display:none}body.gui-hidden #offhand-hud,body:h
 #keybind-list>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:3px 0;font-size:18px}#keybind-list button{min-width:160px}#keybind-list button.waiting{color:#ffff70}.option-actions{position:sticky;bottom:0;display:flex;justify-content:center;gap:12px;background:#c6c6c6;padding-top:10px}.pause-content a{display:block;margin:12px;color:#1c4c94}
 @media(max-width:370px){#inventory[data-station="table"] .survival-recipe{margin-left:35px;gap:14px}#inventory[data-station="table"] #station-name{margin-left:35px}#keybind-list>div{font-size:14px}#keybind-list button{min-width:110px}}
 #inventory #recipe-needs[hidden]{display:none}#inventory #furnace-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.distance-settings{padding:10px 0;border-bottom:2px solid #888;margin-bottom:10px}.distance-settings label{font-size:20px}.distance-settings input{width:100%;accent-color:#777}.distance-settings p{font-size:14px!important;margin:5px 0}
