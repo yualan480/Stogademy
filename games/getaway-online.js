@@ -324,6 +324,8 @@
     ]
   };
   var pc = null, dc = null, outStream = null, pendingIce = [], pingT = 0;
+  var vSender = null, directStream = null, monT = 0, blackN = 0, prevFrames = 0, fpsNow = 0, zeroN = 0, warnedBlack = false, usedDirect = false, hostHidSent = null;
+  var sampCv = null, sampCtx = null;
 
   // WebGL canvases (this Unity build included) often hand captureStream() a blank/black
   // frame, because the browser is free to clear the drawing buffer right after each frame
@@ -350,6 +352,53 @@
     mirrorRAF = 0; mirrorCv = null; mirrorCtx = null;
   }
 
+  // is this canvas / video all black? (looks at a tiny 32x18 copy)
+  function looksBlack(src) {
+    try {
+      if (!sampCv) { sampCv = document.createElement('canvas'); sampCv.width = 32; sampCv.height = 18; sampCtx = sampCv.getContext('2d', { willReadFrequently: true }); }
+      sampCtx.drawImage(src, 0, 0, 32, 18);
+      var d = sampCtx.getImageData(0, 0, 32, 18).data;
+      for (var i = 0; i < d.length; i += 4) { if (d[i] + d[i + 1] + d[i + 2] > 24) return false; }
+      return true;
+    } catch (e) { return false; }
+  }
+  // HOST fallback: if the copied picture stays black, stream the game canvas itself instead
+  function switchToDirect() {
+    var cv = gameCanvas();
+    if (usedDirect || !cv || !vSender || !cv.captureStream) return;
+    usedDirect = true;
+    try {
+      directStream = cv.captureStream(60);
+      var tr = directStream.getVideoTracks()[0];
+      if (tr) { try { tr.contentHint = 'motion'; } catch (e) { /* ignore */ } vSender.replaceTrack(tr); toast('Picture was black, switched capture method...', 4000); }
+    } catch (e) { /* ignore */ }
+  }
+  function monitorTick() {
+    if (phase !== 'play' || !pc) return;
+    // frames per second actually going over the link
+    pc.getStats().then(function (rep) {
+      var frames = 0;
+      rep.forEach(function (r) {
+        if (r.kind !== 'video' && r.mediaType !== 'video') return;
+        if (mode === 'host' && r.type === 'outbound-rtp') frames = r.framesSent || frames;
+        if (mode === 'guest' && r.type === 'inbound-rtp') frames = r.framesDecoded || frames;
+      });
+      fpsNow = Math.max(0, frames - prevFrames); prevFrames = frames;
+      zeroN = (linked && fpsNow === 0) ? zeroN + 1 : 0;
+      if (mode === 'guest' && zeroN === 6) toast('No picture is arriving from the host. Ask them to keep the game tab in front (not minimised or in the background).', 7000);
+      renderHud();
+    }).catch(function () { /* ignore */ });
+    if (mode === 'host') {
+      var hid = !!document.hidden;
+      if (hid !== hostHidSent) { hostHidSent = hid; if (dcOpen()) { try { dc.send(JSON.stringify({ t: 'h', v: hid ? 1 : 0 })); } catch (e) { /* ignore */ } } }
+      if (!hid && mirrorCv && !usedDirect) { blackN = looksBlack(mirrorCv) ? blackN + 1 : 0; if (blackN >= 3) switchToDirect(); }
+    } else if (vid && !vid.hidden && vid.videoWidth) {
+      if (looksBlack(vid)) { blackN++; if (blackN === 5 && !warnedBlack) { warnedBlack = true; toast('The host\u2019s picture is arriving but it is black. Tell the host to keep the game tab in front.', 8000); } }
+      else blackN = 0;
+    }
+  }
+  function startMonitor() { clearInterval(monT); blackN = 0; prevFrames = 0; monT = setInterval(monitorTick, 1000); }
+
   var dcOpen = function () { return !!dc && dc.readyState === 'open'; };
   var oppId = function () { return oppInfo ? oppInfo.id : ''; };
   // guest -> host: over the data channel, or (until it opens) over the matchmaking connection
@@ -366,6 +415,8 @@
   }
 
   function closePC() {
+    clearInterval(monT); monT = 0; blackN = 0; prevFrames = 0; fpsNow = 0; zeroN = 0; warnedBlack = false; usedDirect = false; hostHidSent = null; vSender = null;
+    if (directStream) { directStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* ignore */ } }); directStream = null; }
     clearInterval(pingT); pingT = 0; clearTimeout(linkT); linkT = 0; clearTimeout(discT); discT = 0;
     linked = false; pendingIce = [];
     if (dc) { try { dc.close(); } catch (e) { /* ignore */ } dc = null; }
@@ -401,6 +452,7 @@
     ch.onmessage = function (ev) {
       var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
       if (mode === 'host') onRemoteMsg(m);
+      else if (m && m.t === 'h') { if (m.v) toast('The host switched away from the game tab, so the picture will freeze or go black until they come back.', 7000); }
       else if (m && m.t === 'o') { rttNow = Math.max(0, Date.now() - (+m.s || Date.now())); renderHud(); }
     };
   }
@@ -424,7 +476,7 @@
       var track = outStream.getVideoTracks()[0];
       if (!track) throw new Error('no video track');
       try { track.contentHint = 'motion'; } catch (e) { /* ignore */ }
-      var sender = conn.addTrack(track, outStream);
+      var sender = conn.addTrack(track, outStream); vSender = sender; startMonitor();
       dc = conn.createDataChannel('in', { ordered: true }); wireDC(dc);
       var offer = await conn.createOffer();
       await conn.setLocalDescription(offer);
@@ -441,7 +493,7 @@
     if (!p || p.to !== myId || phase !== 'play') return;
     try {
       if (p.k === 'offer' && mode === 'guest') {
-        var conn = newPC();
+        var conn = newPC(); startMonitor();
         conn.ontrack = function (e) {
           vid.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
           // keep the video hidden (not a black cover) until a real frame is playing; show it anyway after 4s
@@ -525,7 +577,7 @@
     if (mode === 'host') hud.appendChild(txt('span', 'me', 'You: Player 1 \u00b7 W/E/R (you run the game)'));
     else hud.appendChild(txt('span', 'me', 'You: Player 2 \u00b7 I/O/P'));
     hud.appendChild(txt('span', '', mode === 'host' ? 'vs ' + opp : 'host: ' + opp));
-    hud.appendChild(txt('span', 'png', rttNow ? rttNow + ' ms' : (linked ? 'live' : 'connecting...')));
+    hud.appendChild(txt('span', 'png', (rttNow ? rttNow + ' ms' : (linked ? 'live' : 'connecting...')) + (linked ? ' \u00b7 ' + fpsNow + ' fps' : '')));
     var lv = txt('button', '', 'Leave'); lv.type = 'button'; lv.addEventListener('click', function () { endOnline(''); });
     hud.appendChild(lv);
   }
