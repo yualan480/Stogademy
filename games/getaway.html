@@ -51,6 +51,9 @@
   <div id="game"></div>
 
 
+  <!-- Install streaming capture support before Unity creates a WebGL context. -->
+  <script src="leaderboard.js"></script>
+  <script src="getaway-online.js"></script>
   <script>
     (function () {
       'use strict';
@@ -132,7 +135,5 @@
       tryLoader(0);
     })();
   </script>
-  <script src="leaderboard.js"></script>
-  <script src="getaway-online.js"></script>
 </body>
 </html>

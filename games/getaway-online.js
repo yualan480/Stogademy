@@ -14,6 +14,25 @@
 (function () {
   'use strict';
 
+  /* ---- FIX for the black screen: keep the WebGL picture readable. ----
+     By default a WebGL canvas clears its drawing buffer right after each frame is shown, so anything that copies
+     or captures it afterwards (our mirror canvas, which is what gets streamed to the other player) only gets BLACK.
+     Asking for preserveDrawingBuffer makes the finished frame stay readable. This has to be set before Unity creates
+     its WebGL context, so it is done here, as the very first thing, before the matchmaking check below. */
+  try {
+    var _getCtx = HTMLCanvasElement.prototype.getContext;
+    if (!_getCtx.__gwPatched) {
+      var patched = function (type, attrs) {
+        if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl' || type === 'experimental-webgl2') {
+          attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
+        }
+        return _getCtx.call(this, type, attrs);
+      };
+      patched.__gwPatched = true;
+      HTMLCanvasElement.prototype.getContext = patched;
+    }
+  } catch (e) { /* ignore */ }
+
   var SB = (window.Leaderboard && window.Leaderboard.config) || null;
   if (!SB || !window.WebSocket || !document.body) return;   // no matchmaking server: the game stays local only
 
@@ -425,7 +444,11 @@
         var conn = newPC();
         conn.ontrack = function (e) {
           vid.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
-          vid.hidden = false;
+          // keep the video hidden (not a black cover) until a real frame is playing; show it anyway after 4s
+          vid.hidden = true;
+          var showVid = function () { vid.hidden = false; };
+          vid.onplaying = showVid; vid.onloadeddata = showVid;
+          setTimeout(function () { if (phase === 'play' && vid.srcObject) showVid(); }, 4000);
           try { var pl = vid.play(); if (pl && pl.catch) pl.catch(function () { /* ignore */ }); } catch (x) { /* ignore */ }
           try { e.receiver.playoutDelayHint = 0; } catch (x) { /* ignore */ }
           try { e.receiver.jitterBufferTarget = 0; } catch (x) { /* ignore */ }
