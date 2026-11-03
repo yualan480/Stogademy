@@ -215,13 +215,13 @@ now includes underground coal, iron, gold, diamond and ancient debris resources.
   cast into nearby water; use again during the bite window. Hoe grass/dirt, plant
   seeds, and harvest mature wheat. Water accelerates crop growth. Bread and
   cooked meat/fish are available. Crop growth is two minutes while loaded,
-  accelerated near water. Obtain seeds and apples from leaves.
+  accelerated near water. Collect wheat seeds from grass and occasional apples from leaves.
 - The server clock completes 24,000 ticks in 20 minutes of active play: ten
   minutes of daylight, 90 seconds of transitions, and 8.5 minutes of night.
   Zombies, skeletons, creepers, spiders and Endermen spawn in darkness. Endermen
   become aggressive when attacked or looked at and teleport. Skeletons shoot,
   creepers explode, spiders climb short obstacles, and shelters block sight.
-- Beds set a safe personal respawn when used at night; all living connected
+- Beds set a safe personal respawn at any time; all living connected
   players must sleep to skip night. Otherwise respawn uses the saved original
   world spawn. Death drops carried items and equipped gear into the shared world.
 - 36 material-stack slots include the nine hotbar slots, with up to 64 items in
@@ -293,7 +293,7 @@ change the live game's rules.
 
 The in-game chrome uses square gray controls, pixel item icons and the existing
 nine-slot survival HUD, with a classic blue sky. Hostile creatures spawn only at
-night and disappear at dawn, including those underground; passive animals remain.
+night and burn gradually after dawn; passive animals remain.
 Left-click or the touch mine/attack button sends an immediate server-validated
 melee attempt and holding continues attacks. Reach, line of sight, cooldown,
 armor, shields, durability and PvP persistence still apply. Mob hits now produce
@@ -375,8 +375,7 @@ Coal above a stick crafts four torches in hand or table crafting. Torches are
 placeable non-solid light sources on dry solid ground, persist as world edits,
 and drop if their support is mined. Client lights are bounded to the closest
 four torches (two on touch devices); nearby torches prevent hostile spawning.
-Five oak planks arranged in a U at a table craft one oak boat inventory item,
-with its own pixel icon for holding, storage and drops.
+Five oak planks arranged in a U at a table craft one rideable oak boat, with its own pixel icon for holding, storage and drops.
 
 During a carried-stack drag, visited slots now show live item/count previews:
 left-drag rebalances evenly as more slots are visited; right-drag shows one per
@@ -432,7 +431,7 @@ furnaces tick in that area. Outside it, entity motion and farm/furnace progress
 pause. Timers retain their remaining duration across returns and restarts; they
 do not catch up for unloaded time. Another nearby player keeps the area active.
 Sleep advances daylight without fast-forwarding crop and furnace jobs. Daylight
-continues to remove hostile mobs, including persisted distant hostiles.
+burns active hostile mobs gradually; unloaded mobs pause until their chunks activate.
 
 Validation includes legacy terrain checksums, positive/negative and edge chunk
 addresses, the old/new world borders, nearest-first/fair request scheduling,
@@ -453,3 +452,54 @@ a menu, dying, losing input heartbeats or already-full hunger cancels progress.
 Hold the rebound Eat/Use key or the touch Eat/Use button for the same behavior.
 Legacy eat/use packets cannot consume food instantly. No progress bar is added.
 The F5 camera-cycle function was also restored and checked with the eating pose.
+
+### Survival details and minimal HUD
+
+Opening Orbitcraft now automatically authenticates and joins the world. The old
+opening card, game logo/header buttons and coordinate display are removed from
+the normal view. Authentication errors still show sign-in/reconnect controls.
+Tests can explicitly request `?manualJoin=1` for local connection fixtures.
+T opens chat; received/sent messages fade after five seconds. Hold Tab for a
+server-supplied roster of every connected player's verified name. Escape retains
+menus, configurable keybindings and inventory access through E.
+
+Beds set respawn during the day without sleeping. Night use raises a saved
+sleeping state with a lying character pose and screen fade. When all living
+players have slept for two seconds, sunrise occurs. Escape or Leave Bed wakes
+the player. New spawn records carry a bed token: breaking/replacing that bed
+invalidates the spawn even at the same coordinates, including across reconnects.
+
+Boats are persistent shared entities: right-click a boat item to place/board it,
+steer with movement keys, and hold Shift to dismount. Server and client share
+floating/steering physics; riders are exempt from fall damage, while dismounting
+restores ordinary damage. Death and disconnect release the boat for other riders.
+Three iron ingots in a V at a crafting table make a bucket. Scooping and pouring
+water atomically exchange empty/full buckets and save the water edit.
+
+Torches attach to floors or horizontal wall faces. Their stepped narrow boxes
+are shared by ray selection, outlines and 3D models; they remain non-solid and
+drop ordinary torch items if their support is mined. Grass, poppies and daisies
+are real collectible cutouts in previously decorative positions; stored edits
+still override them. Grass can also drop wheat seeds. Leaves have a chance to
+drop an apple and no longer drop wheat seeds. Base terrain and ore generation
+remain unchanged under the new plant overlay.
+
+All material/food/tool/armor item icons are pixel silhouettes shared by inventory,
+hands and rotating dropped-item sprites. Buckets, fish, seeds, wheat, apples,
+bones, wool, string, ingots and gems have distinct shapes instead of the generic
+lump. Combat adds a brief red tint, collision-checked knockback, and a falling
+death pose for mobs and other players. Respawn restores the standing model.
+
+Spawning enforces category caps within a sliding 17 × 17 horizontal chunk area:
+70 hostile, 10 passive, 15 ambient, 5 water creatures, 20 water ambient and 5
+underground-water creatures. Bats, squid, dolphins, cod/salmon/fish and axolotls
+have corresponding habitat spawning and models. Existing hostile creatures burn
+to death during daylight and drop loot; they are not instantly deleted at dawn.
+The server retains a separate 2,048-entity safety bound for the finite world.
+
+Checks cover day/night spawn setting, bed invalidation, sleep delay/pose, bucket
+recipe and saved water transfer, narrow wall-torch raycasts and support drops,
+plant/leaf loot, mounted/unmounted fall damage, six mob caps, burning/loot, auto
+join, hidden toolbar, T chat fade, global Tab roster, red hit feedback and shaped
+armor drops. Crafting/furnaces, held eating, PvP and Cloudflare persistence also
+receive regression checks.

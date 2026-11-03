@@ -1,9 +1,10 @@
+import {isTorch,isPlant,blockBoxes} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
-import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-eating14';
+import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-survival15';
 
 export function blockGeometry(id,size){
-  const geometry=id>=100||id===25||id===20?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
-  for(let face=0;face<(id>=100||id===25||id===20?1:6);face++){
+  const geometry=id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
+  for(let face=0;face<(id>=100||isTorch(id)||isPlant(id)||id===20?1:6);face++){
     const tile=tileFor(id,face===2?1:face===3?-1:0,face===4?1:face===5?-1:0);
     for(let v=0;v<4;v++)uv.setXY(face*4+v,(tile*16+.2+(v%2)*15.6)/(TILE_COUNT*16),(.2+(v<2?1:0)*15.6)/16);
   }
@@ -41,8 +42,8 @@ export function createResourceEffects(scene,texture){
     setMining(players){
       const active=new Map();
       for(const p of players){const m=p.mining;if(!m||m.progress<=0)continue;const key=`${m.x},${m.y},${m.z}`;if(!active.has(key)||active.get(key).progress<m.progress)active.set(key,m);}
-      for(const [key,m] of active){let mesh=overlays.get(key);if(!mesh){mesh=new THREE.Mesh(cube,cracks[0]);mesh.name='mining:'+key;mesh.renderOrder=2;mesh.position.set(m.x+.5,m.y+.5,m.z+.5);overlays.set(key,mesh);scene.add(mesh);}mesh.material=cracks[Math.min(9,Math.floor(m.progress*10))];}
-      for(const [key,mesh] of overlays)if(!active.has(key)){scene.remove(mesh);overlays.delete(key);}
+      for(const [key,m] of active){let mesh=overlays.get(key);if(!mesh){const boxes=blockBoxes(m.block),bounds=boxes[0],small=isTorch(m.block)||isPlant(m.block);mesh=new THREE.Mesh(small?new THREE.BoxGeometry(bounds[3]-bounds[0],isTorch(m.block)?.75:bounds[4]-bounds[1],bounds[5]-bounds[2]):cube,cracks[0]);mesh.name='mining:'+key;mesh.renderOrder=2;mesh.position.set(m.x+.5,m.y+.5,m.z+.5);overlays.set(key,mesh);scene.add(mesh);}mesh.material=cracks[Math.min(9,Math.floor(m.progress*10))];}
+      for(const [key,mesh] of overlays)if(!active.has(key)){scene.remove(mesh);if(mesh.geometry!==cube)mesh.geometry.dispose();overlays.delete(key);}
     },
     setDrops(items,full=false){
       if(full){const ids=new Set(items.map(d=>d.id));for(const id of drops.keys())if(!ids.has(id))removeDrop(id);}

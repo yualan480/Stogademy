@@ -137,3 +137,13 @@ body:not(.playing) #offhand-hud{display:none}body.gui-hidden #offhand-hud,body:h
 #inventory #recipe-needs[hidden]{display:none}#inventory #furnace-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
 .distance-settings{padding:10px 0;border-bottom:2px solid #888;margin-bottom:10px}.distance-settings label{font-size:20px}.distance-settings input{width:100%;accent-color:#777}.distance-settings p{font-size:14px!important;margin:5px 0}
+
+/* Minimal survival view. Utility controls live in Escape/keyboard menus. */
+#hud,#coordinates{display:none!important}#gate.connection-state{background:transparent;backdrop-filter:none;pointer-events:none;display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;color:white;font:18px OrbitPixel,monospace}#gate.connection-state[hidden]{display:none}#gate.connection-state button,#gate.connection-state a,#gate.connection-state input{pointer-events:auto}#gate.connection-state>p{background:#0009;padding:12px}
+#chat{opacity:0;pointer-events:none;transition:opacity .6s ease;background:transparent;border:0;box-shadow:none;max-width:min(550px,90vw);bottom:80px;font:14px OrbitPixel,monospace}#chat.chat-open,#chat.chat-recent{opacity:1}#chat.chat-open{pointer-events:auto}#chat .chat-title{display:none}#messages{background:#0005;max-height:170px}#chat-form{background:#000a}
+#player-list{position:fixed;z-index:14;top:12px;left:50%;transform:translateX(-50%);background:#151515b5;padding:8px;display:grid;grid-auto-flow:column;grid-template-rows:repeat(16,auto);gap:2px 14px;min-width:260px;max-width:94vw;font:17px OrbitPixel,monospace;color:white;text-shadow:1px 1px #222}#player-list[hidden]{display:none}#player-list>div{display:flex;justify-content:space-between;gap:15px;min-width:200px;background:#ffffff12;padding:3px 6px}.player-signal{color:#48bb39;font:11px monospace}
+#sleep-status{position:fixed;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;background:#10152b99;animation:sleep-fade 2s forwards;font:20px OrbitPixel,monospace;pointer-events:none}#sleep-status[hidden]{display:none}#sleep-status button{pointer-events:auto;font:18px OrbitPixel,monospace;background:#777;color:white;border:2px outset #bbb;border-radius:0;padding:8px 30px}@keyframes sleep-fade{from{background:#10152b00}to{background:#10152bb0}}
+
+#toast{top:auto;bottom:135px;background:#0008;font-family:OrbitPixel,monospace}
+
+#player-list{overflow:auto;max-height:70vh}#player-list>div{min-width:160px}

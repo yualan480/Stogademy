@@ -19,7 +19,7 @@ try{
  for(const name of ['PvpAttacker','PvpVictim']){
   const context=await browser.newContext({viewport:{width:1100,height:760}}),page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{window.received=[];const Original=WebSocket;window.WebSocket=class extends Original{constructor(...args){super(...args);this.addEventListener('message',e=>window.received.push(JSON.parse(e.data)));}};});
-  await page.goto(base+'/orbitcraft/');await page.locator('#dev-name').fill(name);await page.locator('#join').click();await page.locator('#gate').waitFor({state:'hidden'});
+  await page.goto(base+'/orbitcraft/?manualJoin=1');await page.locator('#dev-name').fill(name);await page.locator('#join').click();await page.locator('#gate').waitFor({state:'hidden'});
  }
  const [attacker,victim]=pages;await attacker.bringToFront();await attacker.locator('#world').click({position:{x:550,y:380}});await attacker.waitForFunction(()=>document.pointerLockElement?.id==='world');await attacker.mouse.down();
  try{

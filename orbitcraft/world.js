@@ -1,3 +1,4 @@
+import {isTorch,isPlant,inShape} from './shapes.js';
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
@@ -11,7 +12,7 @@ export const BLOCKS = {
 };
 for(const [id,item] of Object.entries(ITEMS))if(item.block)BLOCKS[id]={name:item.name,color:'#8e8071'};
 export const SLOTS = [2,3,5,10,4,1,6,7];
-export const solid = b => b !== 0 && b !== 8 && b !== 22 && b !== 25;
+export const solid = b => b !== 0 && b !== 8 && b !== 22 && !isTorch(b)&&!isPlant(b);
 export const inside = (x,y,z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z) && x >= -SIZE/2 && x < SIZE/2 && z >= -SIZE/2 && z < SIZE/2 && y >= 0 && y < HEIGHT;
 export function hash(x,y=0,z=0) { let h = Math.imul(x ^ SEED, 374761393) ^ Math.imul(y,668265263) ^ Math.imul(z,2147483647); h = Math.imul(h ^ h>>>13,1274126177); return ((h ^ h>>>16)>>>0)/4294967295; }
 const mix=(a,b,t)=>a+(b-a)*t, smooth=t=>t*t*(3-2*t);
@@ -68,6 +69,7 @@ export function step(p,input,dt,get) {
     for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(input.sneak&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {if(axis==='y')p.vy=0;break;} }
   }
 }
+export function stepBoat(p,input,dt,get){step(p,{...input,jump:false,sneak:false},dt,get);const x=Math.floor(p.x),z=Math.floor(p.z);for(let y=Math.floor(p.y);y>=Math.floor(p.y)-2;y--)if(get(x,y,z)===8&&get(x,y+1,z)!==8){const target=y+.85;if(p.y<target+.5&&!collides({...p,y:target},get)){p.y=target;p.vy=0;}break;}p.fallTop=p.y;}
 export function raycast(p,get,reach=6) {
   const eye={x:p.x,y:p.y+1.62,z:p.z}, cp=Math.cos(p.pitch||0);
   const d={x:-Math.sin(p.yaw)*cp,y:Math.sin(p.pitch||0),z:-Math.cos(p.yaw)*cp};
@@ -75,15 +77,16 @@ export function raycast(p,get,reach=6) {
   for(let t=0;t<=reach;t+=.035) {
     const a={x:Math.floor(eye.x+d.x*t),y:Math.floor(eye.y+d.y*t),z:Math.floor(eye.z+d.z*t)};
     const b=get(a.x,a.y,a.z);
-    if((solid(b)&&(![20,26,23].includes(b)||eye.y+d.y*t<a.y+(b===23?.875:.6)))||b===22||b===25)return {...a,block:b,place:[20,26,23].includes(b)&&previous&&previous.x===a.x&&previous.y===a.y&&previous.z===a.z?{...a,y:a.y+1}:previous};
+    if(b&&b!==8&&inShape(b,eye.x+d.x*t-a.x,eye.y+d.y*t-a.y,eye.z+d.z*t-a.z)){const place=previous&&previous.x===a.x&&previous.y===a.y&&previous.z===a.z?{...a,y:a.y+1}:previous;return {...a,block:b,place};}
     previous=a;
   }
   return null;
 }
 
 // Hand-mining times in milliseconds. Bedrock has no break duration.
-export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900});
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50});
 export const PICKUP_DELAY_MS = 750;
 
 // Resources only overlay natural stone; stored edits always take precedence.
-export function resourceBlock(x,y,z){const b=baseBlock(x,y,z);if(b!==3)return b;const h=hash(x,y,z);if(y<7&&h>.993)return 17;if(y<12&&h>.98)return 15;if(y<20&&h>.965)return 16;if(y<30&&h>.92)return 14;if(h>.84)return 13;if(h<.025)return 12;return b;}
+export function plantAt(x,z){let n=Math.imul(x+203*71,374761393)^Math.imul(z+203*13,668265263);n=Math.imul(n^n>>>13,1274126177);const value=((n^n>>>16)>>>0)/4294967295;return value>.985?(value>.993?33:32):value>.82?31:0;}
+export function resourceBlock(x,y,z){const b=baseBlock(x,y,z);if(b===0&&y===terrain(x,z).height+1&&baseBlock(x,y-1,z)===1)return plantAt(x,z);if(b!==3)return b;const h=hash(x,y,z);if(y<7&&h>.993)return 17;if(y<12&&h>.98)return 15;if(y<20&&h>.965)return 16;if(y<30&&h>.92)return 14;if(h>.84)return 13;if(h<.025)return 12;return b;}

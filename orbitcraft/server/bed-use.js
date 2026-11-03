@@ -1,0 +1,8 @@
+import {bedPair} from './beds.js';
+import {collides,solid} from '../world.js';
+export function useBed(s,p,hit){const bed=bedPair(s,hit),foot=bed.foot;let safe=null;for(const [dx,dz]of [[1,0],[-1,0],[0,1],[0,-1]]){const a={x:foot.x+dx+.5,y:foot.y,z:foot.z+dz+.5};if(!collides(a,s.g.get)&&solid(s.g.get(Math.floor(a.x),Math.floor(a.y-.1),Math.floor(a.z)))){safe=a;break;}}if(!safe)throw Error('Leave a safe space beside the bed.');const blocked=s.world.mobs.some(m=>m.hostile&&m.health>0&&Math.hypot(m.x-p.x,m.z-p.z)<8),sleep=s.night()&&!blocked;
+ s.atomic(p,()=>{s.world.bedTokens??={};const token=s.world.beds?.[bed.key]?.token||s.world.bedTokens[bed.key]||crypto.randomUUID();s.world.bedTokens[bed.key]=token;p.survival.respawn={...safe,bx:foot.x,by:foot.y,bz:foot.z,bedToken:token};p.survival.sleeping=sleep;p.survival.bedPose=sleep?{foot,head:bed.head||{...foot,z:foot.z-1}}:null;p.sleepAt=sleep?s.g.now():null;p.input={};});p.send({type:'bed-status',text:sleep?'Sleeping…':blocked?'Respawn point set. Monsters are too close to sleep.':'Respawn point set.'});
+}
+export function finishSleep(s){const living=[...s.g.players.values()].filter(p=>p.survival.health>0);for(const p of living)if(p.survival.sleeping&&s.g.get(p.survival.respawn?.bx,p.survival.respawn?.by,p.survival.respawn?.bz)!==20){p.survival.sleeping=false;p.survival.bedPose=null;}
+ if(!living.length||!living.every(p=>p.survival.sleeping&&s.g.now()-(p.sleepAt||0)>=2000))return;const next=Math.floor(s.world.time/24000)*24000+24000;s.shiftClocks(next-s.world.time);s.world.time=next;for(const p of living){p.survival.sleeping=false;p.survival.bedPose=null;p.survival.health=Math.min(20,p.survival.health+4);s.send(p);}s.g.store.saveSurvival(s.world);
+}

@@ -1,3 +1,5 @@
+import {stepRiding} from './boats.js';
+import {isTorch,isPlant} from '../shapes.js';
 import {chunkOf,chunkKey,inRange,renderDistance,SIMULATION_DISTANCE,MAX_CACHED_CHUNKS} from '../chunks.js';
 import {placeBed} from './beds.js';
 import { stacks } from '../inventory.js';
@@ -34,8 +36,8 @@ export class Game {
     if(collides(p,this.get)||[...this.players.values()].some(other=>Math.hypot(p.x-other.x,p.z-other.z)<.75))Object.assign(p,this.spawn());
     this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
   }
-  leave(p) {if(this.players.get(p.id)!==p)return;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();this.pruneChunks();}
-  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,eating:!!p.eating};}
+  leave(p) {if(this.players.get(p.id)!==p)return;if(p.survival.boat&&this.survival.world.boats[p.survival.boat])this.survival.world.boats[p.survival.boat].rider=null;p.survival.boat=null;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();this.pruneChunks();}
+  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,eating:!!p.eating,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
   inventory(p){p.send({type:'inventory',inventory:p.inventory,mined:p.mined,placed:p.placed,slots:stacks(p),hotbar:p.hotbar});}
   broadcast(message){for(const p of this.players.values())p.send(message);}
   publicDrop(d){return {id:d.id,block:d.block,count:d.count,x:d.x,y:d.y,z:d.z,created:d.created};}
@@ -99,10 +101,10 @@ export class Game {
   }
   tick(dt=.05){
     dt=Math.min(.1,Math.max(0,dt));const now=this.now();
-    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;step(p,p.input,dt,(x,y,z)=>this.movementBlock(p,x,y,z));if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
+    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;if(!stepRiding(this.survival,p,dt,(x,y,z)=>this.movementBlock(p,x,y,z)))step(p,p.input,dt,(x,y,z)=>this.movementBlock(p,x,y,z));if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
     this.moveDrops(dt,now);this.survival.tick(dt);
     const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
-    for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
+    for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,roster:[...this.players.values()].map(q=>({id:q.id,name:q.name})),players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
     if(this.frames%20===0)this.pruneChunks();
     // One full-height column per tick, nearest first and round-robin between players.
     const active=[...this.players.values()];for(let i=0;i<active.length;i++){
@@ -141,14 +143,14 @@ export class Game {
     if(this.now()-p.lastEdit<180)return;p.lastEdit=this.now();
     const hit=raycast(p,this.get);if(!hit)throw new Error('Look at a block within six blocks.');
     const offhand=m.hand==='offhand',held=p.hotbar?.[p.selected],source=p.survival.offhand;
-    const id=offhand?source?.id:m.block;
+    let id=offhand?source?.id:m.block;const spend=id;
     if(offhand&&p.inventory[held]>0&&!(ITEMS[held]?.tool||held===180))throw Error('Hold a tool in your right hand to build with the off-hand.');
-    if(!isBlock(id)||[8,9,21,22,26].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
+    if(!isBlock(id)||[8,9,21,22,26,27,28,29,30].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
     const a=hit.place;
-    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===25)throw Error('Cannot place here.');
+    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||isTorch(this.get(a.x,a.y,a.z)))throw Error('Cannot place here.');
     if(id===20){placeBed(this.survival,p,a,offhand);return;}
-    if(id===25&&(this.get(a.x,a.y,a.z)!==0||!solid(this.get(a.x,a.y-1,a.z))))throw Error('Place torches on a dry, solid block.');
-    if(id!==25&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');
-    this.survival.atomic(p,tx=>{if(offhand){if(!--source.count)p.survival.offhand=null;}else p.inventory[id]--;p.placed++;tx.block(a,id);});
+    if(id===25){if(this.get(a.x,a.y,a.z)!==0||!solid(hit.block))throw Error('Attach the torch to a solid surface.');const dx=a.x-hit.x,dz=a.z-hit.z;if(a.y>hit.y)id=25;else if(dx===1)id=27;else if(dx===-1)id=28;else if(dz===1)id=29;else if(dz===-1)id=30;else throw Error('Cannot attach a torch underneath a block.');}if(isPlant(id)&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Plants need solid ground.');
+    if(!isTorch(id)&&!isPlant(id)&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');
+    this.survival.atomic(p,tx=>{if(offhand){if(!--source.count)p.survival.offhand=null;}else p.inventory[spend]--;p.placed++;tx.block(a,id);});
   }
 }

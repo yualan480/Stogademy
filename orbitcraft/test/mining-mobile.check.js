@@ -7,7 +7,7 @@ try{
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{window.received=[];const WS=WebSocket;window.WebSocket=class extends WS{constructor(...args){super(...args);this.addEventListener('message',e=>window.received.push(JSON.parse(e.data)));}};});
- await page.goto('http://127.0.0.1:8787/orbitcraft/');assert.equal(await page.locator('#touch-controls').isVisible(),false);
+ await page.goto('http://127.0.0.1:8787/orbitcraft/?manualJoin=1');assert.equal(await page.locator('#touch-controls').isVisible(),false);
  await page.locator('#dev-name').fill('Touch'+Date.now().toString(36));await page.locator('#join').click();await page.locator('#gate').waitFor({state:'hidden'});assert.equal(await page.locator('#touch-controls').isVisible(),true);
  const cdp=await context.newCDPSession(page);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:195,y:380}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:195,y:520}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});

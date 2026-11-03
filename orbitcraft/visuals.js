@@ -1,3 +1,5 @@
+import {drawItem} from './item-art.js?v=20261103-survival15';
+import {isTorch,isPlant} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';
 import { ITEMS } from './items.js';
@@ -18,7 +20,7 @@ const random = (x, y, seed) => {
 };
 export function tileFor(id, normalY, normalZ=0) {
   if(id>=100)return itemTiles.get(id)??1;
-  if(id===25)return 34;if(id===26)return 27;
+  if(isTorch(id))return 34;if(isPlant(id))return id===31?13:id===32?14:15;if(id===26)return 27;
   if(id===18)return normalY>0?23:normalY<0?9:normalZ>0?24:33;
   if(id===19||id===24)return normalY>0?25:normalY<0?2:normalZ>0?26:32;
   if(id===23)return normalY>0?30:normalY<0?9:normalZ>0?31:35;if(id===24)return normalY>0?25:26;
@@ -162,6 +164,7 @@ export async function createTextures() {
    else if(id===180){for(let i=0;i<12;i++)rect(2+i,14-i,1,2,'#a57d4a');rect(13,2,1,10,'#eee');rect(11,11,3,2,'#aaa');}
    else{const color=({100:'#8f6239',101:'#292c32',102:'#b6947e',103:'#d6dce0',104:'#b69840',105:'#f2cf55',106:'#47d5d6',107:'#6e514d',108:'#51464d',111:'#c0aa4e',113:'#608b3b',116:'#eee9db',118:'#6d803c',119:'#d7d4bf',230:'#49484c',231:'#dfdbd5'})[id]||'#aaa';rect(3,6,10,7,'#333');rect(3,5,10,6,color);rect(5,3,7,3,color);rect(5,5,5,2,'#ffffff44');}
   }
+  for(const id of itemIds)drawItem(context,id,itemTiles.get(id)*16,ITEMS[id]);
   const texture = new THREE.CanvasTexture(atlas);
   texture.userData.grassSource=referenceLoaded?'block-reference':'fallback';
   texture.userData.source=referenceLoaded?'reference-sheet':'procedural-fallback';
@@ -178,7 +181,7 @@ export async function createTextures() {
         const [o,u,,v]=points;draw.transform((u[0]-o[0])/16,(u[1]-o[1])/16,(v[0]-o[0])/16,(v[1]-o[1])/16,o[0],o[1]);
         draw.drawImage(atlas,tile*16,0,16,16,0,0,16,16);draw.fillStyle=`rgba(0,0,0,${shade})`;draw.fillRect(0,0,16,16);draw.restore();
       }
-      if(id>=100||id===25||id===20){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
+      if(id>=100||isTorch(id)||isPlant(id)||id===20){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
       face(tileFor(id,0,1),[[4,12],[24,22],[24,46],[4,36]],.1);
       face(tileFor(id,0),[[24,22],[44,12],[44,36],[24,46]],.28);
       face(tileFor(id,1),[[24,2],[44,12],[24,22],[4,12]],0);
@@ -237,11 +240,11 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
   return {
     select(id, count) {
       group.userData.itemId=count>0?id:0;
-      if(id!==selected&&id){block.geometry.dispose();block.geometry=id>=100||id===25||id===20?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
+      if(id!==selected&&id){block.geometry.dispose();block.geometry=id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
       const uv = block.geometry.attributes.uv;
-      for (let face = 0; face < (id>=100||id===25||id===20?1:6); face++) {
+      for (let face = 0; face < (id>=100||isTorch(id)||isPlant(id)||id===20?1:6); face++) {
         const tile = tileFor(id, face === 2 ? 1 : face === 3 ? -1 : 0,face===4?1:face===5?-1:0);
         for (let v = 0; v < 4; v++) uv.setXY(face * 4 + v, (tile * 16 + .2 + (v % 2) * 15.6) / (TILE_COUNT * 16), (.2 + (v < 2 ? 1 : 0) * 15.6) / 16);
       }
