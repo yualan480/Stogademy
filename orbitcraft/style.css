@@ -59,3 +59,12 @@ body:has(#inventory[open]) #hotbar,body:has(#inventory[open]) #selected-name{vis
 #tool-condition{bottom:calc(var(--hud-bottom) + var(--hud-slot) + 40px);z-index:5;pointer-events:none}
 
 #damage-flash{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;box-shadow:inset 0 0 100px 30px #b9212166;transition:opacity .15s}#damage-flash.on{opacity:1}#crosshair.hit{color:#ffaaa0}
+
+/* Classic block-game chrome: square gray controls and unobtrusive transparent chat. */
+body.playing{font-family:"Courier New",monospace}
+body.playing #hud nav button,body.playing #hud nav a{border-radius:0;background:#777;border:2px solid #222;border-top-color:#ddd;border-left-color:#ddd;color:#fff;text-shadow:1px 1px #222;box-shadow:inset 0 0 0 1px #555;font-family:inherit}
+body.playing #hud nav button:hover,body.playing #hud nav a:hover{background:#9292b2}
+body.playing .world-info{border-radius:0;background:#0005;color:#fff;font-family:inherit}
+body.playing #chat{font-family:inherit;padding:6px 8px}body.playing .chat-title{border:0;color:#ddd}body.playing #messages p{text-shadow:1px 1px #111}
+body.playing .brand b{font-family:inherit;color:#fff;text-shadow:1px 1px #111;letter-spacing:0}
+body.playing .swatch{image-rendering:pixelated;transform:none}

@@ -97,6 +97,7 @@ export class Game {
   }
   handle(p,m) {
     if(!m||typeof m!=='object')throw new Error('Invalid message');
+    if(m.type==='attack'){this.survival.attack(p);return;}
     if(this.survival.handle(p,m))return;
     if(m.type==='input') {
       if(!Number.isFinite(m.yaw)||!Number.isFinite(m.pitch))return;

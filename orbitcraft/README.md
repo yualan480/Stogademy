@@ -289,3 +289,13 @@ in one SQLite transaction in both Node and Cloudflare runtimes. Failed saves
 restore both players and do not emit a successful combat event or create loot.
 This update is prepared in the draft; a Cloudflare deployment is needed to
 change the live game's rules.
+
+### Classic presentation and daytime combat rules
+
+The in-game chrome uses square gray controls, pixel item icons and the existing
+nine-slot survival HUD, with a classic blue sky. Hostile creatures spawn only at
+night and disappear at dawn, including those underground; passive animals remain.
+Left-click or the touch mine/attack button sends an immediate server-validated
+melee attempt and holding continues attacks. Reach, line of sight, cooldown,
+armor, shields, durability and PvP persistence still apply. Mob hits now produce
+the same crosshair confirmation as PvP. Existing worlds and builds are retained.

@@ -4,7 +4,7 @@ import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,raycast,solid,collides } from './world.js';
 import { createResourceEffects,blockGeometry } from './mining-visuals.js';
 import { createPlayerModel } from './players.js';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261102-textures4';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-classic6';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const chunks=new Map(),pending=new Set(),dirty=new Set(),edits=new Map(),avatars=new Map();
@@ -16,7 +16,7 @@ let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});}catch{ $('gate-status').textContent='Orbitcraft needs WebGL. Enable hardware acceleration or try another browser.';throw new Error('WebGL unavailable'); }
 let worldPixelRatio=Math.min(devicePixelRatio,1.5),averageFrame=16,resolutionAt=0;
 renderer.setPixelRatio(worldPixelRatio);renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
-const scene=new THREE.Scene();scene.background=new THREE.Color('#acd2df');scene.fog=new THREE.Fog('#bdd8df',38,79);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#acd2df');scene.fog=new THREE.Fog('#b9d4ff',38,79);
 const camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.07,130);camera.rotation.order='YXZ';camera.position.set(22,37,42);camera.lookAt(0,15,0);
 scene.add(new THREE.HemisphereLight(0xe5f4ff,0x67754c,1.7));const sun=new THREE.DirectionalLight(0xffefcb,1.65);sun.position.set(-44,76,-68);scene.add(sun);
 const { texture, icon: blockIcon } = await createTextures();
@@ -184,7 +184,7 @@ canvas.addEventListener('click',()=>{if(connected&&!coarse&&!menuOpen()){canvas.
 addEventListener('mousemove',e=>{if(!me||document.pointerLockElement!==canvas)return;me.yaw-=e.movementX*.0025;me.pitch=Math.max(-1.54,Math.min(1.54,me.pitch-e.movementY*.0025));});
 function sendInput(){if(me&&connected){predictionHistory.set(++seq,{x:me.x,y:me.y,z:me.z});while(predictionHistory.size>100)predictionHistory.delete(predictionHistory.keys().next().value);send({type:'input',...(controls()?input:{}),mine:miningHeld&&controls(),yaw:me.yaw,pitch:me.pitch,seq});}}
 setInterval(sendInput,50);
-function setMining(value){miningHeld=!!value;if(!miningHeld)miningFeedback=null;sendInput();}
+function setMining(value){const first=!!value&&!miningHeld;miningHeld=!!value;if(!miningHeld)miningFeedback=null;sendInput();if(first&&connected&&controls())send({type:'attack'});}
 function useOrPlace(){const id=hotbarSlots[selected],hit=me&&raycast(me,get);if(ITEMS[id]?.food||ITEMS[id]?.tool==='hoe'||[113,180].includes(id)||[18,19,20,23,24].includes(hit?.block))action('use');else if(isBlock(id))action('place');}
 function action(type){if(!connected||!me||Date.now()-lastAction<190)return;lastAction=Date.now();setMining(false);held.swing();sendInput();if(type==='use'||hotbarSlots[selected])send({type,block:hotbarSlots[selected]});}
 canvas.addEventListener('mousedown',e=>{if(!controls())return;e.preventDefault();if(e.button===0)setMining(true);else if(e.button===2)useOrPlace();});
@@ -210,7 +210,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  for(const a of avatars.values()){const t=a.target,d=Math.hypot(a.group.position.x-t.x,a.group.position.z-t.z);a.group.position.lerp(new THREE.Vector3(t.x,t.y,t.z),Math.min(1,dt*13));a.group.rotation.y=t.yaw;a.left.rotation.x=d>.01?Math.sin(now*.009)*.45:0;a.right.rotation.x=-a.left.rotation.x;a.arm.rotation.x=-a.left.rotation.x*.85;a.arm2.rotation.x=a.left.rotation.x*.85;a.head.rotation.x=Math.max(-.8,Math.min(.8,t.pitch||0));if(t.mining)a.arm2.rotation.x=-.9+Math.sin(now*.022)*.35;}
  const underwater=me&&get(Math.floor(me.x),Math.floor(me.y+1.62),Math.floor(me.z))===8;
  document.body.classList.toggle('underwater',!!underwater);
- const daylight=survival.animate(now,dt);sun.intensity=1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=.2+daylight*1.5;scene.fog.color.set(underwater?'#3887a9':'#bdd8df').multiplyScalar(underwater?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=underwater?1:38;scene.fog.far=underwater?16:79;
+ const daylight=survival.animate(now,dt);sun.intensity=1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=.2+daylight*1.5;scene.fog.color.set(underwater?'#3887a9':'#b9d4ff').multiplyScalar(underwater?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=underwater?1:38;scene.fog.far=underwater?16:79;
  if(miningHeld&&controls()&&now-lastMiningSwing>220){lastMiningSwing=now;held.swing();}
  firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.position.lerp(new THREE.Vector3(input.block?-.18:-.45,input.block?-.24:-.45,input.block?-.5:-.7),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
  resources.update(Date.now(),dt,camera);

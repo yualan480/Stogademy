@@ -177,7 +177,7 @@ export function createAtmosphere(scene) {
   const sky = new THREE.Mesh(new THREE.SphereGeometry(110, 24, 12), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false,uniforms:{daylight:{value:1}},
     vertexShader: 'varying vec3 direction; void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-    fragmentShader: 'uniform float daylight;varying vec3 direction; void main(){float t=smoothstep(-0.08,0.9,normalize(direction).y);gl_FragColor=vec4(mix(vec3(0.77,0.88,0.91),vec3(0.30,0.59,0.85),t)*daylight,1.0);}'
+    fragmentShader: 'uniform float daylight;varying vec3 direction; void main(){float t=smoothstep(-0.08,0.9,normalize(direction).y);gl_FragColor=vec4(mix(vec3(0.73,0.83,1.0),vec3(0.40,0.61,1.0),t)*daylight,1.0);}'
   }));
   sky.renderOrder = -10;
   scene.add(sky);
