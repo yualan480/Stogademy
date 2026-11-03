@@ -545,3 +545,17 @@ math and 0.6-second jump checks at both step rates. Browser checks verify visibl
 XP progression, armor points, durability strips, animated water without shader
 errors, and HUD hiding. The earlier snow, cursor-following preview and removal
 of the separate Eat binding remain in this release.
+
+### Classic death screen
+
+Death now overlays the live world with a translucent red tint, pixel “You died!”
+heading, yellow score and the two classic Respawn / Title screen buttons. Score
+records XP earned during that life before XP is cleared/dropped. Controls enable
+after one second to avoid accidental clicks. Mouse lock releases on death,
+menus/HUD hide, Tab switches the two choices, and Enter activates the focused
+choice. Respawn restores health and automatically requests crosshair focus.
+Title screen disconnects safely and returns to Orbit Games. Reconnecting while
+dead retains the score and functional death screen.
+
+The real-browser death check covers a lethal attack while pointer-locked, score
+persistence, title navigation, no accidental pause overlay, and respawn/focus.

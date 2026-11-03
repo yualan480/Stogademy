@@ -1,6 +1,6 @@
 import {xpProgress} from './experience.js';
-import {tintAndFall,boatModel} from './entity-effects.js?v=20261103-flow-xp17';
-import {createContainerView} from './containers-ui.js?v=20261103-flow-xp17';
+import {tintAndFall,boatModel} from './entity-effects.js?v=20261103-death18';
+import {createContainerView} from './containers-ui.js?v=20261103-death18';
 import * as THREE from './vendor/three.module.js';
 import {ITEMS,RECIPES,itemName,SMELTING,FUEL} from './items.js';
 export function applyEquipment(model,equipment={}){
@@ -19,7 +19,7 @@ export function createSurvivalView({scene,send,icon,inventory,selected}){
  const containers=createContainerView({send,icon});
  function recipes(){containers.render();}
  $('respawn').onclick=()=>send({type:'respawn'});$('eat-button').onclick=()=>send({type:'eat'});$('use-button').onclick=()=>send({type:'use'});
- function update(next){containers.update(next);state=next;worldTime=next.time??worldTime;$('health-meter').replaceChildren();$('hunger-meter').replaceChildren();for(let i=0;i<10;i++){for(const [name,value,shape]of [['health-meter',next.health,'♥'],['hunger-meter',next.hunger,'◆']]){const el=document.createElement('span');el.setAttribute('aria-hidden','true');el.className=value>=i*2+2?'full':value>i*2?'half':'empty';$(name).append(el);}}$('health-meter').setAttribute('aria-label',`Health ${Math.ceil(next.health)} of 20`);$('hunger-meter').setAttribute('aria-label',`Hunger ${Math.ceil(next.hunger)} of 20`);$('death-screen').hidden=next.health>0;$('sleep-status').hidden=!next.sleeping;
+ function update(next){containers.update(next);state=next;worldTime=next.time??worldTime;$('health-meter').replaceChildren();$('hunger-meter').replaceChildren();for(let i=0;i<10;i++){for(const [name,value,shape]of [['health-meter',next.health,'♥'],['hunger-meter',next.hunger,'◆']]){const el=document.createElement('span');el.setAttribute('aria-hidden','true');el.className=value>=i*2+2?'full':value>i*2?'half':'empty';$(name).append(el);}}$('health-meter').setAttribute('aria-label',`Health ${Math.ceil(next.health)} of 20`);$('hunger-meter').setAttribute('aria-label',`Hunger ${Math.ceil(next.hunger)} of 20`);$('death-screen').hidden=next.health>0;$('death-score').textContent=next.deathScore||0;$('sleep-status').hidden=!next.sleeping;
  const xp=xpProgress(next.xp||0);$('experience-level').textContent=xp.level||'';$('experience-bar').style.setProperty('--xp-fill',(xp.progress*100)+'%');$('experience-bar').setAttribute('aria-valuenow',String(Math.round(xp.progress*100)));$('experience-bar').setAttribute('aria-label',`Experience level ${xp.level}, ${xp.remaining} of ${xp.needed} to next level`);
  const armor=Math.min(20,Object.values(next.equipment||{}).reduce((sum,id)=>sum+(ITEMS[id]?.defense||0),0));$('armor-meter').replaceChildren();for(let i=0;i<10;i++){const el=document.createElement('span');el.className=armor>=i*2+2?'full':armor>i*2?'half':'empty';$('armor-meter').append(el);}$('armor-meter').setAttribute('aria-label',`Armor ${armor} of 20`);
  for(const b of document.querySelectorAll('#hotbar button')){const slot=+b.dataset.hotbarIndex,id=next.hotbar?.[slot],item=ITEMS[id];b.querySelector('.durability-strip')?.remove();if(item?.durability&&(inventory()[id]||0)>0){const ratio=Math.max(0,Math.min(1,(next.durability?.[id]??item.durability)/item.durability));const bar=document.createElement('i');bar.className='durability-strip';bar.style.setProperty('--durability',ratio*100+'%');bar.style.setProperty('--durability-color',`hsl(${ratio*120} 90% 45%)`);b.append(bar);}}
