@@ -17,12 +17,15 @@
   var SB = (window.Leaderboard && window.Leaderboard.config) || null;
   if (!SB || !window.WebSocket || !document.body) return;   // no matchmaking server: the game stays local only
 
-  /* ---- the keys the Unity build listens for (one button per player). Change these two lines if your build differs. ---- */
+  /* ---- the keys this build listens for: THREE buttons per player. Change these two arrays if your build differs. ---- */
   var SEAT_KEYS = [
-    { key: 'w',         code: 'KeyW',    kc: 87, label: 'W' },        // Player 1
-    { key: 'ArrowUp',   code: 'ArrowUp', kc: 38, label: '\u2191' }    // Player 2
+    [ { key: 'w', code: 'KeyW', kc: 87 }, { key: 'e', code: 'KeyE', kc: 69 }, { key: 'r', code: 'KeyR', kc: 82 } ],   // Player 1: W / E / R
+    [ { key: 'i', code: 'KeyI', kc: 73 }, { key: 'o', code: 'KeyO', kc: 79 }, { key: 'p', code: 'KeyP', kc: 80 } ]    // Player 2: I / O / P
   ];
-  var MY_CODES = ['KeyW', 'ArrowUp', 'Space'];   // any of these presses your own seat's key
+  var SEAT_LABEL = ['W / E / R', 'I / O / P'];
+  // build a lookup from a pressed key's code to {seat, i} so we can tell which of the 6 keys was pressed
+  var CODE_TO_SEAT = {};
+  SEAT_KEYS.forEach(function (keys, seat) { keys.forEach(function (k, i) { CODE_TO_SEAT[k.code] = { seat: seat, i: i }; }); });
 
   var CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   var ROOM_PREFIX = 'getaway-';
@@ -107,7 +110,9 @@
   var mode = '';                 // during a match: 'host' (runs + streams the game) or 'guest' (watches + sends buttons)
   var mySeat = 0;                // 0 = Player 1 (host), 1 = Player 2 (guest)
   var rttNow = 0, linked = false;
-  var heldMine = false, seatHeld = [false, false], mouseHeld = false;
+  var heldMine = [false, false, false];                       // my own 3 keys, held or not
+  var seatHeld = [[false, false, false], [false, false, false]];   // each seat's 3 keys, as pressed IN THE GAME
+  var mouseHeld = false;
   var oppInfo = null;
 
 
@@ -132,7 +137,8 @@
     '#gwOv .spin{width:34px;height:34px;margin:10px auto;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:#e8497d;animation:gwspin .9s linear infinite}@keyframes gwspin{to{transform:rotate(360deg)}}' +
     '#gwHud{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:10px;padding:5px 8px 5px 14px;border-radius:99px;background:rgba(10,6,28,.78);border:2px solid rgba(255,255,255,.4);color:#fff;font:600 14px var(--pixel,"Pixelify Sans","Courier New",monospace);white-space:nowrap;max-width:94vw}#gwHud[hidden]{display:none}' +
     '#gwHud .me{color:#7fe08b}#gwHud .png{color:#a9a8c4}#gwHud button{padding:3px 10px;border-radius:99px;border:0;background:#3a3a5c;color:#fff;font:700 13px var(--pixel,"Pixelify Sans","Courier New",monospace);cursor:pointer}' +
-    '#gwTap{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:30;width:min(62vw,260px);height:84px;border-radius:42px;border:3px solid rgba(255,255,255,.7);background:rgba(212,40,95,.8);color:#fff;font:700 1.5rem var(--pixel,"Pixelify Sans","Courier New",monospace);touch-action:none;-webkit-user-select:none;user-select:none}#gwTap[hidden]{display:none}#gwTap.on{background:rgba(255,120,150,.95)}' +
+    '#gwTapRow{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:30;display:flex;gap:14px}#gwTapRow[hidden]{display:none}' +
+    '#gwTapRow button{width:min(26vw,96px);height:84px;border-radius:24px;border:3px solid rgba(255,255,255,.7);background:rgba(212,40,95,.8);color:#fff;font:700 1.3rem var(--pixel,"Pixelify Sans","Courier New",monospace);touch-action:none;-webkit-user-select:none;user-select:none}#gwTapRow button.on{background:rgba(255,120,150,.95)}' +
     '#gwVid{position:fixed;inset:0;z-index:15;width:100%;height:100%;object-fit:contain;background:#000;touch-action:none;-webkit-user-select:none;user-select:none}#gwVid[hidden]{display:none}' +
     '#gwOv .codein{-webkit-user-select:text;user-select:text}' +
     '#gwToast{position:fixed;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);z-index:35;max-width:92vw;padding:6px 14px;border-radius:12px;background:rgba(212,40,95,.95);color:#fff;font:700 14px var(--pixel,"Pixelify Sans","Courier New",monospace);text-align:center;pointer-events:none;opacity:0;transition:opacity .25s}#gwToast.on{opacity:1}';
@@ -150,7 +156,8 @@
   var onBtn = txt('button', '', 'Play online'); onBtn.id = 'gwOnBtn'; onBtn.type = 'button';
   var ov = txt('div', '', ''); ov.id = 'gwOv'; ov.hidden = true;
   var hud = txt('div', '', ''); hud.id = 'gwHud'; hud.hidden = true;
-  var tap = txt('button', '', 'JUMP'); tap.id = 'gwTap'; tap.type = 'button'; tap.hidden = true;
+  var tap = document.createElement('div'); tap.id = 'gwTapRow'; tap.hidden = true;
+  var tapBtns = [0, 1, 2].map(function (i) { var b = document.createElement('button'); b.type = 'button'; tap.appendChild(b); return b; });
   var toastEl = txt('div', '', ''); toastEl.id = 'gwToast'; toastEl.setAttribute('role', 'status');
   var vid = document.createElement('video'); vid.id = 'gwVid'; vid.hidden = true; vid.muted = true; vid.autoplay = true; vid.playsInline = true; vid.setAttribute('playsinline', '');
   document.body.appendChild(vid);
@@ -237,7 +244,7 @@
       var m = all[i], li = txt('li', m ? '' : 'empty', '');
       if (m) { li.appendChild(avatarWrap(m.avatar)); li.appendChild(txt('span', 'nm', m.name + (m.id === myId ? ' (you)' : ''))); }
       else li.appendChild(txt('span', 'nm', 'Waiting for a player...'));
-      li.appendChild(txt('span', 'tag', 'Player ' + (i + 1) + ' \u00b7 ' + SEAT_KEYS[i].label));
+      li.appendChild(txt('span', 'tag', 'Player ' + (i + 1) + ' \u00b7 ' + SEAT_LABEL[i]));
       lSlots.appendChild(li);
     }
     var ready = all.length >= 2;
@@ -262,10 +269,10 @@
   /* ================= firing keys and clicks into the game ================= */
   function mark(ev) { ev.__gwNet = true; return ev; }
   function defNum(ev, name, v) { try { Object.defineProperty(ev, name, { get: function () { return v; } }); } catch (e) { /* ignore */ } }
-  function fireKey(seat, down) {
-    var k = SEAT_KEYS[seat], cv = gameCanvas() || document;
-    if (seatHeld[seat] === down) return;
-    seatHeld[seat] = down;
+  function fireKey(seat, i, down) {
+    var k = SEAT_KEYS[seat][i], cv = gameCanvas() || document;
+    if (seatHeld[seat][i] === down) return;
+    seatHeld[seat][i] = down;
     var ev = new KeyboardEvent(down ? 'keydown' : 'keyup', { key: k.key, code: k.code, bubbles: true, cancelable: true, composed: true });
     defNum(ev, 'keyCode', k.kc); defNum(ev, 'which', k.kc); defNum(ev, 'charCode', 0);
     cv.dispatchEvent(mark(ev));
@@ -280,9 +287,9 @@
     else { mouseHeld = false; send('mouseup', 0); send('click', 0); }
   }
   function releaseAll() {
-    [0, 1].forEach(function (s) { if (seatHeld[s]) fireKey(s, false); });
+    [0, 1].forEach(function (s) { [0, 1, 2].forEach(function (i) { if (seatHeld[s][i]) fireKey(s, i, false); }); });
     if (mouseHeld) mouseHeld = false;
-    heldMine = false;
+    heldMine = [false, false, false];
   }
 
   /* ================= the stream: the host runs the game, the guest watches it and sends buttons ================= */
@@ -309,7 +316,7 @@
   // host: apply what the guest sent
   function onRemoteMsg(p) {
     if (mode !== 'host' || phase !== 'play' || !p) return;
-    if (p.t === 'k') fireKey(1, p.d === 1);
+    if (p.t === 'k' && Number.isInteger(p.i) && p.i >= 0 && p.i <= 2) fireKey(1, p.i, p.d === 1);
     else if (p.t === 'm') fireMouse(p.k === 'd' ? 'd' : 'u', +p.x, +p.y);
     else if (p.t === 'p' && dcOpen()) { try { dc.send(JSON.stringify({ t: 'o', s: p.s })); } catch (e) { /* ignore */ } }
   }
@@ -411,18 +418,19 @@
   }
 
   /* ---- catch the player's own input while a match is on ---- */
-  function myInput(down) {
-    if (phase !== 'play' || heldMine === down) return;
-    heldMine = down;
-    if (mode === 'host') fireKey(0, down);                       // I am Player 1: press it in my own game
-    else if (mode === 'guest') sendInput({ t: 'k', d: down ? 1 : 0 });   // I am Player 2: ask the host to press it
+  function myInput(i, down) {
+    if (phase !== 'play' || heldMine[i] === down) return;
+    heldMine[i] = down;
+    if (mode === 'host') fireKey(0, i, down);                       // I am Player 1: press it in my own game
+    else if (mode === 'guest') sendInput({ t: 'k', i: i, d: down ? 1 : 0 });   // I am Player 2: ask the host to press it
   }
   function seatKeyEvent(e) {
     if (phase !== 'play' || !mode || e.__gwNet) return;
-    if (MY_CODES.indexOf(e.code) === -1) return;
+    var hit = CODE_TO_SEAT[e.code];
+    if (!hit || hit.seat !== mySeat) return;   // only react to MY seat's own 3 keys
     e.preventDefault(); e.stopImmediatePropagation();
     if (e.repeat) return;
-    myInput(e.type === 'keydown');
+    myInput(hit.i, e.type === 'keydown');
   }
   window.addEventListener('keydown', seatKeyEvent, true);
   window.addEventListener('keyup', seatKeyEvent, true);
@@ -447,18 +455,24 @@
   });
   vid.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-  window.addEventListener('blur', function () { if (heldMine) myInput(false); });
+  window.addEventListener('blur', function () { [0, 1, 2].forEach(function (i) { if (heldMine[i]) myInput(i, false); }); });
 
-  // the big button for touch screens
-  tap.addEventListener('pointerdown', function (e) { e.preventDefault(); tap.className = 'on'; try { tap.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } myInput(true); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { tap.addEventListener(t, function () { tap.className = ''; myInput(false); }); });
+  // the 3 buttons for touch screens, one per key of my seat
+  tapBtns.forEach(function (b, i) {
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); b.className = 'on'; try { b.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } myInput(i, true); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, function () { b.className = ''; myInput(i, false); }); });
+  });
+  function updateTapLabels() {
+    var letters = mode === 'host' ? ['W', 'E', 'R'] : ['I', 'O', 'P'];
+    tapBtns.forEach(function (b, i) { b.textContent = letters[i]; });
+  }
 
   /* ================= match start / end ================= */
   function renderHud() {
     hud.textContent = '';
     var opp = oppInfo ? oppInfo.name : 'opponent';
-    if (mode === 'host') hud.appendChild(txt('span', 'me', 'You: Player 1 \u00b7 W/Space (you run the game)'));
-    else hud.appendChild(txt('span', 'me', 'You: Player 2 \u00b7 W/\u2191/Space'));
+    if (mode === 'host') hud.appendChild(txt('span', 'me', 'You: Player 1 \u00b7 W/E/R (you run the game)'));
+    else hud.appendChild(txt('span', 'me', 'You: Player 2 \u00b7 I/O/P'));
     hud.appendChild(txt('span', '', mode === 'host' ? 'vs ' + opp : 'host: ' + opp));
     hud.appendChild(txt('span', 'png', rttNow ? rttNow + ' ms' : (linked ? 'live' : 'connecting...')));
     var lv = txt('button', '', 'Leave'); lv.type = 'button'; lv.addEventListener('click', function () { endOnline(''); });
@@ -472,14 +486,15 @@
     phase = 'play'; setMyState('play');
     closeOverlay(); renderBtn(); renderHud(); hud.hidden = false;
     tap.hidden = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    updateTapLabels();
     try { window.focus(); } catch (e) { /* ignore */ }
     clearTimeout(linkT);
     linkT = setTimeout(function () { linkT = 0; if (phase === 'play' && !linked) endOnline('Could not connect to the other player\u2019s game. Try again; your network may block peer-to-peer video.'); }, 20000);
     if (mode === 'host') {
-      toast('Match on! You run the game and stream it to your opponent. Choose the two-player mode, then press W or Space (you are Player 1). Keep this tab in front.', 8000);
+      toast('Match on! You run the game and stream it to your opponent. You are Player 1: W/E/R. Keep this tab in front.', 8000);
       startHostStream();
     } else {
-      toast('Connecting to the host\u2019s game... You are Player 2: press \u2191, W or Space.', 6000);
+      toast('Connecting to the host\u2019s game... You are Player 2: I/O/P.', 6000);
     }
   }
   function hostStart() {
@@ -495,7 +510,7 @@
     clearTimeout(autoT); autoT = 0; closePC(); mode = ''; rttNow = 0;
     releaseAll();
     oppInfo = null; isHost = false; tracked = false; myState = 'lobby'; roomCode = ''; roomPublic = false;
-    hud.hidden = true; tap.hidden = true; tap.className = '';
+    hud.hidden = true; tap.hidden = true; tapBtns.forEach(function (b) { b.className = ''; });
   }
   function closeNet() {
     joinToken++;
