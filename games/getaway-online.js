@@ -306,6 +306,31 @@
   };
   var pc = null, dc = null, outStream = null, pendingIce = [], pingT = 0;
 
+  // WebGL canvases (this Unity build included) often hand captureStream() a blank/black
+  // frame, because the browser is free to clear the drawing buffer right after each frame
+  // unless the game keeps it around. Instead of capturing the WebGL canvas directly, we
+  // continuously redraw it onto a plain 2D canvas, every animation frame, and stream THAT
+  // canvas instead \u2014 a 2D canvas's captureStream() doesn't have this problem.
+  var mirrorCv = null, mirrorCtx = null, mirrorRAF = 0;
+  function startMirror(src) {
+    mirrorCv = document.createElement('canvas');
+    mirrorCv.width = src.width || 960; mirrorCv.height = src.height || 540;
+    mirrorCtx = mirrorCv.getContext('2d', { alpha: false });
+    (function draw() {
+      if (!mirrorCv) return;
+      if (src.width && src.height && (mirrorCv.width !== src.width || mirrorCv.height !== src.height)) {
+        mirrorCv.width = src.width; mirrorCv.height = src.height;
+      }
+      try { mirrorCtx.drawImage(src, 0, 0, mirrorCv.width, mirrorCv.height); } catch (e) { /* a transient GL error; just try again next frame */ }
+      mirrorRAF = requestAnimationFrame(draw);
+    })();
+    return mirrorCv;
+  }
+  function stopMirror() {
+    if (mirrorRAF) cancelAnimationFrame(mirrorRAF);
+    mirrorRAF = 0; mirrorCv = null; mirrorCtx = null;
+  }
+
   var dcOpen = function () { return !!dc && dc.readyState === 'open'; };
   var oppId = function () { return oppInfo ? oppInfo.id : ''; };
   // guest -> host: over the data channel, or (until it opens) over the matchmaking connection
@@ -327,6 +352,7 @@
     if (dc) { try { dc.close(); } catch (e) { /* ignore */ } dc = null; }
     if (pc) { try { pc.close(); } catch (e) { /* ignore */ } pc = null; }
     if (outStream) { outStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* ignore */ } }); outStream = null; }
+    stopMirror();
     try { vid.srcObject = null; } catch (e) { /* ignore */ }
     vid.hidden = true;
   }
@@ -370,10 +396,12 @@
   // HOST: capture the game canvas and offer it to the guest
   async function startHostStream() {
     var cv = gameCanvas();
-    if (!cv || !cv.captureStream || !window.RTCPeerConnection) { endOnline('This browser cannot stream the game. The host needs Chrome, Edge or Firefox on a computer.'); return; }
+    if (!cv || !window.RTCPeerConnection) { endOnline('This browser cannot stream the game. The host needs Chrome, Edge or Firefox on a computer.'); return; }
     try {
-      var conn = newPC();
-      outStream = cv.captureStream(60);
+      var conn = newPC();   // resets any old connection/mirror first
+      var mcv = startMirror(cv);
+      if (!mcv.captureStream) throw new Error('canvas captureStream unsupported');
+      outStream = mcv.captureStream(60);
       var track = outStream.getVideoTracks()[0];
       if (!track) throw new Error('no video track');
       try { track.contentHint = 'motion'; } catch (e) { /* ignore */ }
