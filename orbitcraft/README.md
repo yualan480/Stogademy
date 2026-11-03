@@ -449,7 +449,7 @@ duration for each item until hunger is full or the food runs out.
 The server measures each hold and consumes food, restores hunger/saturation and
 heals in a single saved transaction. Releasing, switching slots, mining, opening
 a menu, dying, losing input heartbeats or already-full hunger cancels progress.
-Hold the rebound Eat/Use key or the touch Eat/Use button for the same behavior.
+Hold the Use control or the touch Eat/Use button for the same behavior; there is no separate Eat keybind.
 Legacy eat/use packets cannot consume food instantly. No progress bar is added.
 The F5 camera-cycle function was also restored and checked with the eating pose.
 
@@ -503,3 +503,13 @@ plant/leaf loot, mounted/unmounted fall damage, six mob caps, burning/loot, auto
 join, hidden toolbar, T chat fade, global Tab roster, red hit feedback and shaped
 armor drops. Crafting/furnaces, held eating, PvP and Cloudflare persistence also
 receive regression checks.
+
+### Snow reference and inventory cursor tracking
+
+Snow ground blocks now use a cool white top, uneven deep snow over dirt sides,
+and the ordinary dirt underside. World, held/drop models and icons share this
+face mapping. The inventory's character preview turns its head and upper body
+toward the cursor, using the displayed canvas bounds so GUI scaling works.
+Pointer-driven renders are limited to one animation frame at a time and run
+only while the inventory is open. The separate Eat binding/R shortcut has been
+removed; hold-right-click eating and mobile touch eating remain available.

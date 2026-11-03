@@ -1,4 +1,4 @@
-import {drawItem} from './item-art.js?v=20261103-survival15';
+import {drawItem} from './item-art.js?v=20261103-snow16';
 import {isTorch,isPlant} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';
@@ -27,7 +27,7 @@ export function tileFor(id, normalY, normalZ=0) {
   if(id>=11)return ({11:16,12:17,13:18,14:19,15:20,16:21,17:22,18:normalY>0?23:24,19:normalY>0?25:26,20:27,21:normalY>0?28:1,22:29})[id]??1;
   if (id === 1) return normalY > 0 ? 0 : normalY < 0 ? 1 : 10;
   if (id === 5 && normalY !== 0) return 11;
-  if (id === 7) return 6;
+  if (id === 7) return normalY>0?6:normalY<0?1:12;
   return id - 1;
 }
 
@@ -128,6 +128,12 @@ export async function createTextures() {
   }
   }
   context.globalAlpha = 1;
+  // Snow-covered ground: cool white top, a deep irregular snow cap, dirt below.
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    const n=random(x,y,91),patch=random(x>>1,y>>1,92);context.fillStyle=patch>.72?'#fafdFA':n>.65?'#f0f9f9':n>.3?'#e9f4f5':'#e1eff1';context.fillRect(6*16+x,y,1,1);
+  }
+  context.drawImage(atlas,16,0,16,16,12*16,0,16,16);
+  for(let x=0;x<16;x++){const cap=6+Math.floor(random(x>>1,0,93)*4);for(let y=0;y<=cap+1;y++){const n=random(x,y,94);context.fillStyle=y===cap+1?'#6f8988':y===cap?'#a2b8b8':y>3?(n>.5?'#c1d0d0':'#b4c6c7'):(n>.5?'#d4dedd':'#cad7d6');context.fillRect(12*16+x,y,1,1);}}
   // Additional original pixel textures and silhouettes for survival equipment.
   for(let tile=21;tile<32;tile++){
    const colors=['#777875','#593e31','#ac824d','#9a713e','#777875','#696c70','#ae3939','#65432b','#b5a94f','#a2743f','#9c703b'];

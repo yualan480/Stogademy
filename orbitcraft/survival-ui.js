@@ -1,5 +1,5 @@
-import {tintAndFall,boatModel} from './entity-effects.js?v=20261103-survival15';
-import {createContainerView} from './containers-ui.js?v=20261103-survival15';
+import {tintAndFall,boatModel} from './entity-effects.js?v=20261103-snow16';
+import {createContainerView} from './containers-ui.js?v=20261103-snow16';
 import * as THREE from './vendor/three.module.js';
 import {ITEMS,RECIPES,itemName,SMELTING,FUEL} from './items.js';
 export function applyEquipment(model,equipment={}){
