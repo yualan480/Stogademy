@@ -330,6 +330,7 @@
     ]
   };
   var pc = null, dc = null, outStream = null, pendingIce = [], pingT = 0;
+  var hostIceQ = [], offerSent = false, earlyIce = [];   // FIX: ICE that arrives before the offer is sent / before the guest has a connection used to be dropped
   var vSender = null, directStream = null, monT = 0, blackN = 0, prevFrames = 0, fpsNow = 0, zeroN = 0, warnedBlack = false, usedDirect = false, hostHidSent = null;
   var sampCv = null, sampCtx = null;
 
@@ -428,7 +429,7 @@
     clearInterval(monT); monT = 0; blackN = 0; prevFrames = 0; fpsNow = 0; zeroN = 0; warnedBlack = false; usedDirect = false; hostHidSent = null; vSender = null;
     if (directStream) { directStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* ignore */ } }); directStream = null; }
     clearInterval(pingT); pingT = 0; clearTimeout(linkT); linkT = 0; clearTimeout(discT); discT = 0;
-    linked = false; pendingIce = [];
+    linked = false; pendingIce = []; hostIceQ = []; offerSent = false;
     if (dc) { try { dc.close(); } catch (e) { /* ignore */ } dc = null; }
     if (pc) { try { pc.close(); } catch (e) { /* ignore */ } pc = null; }
     if (outStream) { outStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* ignore */ } }); outStream = null; }
@@ -440,7 +441,12 @@
     closePC();
     var conn = new RTCPeerConnection(ICE); pc = conn;
     conn.onicecandidate = function (e) {
-      if (e.candidate && conn === pc) sendRoom('rtc', { to: oppId(), k: 'ice', d: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate });
+      if (!e.candidate || conn !== pc) return;
+      try { console.log('[getaway] local ICE', e.candidate.type || e.candidate.candidate.split(' ')[7]); } catch (x) { /* ignore */ }
+      var d = e.candidate.toJSON ? e.candidate.toJSON() : e.candidate;
+      // host: hold candidates back until the offer has gone out, or the guest has no connection yet and throws them away
+      if (mode === 'host' && !offerSent) hostIceQ.push(d);
+      else sendRoom('rtc', { to: oppId(), k: 'ice', d: d });
     };
     conn.onconnectionstatechange = function () {
       if (conn !== pc || phase !== 'play') return;
@@ -492,7 +498,10 @@
       await conn.setLocalDescription(offer);
       tuneSender(sender);
       sendRoom('rtc', { to: oppId(), k: 'offer', d: { type: offer.type, sdp: offer.sdp } });
-    } catch (e) { endOnline('Could not start streaming the game.'); }
+      offerSent = true;
+      var q = hostIceQ; hostIceQ = [];
+      q.forEach(function (d) { sendRoom('rtc', { to: oppId(), k: 'ice', d: d }); });
+    } catch (e) { console.warn('[getaway] startHostStream', e); endOnline('Could not start streaming the game.'); }
   }
   async function flushIce(conn) {
     var q = pendingIce; pendingIce = [];
@@ -504,6 +513,7 @@
     try {
       if (p.k === 'offer' && mode === 'guest') {
         var conn = newPC(); startMonitor();
+        pendingIce = earlyIce.concat(pendingIce); earlyIce = [];   // candidates that beat the offer here
         conn.ontrack = function (e) {
           vid.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
           // keep the video hidden (so no black cover) until a real frame is playing
@@ -523,10 +533,11 @@
       } else if (p.k === 'answer' && mode === 'host' && pc) {
         await pc.setRemoteDescription(p.d);
         await flushIce(pc);
-      } else if (p.k === 'ice' && pc) {
-        if (pc.remoteDescription) await pc.addIceCandidate(p.d); else pendingIce.push(p.d);
+      } else if (p.k === 'ice') {
+        if (!pc) earlyIce.push(p.d);   // guest has no connection yet: keep it, don't drop it
+        else if (pc.remoteDescription) await pc.addIceCandidate(p.d); else pendingIce.push(p.d);
       }
-    } catch (e) { /* ignore a bad message */ }
+    } catch (e) { console.warn('[getaway] signaling', p && p.k, e); }
   }
 
   /* ---- catch the player's own input while a match is on ---- */
@@ -592,7 +603,7 @@
   }
   function enterPlay(seat) {
     clearTimeout(autoT); autoT = 0;
-    mySeat = seat; mode = seat === 0 ? 'host' : 'guest'; rttNow = 0; linked = false;
+    mySeat = seat; mode = seat === 0 ? 'host' : 'guest'; rttNow = 0; linked = false; earlyIce = [];
     var all = members(); oppInfo = all.filter(function (m) { return m.id !== myId; })[0] || null;
     releaseAll();
     phase = 'play'; setMyState('play');
