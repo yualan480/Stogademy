@@ -12,7 +12,7 @@ const make=()=>new Miniflare({modules:true,modulesRoot:directory,scriptPath:join
  if(!['alice-token','bob-token'].includes(token))return new Response('Unauthorized',{status:401});
  const id=token==='alice-token'?'00000000-0000-4000-a000-000000000001':'00000000-0000-4000-a000-000000000002';
  if(new URL(request.url).pathname==='/auth/v1/user')return Response.json({id});
- return Response.json([{username:token==='alice-token'?'CloudAlice':'CloudBob',display_name:'Ignored display name'}]);
+ return Response.json([{username:token==='alice-token'?'CloudAlice':'CloudBob',display_name:'Ignored alias',first_name:'Cloud',last_name:token==='alice-token'?'Alice':'Bob'}]);
 }});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function connect(mf,token){const response=await mf.dispatchFetch('https://study.test/orbitcraft/socket',{headers:{Upgrade:'websocket',Origin:'https://study.test'}});assert.equal(response.status,101);const ws=response.webSocket,messages=[];ws.accept();ws.addEventListener('message',e=>messages.push(JSON.parse(e.data)));ws.send(JSON.stringify({type:'auth',token}));return {ws,messages,send:m=>ws.send(JSON.stringify(m)),wait:async(type,filter=()=>true)=>{for(let i=0;i<180;i++){const n=messages.findIndex(m=>m.type===type&&filter(m));if(n>=0)return messages.splice(n,1)[0];await sleep(25);}throw new Error('Missing '+type+': '+JSON.stringify(messages.slice(-2)));}};}

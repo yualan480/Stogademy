@@ -206,20 +206,21 @@ export function createAtmosphere(scene) {
   };
 }
 
-export function createHeldBlock(camera, texture) {
-  const group = new THREE.Group(); camera.add(group);
+export function createHeldBlock(camera, texture, {left=false}={}) {
+  const group = new THREE.Group();group.name=left?'first-person-offhand':'first-person-mainhand';if(left)group.scale.x=-1; camera.add(group);
   const handMaterial = new THREE.MeshLambertMaterial({ color: 0xc99a72, depthTest: false, fog: false });
-  const sleeveMaterial = new THREE.MeshLambertMaterial({ color: 0x2859a7, depthTest: false, fog: false });
+  const sleeveMaterial = new THREE.MeshLambertMaterial({ color: 0x229b9d, depthTest: false, fog: false });
   const hand = new THREE.Mesh(new THREE.BoxGeometry(.17, .34, .18), handMaterial);
   hand.position.set(.41, -.48, -.64); hand.rotation.set(-.38, -.2, -.18); hand.renderOrder = 1000; group.add(hand);
   const sleeve = new THREE.Mesh(new THREE.BoxGeometry(.18, .27, .19), sleeveMaterial);
   sleeve.position.set(.43, -.69, -.55); sleeve.rotation.copy(hand.rotation); sleeve.renderOrder = 1000; group.add(sleeve);
   const material = new THREE.MeshLambertMaterial({ map: texture, alphaTest: .5, depthTest: false, fog: false });
   const block = new THREE.Mesh(new THREE.BoxGeometry(.24, .24, .24), material);
-  block.position.set(.43, -.35, -.76); block.rotation.set(.12, -.5, -.1); block.renderOrder = 1001; group.add(block);
+  block.name='held-item';block.position.set(.43, -.35, -.76); block.rotation.set(.12, -.5, -.1); block.renderOrder = 1001; group.add(block);
   let selected = null, swingAt = -1000;
   return {
     select(id, count) {
+      group.userData.itemId=count>0?id:0;
       if(id!==selected&&id){block.geometry.dispose();block.geometry=id>=100?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
@@ -234,7 +235,8 @@ export function createHeldBlock(camera, texture) {
     update(now, moving, visible) {
       group.visible = visible;
       const swing = Math.sin(Math.min(1, (now - swingAt) / 220) * Math.PI);
-      group.position.set(moving ? Math.sin(now * .009) * .012 : 0, (moving ? Math.abs(Math.cos(now * .009)) * .018 : 0) - swing * .08, -swing * .1);
+      const narrow=Math.min(1,camera.aspect/1.25),scale=Math.max(.6,narrow);hand.scale.setScalar(scale);sleeve.scale.setScalar(scale);block.scale.setScalar(scale);
+      group.position.set((moving ? Math.sin(now * .009) * .012 : 0)+(left?1:-1)*.43*(1-narrow), (moving ? Math.abs(Math.cos(now * .009)) * .018 : 0) - swing * .08, -swing * .1);
       group.rotation.x = -swing * .22;
     }
   };

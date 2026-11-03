@@ -33,7 +33,7 @@ export class Game {
     this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
   }
   leave(p) {if(this.players.get(p.id)!==p)return;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();}
-  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health};}
+  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health};}
   inventory(p){p.send({type:'inventory',inventory:p.inventory,mined:p.mined,placed:p.placed,slots:stacks(p),hotbar:p.hotbar});}
   broadcast(message){for(const p of this.players.values())p.send(message);}
   publicDrop(d){return {id:d.id,block:d.block,count:d.count,x:d.x,y:d.y,z:d.z,created:d.created};}

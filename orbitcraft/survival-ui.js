@@ -1,4 +1,4 @@
-import {createContainerView} from './containers-ui.js?v=20261103-controls9';
+import {createContainerView} from './containers-ui.js?v=20261103-offhand10';
 import * as THREE from './vendor/three.module.js';
 import {ITEMS,RECIPES,itemName,SMELTING,FUEL} from './items.js';
 export function applyEquipment(model,equipment={}){
@@ -11,6 +11,7 @@ export function createSurvivalView({scene,send,icon,inventory,selected}){
  const $=id=>document.getElementById(id),mobs=new Map(),projectiles=[];let state={health:20,hunger:20,equipment:{},durability:{}},worldTime=6000,chosen='planks',station='hand',lastRecipeKey='';
  function chest(contents){containers.render();}
  $('chest-deposit').onclick=()=>send({type:'chest',item:selected(),take:false});
+ $('offhand-hud').onclick=()=>$('inventory-button').click();
  $('offhand-button').onclick=()=>send({type:'offhand',item:state.offhand?0:selected()});
  const fillSelect=(element,entries)=>{element.replaceChildren();for(const [value,name]of entries){const option=document.createElement('option');option.value=value;option.textContent=name;element.append(option);}};
  const containers=createContainerView({send,icon});
@@ -20,6 +21,7 @@ export function createSurvivalView({scene,send,icon,inventory,selected}){
  const furnace=next.furnace;$('furnace-status').textContent=furnace?(furnace.job?`Smelting: ${Math.max(0,Math.ceil((furnace.job.done-worldTime)/20))}s remaining`:Object.entries(furnace.output||{}).filter(([,n])=>n>0).map(([id,n])=>`${n} ${itemName(id)} ready`).join(' · ')||'Furnace idle'):'';
  const fishing=next.fishing;$('fishing-status').textContent=fishing?(Date.now()>=fishing.bite?'Fish biting! Use to reel in.':'Fishing… wait for a bite.') :'';
  const offhand=next.offhand;$('offhand-button').textContent=offhand?.count>1?offhand.count:'';$('offhand-button').title=offhand?itemName(offhand.id):'Off-hand (empty)';$('offhand-button').setAttribute('aria-label',$('offhand-button').title);$('offhand-button').style.backgroundImage=offhand?`url("${icon(offhand.id)}")`:'';
+ const offHud=$('offhand-hud');offHud.replaceChildren();offHud.title=offhand?'Left hand: '+itemName(offhand.id)+' · F swaps hands':'Left hand empty · F swaps hands';offHud.setAttribute('aria-label',offHud.title);if(offhand){const swatch=document.createElement('span');swatch.className='swatch';swatch.style.backgroundImage=`url("${icon(offhand.id)}")`;offHud.append(swatch);if(offhand.count>1){const n=document.createElement('span');n.className='amount';n.textContent=offhand.count;offHud.append(n);}}
  const id=selected(),item=ITEMS[id],uses=next.durability?.[id]??item?.durability;$('tool-condition').textContent=item?.durability&&inventory()[id]>0?`${itemName(id)} · ${uses}/${item.durability}`:'';
  $('equipment').replaceChildren();for(const slot of ['helmet','chestplate','leggings','boots']){const b=document.createElement('button'),id=slot==='shield'&&next.offhand?.id===181?181:next.equipment?.[slot];b.title=id?`Unequip ${itemName(id)}`:`Empty ${slot}`;b.setAttribute('aria-label',b.title);if(id){b.style.backgroundImage=`url("${icon(id)}")`;b.onclick=()=>send({type:'equip',item:id});}else{const paths={helmet:'M3 9V3h10v6h-3V6H6v3z',chestplate:'M5 2l3 2 3-2 4 3-3 3v6H4V8L1 5z',leggings:'M4 2h8v12H9V7H7v7H4z',boots:'M3 3h4v7h2V3h4v11H9v-2H7v2H2v-4h1z'};b.style.backgroundImage=`url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="%235f5f5f" d="'+paths[slot]+'"/></svg>'.replace('%23','#'))}")`;}$('equipment').append(b);}recipes();}
  function mobModel(m){const group=new THREE.Group(),legs=[],hostile=m.hostile;const colors={zombie:['#4e783c','#477e9b'],skeleton:['#c1c1b3','#bdbdaf'],creeper:['#4b8a34','#4e8d34'],spider:['#34302e','#342f2e'],enderman:['#201a29','#201a29'],cow:['#49372d','#59483b'],pig:['#c88786','#cc908b'],sheep:['#dddacf','#dddacf'],chicken:['#e7e3d5','#e7e3d5']};const [skin,body]=colors[m.kind]||colors.cow;

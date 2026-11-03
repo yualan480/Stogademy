@@ -18,7 +18,7 @@ export function createContainerView({send,icon}){
  function scalePanel(){if(!$('inventory').open)return;const dialog=$('inventory');const scale=Math.max(.4,Math.min(2.2,(innerWidth-24)/360,(innerHeight-24)/dialog.offsetHeight));dialog.style.zoom=String(scale);position();}
  addEventListener('resize',scalePanel);new ResizeObserver(()=>requestAnimationFrame(scalePanel)).observe($('inventory'));$('inventory').addEventListener('toggle',scalePanel);
 
- for(const area of ['input','fuel','output']){const b=$('furnace-'+area);tag(b,area,0);b.onclick=e=>click(area,0,e);b.oncontextmenu=e=>click(area,0,e);}
+ for(const area of ['input','fuel','output','offhand']){const b=area==='offhand'?$('offhand-button'):$('furnace-'+area);tag(b,area,0);b.onclick=e=>click(area,0,e);b.oncontextmenu=e=>click(area,0,e);}
  $('recipe-output').onclick=e=>{if(e.shiftKey)send({type:'quick-move',area:'craft-output'});else send({type:'container-craft'});};
  $('recipe-list').onchange=()=>help();
  function help(){if(kind==='furnace'){const raw=Number($('recipe-list').value);$('recipe-needs').textContent=SMELTING[raw]?`${itemName(raw)} + fuel → ${itemName(SMELTING[raw])}`:'';return;}const r=RECIPES.find(r=>r.id===$('recipe-list').value);$('recipe-needs').textContent=r?`${r.name}: ${Object.entries(r.ingredients).map(([id,n])=>`${n} ${itemName(+id)}`).join(', ')}. Place items in the grid.`:'';}

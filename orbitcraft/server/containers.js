@@ -27,6 +27,7 @@ export function containerMessage(s,p,m){
 
 export function chestStacks(s,key){s.world.chestLayouts??={};s.world.chestCounts??={};const fake={inventory:s.world.chests[key]??={},survival:{layout:s.world.chestLayouts[key]||[],layoutCounts:s.world.chestCounts[key]}};const list=stacks(fake).slice(0,27);s.world.chestLayouts[key]=list.map(v=>v?.id||0);s.world.chestCounts[key]=list.map(v=>v?.count||0);return list;}
 export function containerSlot(s,p,c,area,index){
+ if(area==='offhand')return {get:()=>p.survival.offhand,accept:()=>true,put:value=>p.survival.offhand=value};
  if(area==='bag'){if(!Number.isInteger(index)||index<0||index>=36)return null;return {get:()=>stacks(p)[index],accept:()=>true,put:value=>{const list=stacks(p),old=list[index];if(old)p.inventory[old.id]-=old.count;if(value)p.inventory[value.id]=(p.inventory[value.id]||0)+value.count;list[index]=value;setLayout(p,list);}};}
  if(area==='grid'&&c.kind!=='furnace'&&c.kind!=='chest'){if(!Number.isInteger(index)||index<0||index>=c.grid.length)return null;return {get:()=>c.grid[index],accept:()=>true,put:value=>c.grid[index]=value};}
  const a=context(s,p,c.kind),key=a&&`${a.x},${a.y},${a.z}`;

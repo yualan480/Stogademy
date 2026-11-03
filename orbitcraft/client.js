@@ -1,11 +1,11 @@
-import {createShortcuts} from './game-shortcuts.js?v=20261103-controls9';
+import {createShortcuts} from './game-shortcuts.js?v=20261103-offhand10';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-controls9';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-offhand10';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,raycast,solid,collides } from './world.js';
 import { createResourceEffects,blockGeometry } from './mining-visuals.js';
-import { createPlayerModel } from './players.js?v=20261103-controls9';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-classic6';
+import { createPlayerModel } from './players.js?v=20261103-offhand10';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-offhand10';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const chunks=new Map(),pending=new Set(),dirty=new Set(),edits=new Map(),avatars=new Map();
@@ -25,9 +25,11 @@ const { texture, icon: blockIcon } = await createTextures();
 scene.add(camera);
 const atmosphere = createAtmosphere(scene);
 const held = createHeldBlock(camera, texture);
+const leftHeld=createHeldBlock(camera,texture,{left:true});
 const resources=createResourceEffects(scene,texture);
 const firstShield=new THREE.Group();camera.add(firstShield);for(const [w,h,d,color]of [[.31,.43,.06,0x999b9b],[.26,.37,.07,0x987345]]){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color,depthTest:false,fog:false}));m.renderOrder=1002;firstShield.add(m);}
-function showHeldItem(model,id){if(!model||model.heldId===id)return;model.heldId=id;if(model.itemMesh){model.arm2.remove(model.itemMesh);model.itemMesh.geometry.dispose();model.itemMesh.material.dispose();model.itemMesh=null;}if(!id)return;const mesh=new THREE.Mesh(blockGeometry(id,.23),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.position.set(0,-.55,-.15);mesh.rotation.x=-.45;model.arm2.add(mesh);model.itemMesh=mesh;}
+function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='left'?'offhandId':'heldId',meshKey=side==='left'?'offhandMesh':'itemMesh',arm=side==='left'?model.arm:model.arm2;if(model[key]===id)return;model[key]=id;if(model[meshKey]){arm.remove(model[meshKey]);model[meshKey].geometry.dispose();model[meshKey].material.dispose();model[meshKey]=null;}if(!id)return;const mesh=new THREE.Mesh(blockGeometry(id,.23),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.name=side==='left'?'left-hand-item':'right-hand-item';mesh.position.set(0,-.55,-.15);mesh.rotation.x=-.45;arm.add(mesh);model[meshKey]=mesh;}
+
 
 const material=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,alphaTest:.5});const waterMaterial=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,transparent:true,opacity:.64,depthWrite:false,side:THREE.DoubleSide});
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006,1.006,1.006)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.8}));scene.add(outline);outline.visible=false;
@@ -86,6 +88,7 @@ function updatePreview(){
  try{
   if(!previewRenderer){previewRenderer=new THREE.WebGLRenderer({canvas:$('character-preview'),alpha:true,antialias:false});previewRenderer.setSize(160,200,false);previewRenderer.outputColorSpace=THREE.SRGBColorSpace;previewScene=new THREE.Scene();previewScene.add(new THREE.HemisphereLight(0xffffff,0x666666,2));previewCamera=new THREE.PerspectiveCamera(32,.8,.1,10);previewCamera.position.set(0,1,3.8);previewCamera.lookAt(0,.9,0);}
   if(!previewActor){previewActor=createPlayerModel(me.id);previewActor.group.rotation.y=Math.PI+.35;previewScene.add(previewActor.group);}
+  const offhand=survival.state.offhand?.id||0;applyEquipment(previewActor,{...survival.state.equipment,...(offhand===181?{shield:181}:{})});showHeldItem(previewActor,inventory[hotbarSlots[selected]]>0?hotbarSlots[selected]:0);showHeldItem(previewActor,offhand===181?0:offhand,'left');
   previewRenderer.render(previewScene,previewCamera);
  }catch{ $('character-preview').setAttribute('aria-label','Player preview unavailable'); }
 }
@@ -134,7 +137,7 @@ async function join(){
    const old=chunks.get(k);chunks.set(k,{data,group:old?.group});pending.delete(k);mark(m.x,m.z);
   }else if(m.type==='state'&&me){
    resources.setMining(m.players);miningFeedback=m.players.find(p=>p.id===me.id)?.mining||null;
-   const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const snapshot=predictionHistory.get(p.seq),expected=snapshot?{x:p.x+me.x-snapshot.x,y:p.y+me.y-snapshot.y,z:p.z+me.z-snapshot.z}:p;const distance=Math.hypot(me.x-p.x,me.y-p.y,me.z-p.z);if(distance>3){Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});correction.set(0,0,0);predictionHistory.clear();}else{correction.set(expected.x-me.x,expected.y-me.y,expected.z-me.z);if(!input.jump&&Math.abs(expected.y-me.y)>.3)me.vy=p.vy;}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}a.target=p;a.group.visible=(p.health??20)>0;applyEquipment(a,p.equipment);showHeldItem(a,p.held||0);}}
+   const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const snapshot=predictionHistory.get(p.seq),expected=snapshot?{x:p.x+me.x-snapshot.x,y:p.y+me.y-snapshot.y,z:p.z+me.z-snapshot.z}:p;const distance=Math.hypot(me.x-p.x,me.y-p.y,me.z-p.z);if(distance>3){Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});correction.set(0,0,0);predictionHistory.clear();}else{correction.set(expected.x-me.x,expected.y-me.y,expected.z-me.z);if(!input.jump&&Math.abs(expected.y-me.y)>.3)me.vy=p.vy;}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}a.target=p;a.group.visible=(p.health??20)>0;applyEquipment(a,p.equipment);showHeldItem(a,p.held||0);showHeldItem(a,p.offhand===181?0:p.offhand||0,'left');}}
    for(const id of avatars.keys())if(!ids.has(id))removeAvatar(id);$('online').textContent=`${m.players.length} online`;
   }else if(m.type==='block'){
    if(m.block===0&&m.broken&&me&&Math.hypot(me.x-m.x,me.y-m.y,me.z-m.z)<32)resources.breakBlock(m.x,m.y,m.z,m.broken);
@@ -217,7 +220,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
   if(controls()&&survival.state.health>0&&!survival.state.sleeping){for(let remaining=dt;remaining>0;remaining-=1/60)step(me,{...input,sprint:input.sprint&&survival.state.hunger>6},Math.min(remaining,1/60),get);}
   const blend=1-Math.exp(-dt*5);for(const axis of ['x','y','z']){const next={...me,[axis]:me[axis]+correction[axis]*blend};if(!collides(next,get))me[axis]=next[axis];else correction[axis]=0;}correction.multiplyScalar(1-blend);
   camera.position.set(me.x,me.y+1.62,me.z);camera.rotation.set(me.pitch,me.yaw,0,'YXZ');
-  if(ownPlayer){ownPlayer.group.visible=perspective!==0&&survival.state.health>0;ownPlayer.group.position.set(me.x,me.y,me.z);ownPlayer.group.rotation.y=me.yaw;ownPlayer.head.rotation.x=me.pitch;showHeldItem(ownPlayer,inventory[hotbarSlots[selected]]>0?hotbarSlots[selected]:0);const stride=controls()&&(input.forward||input.back||input.left||input.right)?Math.sin(now*.009)*.5:0;ownPlayer.left.rotation.x=stride;ownPlayer.right.rotation.x=-stride;ownPlayer.arm.rotation.x=-stride;ownPlayer.arm2.rotation.x=miningHeld?-.9+Math.sin(now*.022)*.35:stride;applyEquipment(ownPlayer,{...survival.state.equipment,...(survival.state.offhand?.id===181?{shield:181}:{})});}
+  if(ownPlayer){ownPlayer.group.visible=perspective!==0&&survival.state.health>0;ownPlayer.group.position.set(me.x,me.y,me.z);ownPlayer.group.rotation.y=me.yaw;ownPlayer.head.rotation.x=me.pitch;showHeldItem(ownPlayer,inventory[hotbarSlots[selected]]>0?hotbarSlots[selected]:0);showHeldItem(ownPlayer,survival.state.offhand?.id===181?0:survival.state.offhand?.id||0,'left');const stride=controls()&&(input.forward||input.back||input.left||input.right)?Math.sin(now*.009)*.5:0;ownPlayer.left.rotation.x=stride;ownPlayer.right.rotation.x=-stride;ownPlayer.arm.rotation.x=-stride;ownPlayer.arm2.rotation.x=miningHeld?-.9+Math.sin(now*.022)*.35:stride;applyEquipment(ownPlayer,{...survival.state.equipment,...(survival.state.offhand?.id===181?{shield:181}:{})});}
   if(perspective){const eye=new THREE.Vector3(me.x,me.y+1.5,me.z),direction=new THREE.Vector3(-Math.sin(me.yaw)*Math.cos(me.pitch),Math.sin(me.pitch),-Math.cos(me.yaw)*Math.cos(me.pitch)).multiplyScalar(perspective===1?-1:1);let distance=4.2;for(let t=.3;t<=4.2;t+=.08){const point=eye.clone().addScaledVector(direction,t);if(solid(get(Math.floor(point.x),Math.floor(point.y),Math.floor(point.z)))){distance=Math.max(.15,t-.25);break;}}camera.position.copy(eye).addScaledVector(direction,distance);camera.lookAt(eye);}
   if(now-worldRequest>500){worldRequest=now;requestChunks();}
   const hit=raycast(me,get);outline.visible=!!hit;if(hit)outline.position.set(hit.x+.5,hit.y+.5,hit.z+.5);
@@ -228,7 +231,8 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  document.body.classList.toggle('underwater',!!underwater);
  const daylight=survival.animate(now,dt);sun.intensity=1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=.2+daylight*1.5;scene.fog.color.set(underwater?'#3887a9':'#b9d4ff').multiplyScalar(underwater?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=underwater?1:38;scene.fog.far=underwater?16:79;
  if(miningHeld&&controls()&&now-lastMiningSwing>220){lastMiningSwing=now;held.swing();}
- firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.position.lerp(new THREE.Vector3(input.block?-.18:-.45,input.block?-.24:-.45,input.block?-.5:-.7),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
+ leftHeld.select(survival.state.offhand?.id||0,survival.state.offhand?.count||0);leftHeld.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&perspective===0&&survival.state.health>0&&!menuOpen()&&survival.state.offhand?.id!==181);
+ firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.scale.setScalar(Math.max(.6,Math.min(1,camera.aspect/1.25)));firstShield.position.lerp(new THREE.Vector3((input.block?-.18:-.4)*Math.min(1,camera.aspect/1.25),input.block?-.24:-.45,input.block?-.5:-.7),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
  resources.update(Date.now(),dt,camera);
  held.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&!menuOpen()&&perspective===0&&survival.state.health>0);
  atmosphere(now,camera,survival.state.time||6000);

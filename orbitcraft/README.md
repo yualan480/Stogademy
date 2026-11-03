@@ -347,3 +347,20 @@ F1 toggles HUD, F2 downloads a world PNG, F3 toggles live coordinates/FPS/biome,
 F5 cycles three perspectives, F11 toggles fullscreen. F3+A reloads surrounding
 chunks without dropping edited terrain; F3+B toggles server-sized entity
 hitboxes. Browser or OS-reserved shortcuts can be handled by the browser.
+
+### Visible left hand and profile names
+
+The inventory off-hand slot accepts carried stacks with the same left/right
+click rules as other slots; F still swaps hands. A persistent HUD slot shows the
+left-hand item and count. First person renders a mirrored left hand and its item
+(including narrow-screen placement), third person and other players render it
+on the left arm, and the inventory character preview shows the same equipment.
+Shields keep their dedicated left-hand model. Empty hands remain visible during
+normal first-person play; interfaces use the off-hand slot/character preview.
+
+Production identity uses verified profile first_name + last_name for player
+labels, join notices and new chat messages, with a full display-name fallback
+for legacy profiles and "Player" when no full name is available. The username
+is never used as the displayed game name. Authentication UUIDs, inventory keys
+and existing world saves are unchanged; reconnect to refresh an authenticated
+player's name. Historical chat messages retain the name stored when sent.
