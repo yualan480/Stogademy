@@ -204,7 +204,7 @@ Java software. Existing builds and edits remain intact. Natural, unedited stone
 now includes underground coal, iron, gold, diamond and ancient debris resources.
 
 - Hand crafting offers planks, sticks and tables. Place a table and right-click
-  it for the 3×3 recipe selector. Recipes show ingredients and consume them on
+  it for the 3×3 crafting grid. Recipes validate ingredient arrangement and consume them on
   the server. Wooden, stone, iron, gold, diamond and netherite tools have mining
   tiers, speed and saved durability. Ancient debris smelts into scrap; four scrap
   and four gold craft an ingot for diamond-equipment upgrades.
@@ -239,8 +239,7 @@ now includes underground coal, iron, gold, diamond and ancient debris resources.
 The world clock, mobs, station contents, crops, player vitals, saturation,
 equipment, durability and slot layout save in the same private SQLite world
 store. The simulation pauses when no one is connected. This implementation uses
-recipe selection with automatically arranged ingredient previews, not cursor
-placement of arbitrary recipes. Durable equipment currently shares condition by
+server-validated cursor stacks and manually arranged crafting grids. Durable equipment currently shares condition by
 item type; separate instances of the same tool do not have independent wear.
 Legacy inventory totals exceeding 36 stacks are preserved in storage; collection
 and recipes cannot grow an already overflowing bag. No deployment is performed
@@ -305,3 +304,21 @@ slot, a black live character preview, a 2×2 hand grid (3×3 at a crafting table
 27 backpack slots and nine hotbar slots. Recipe selection remains available;
 extra inventory instructions and the equipment action are under Inventory controls.
 The shared original pixel character uses a teal shirt and blue-purple trousers.
+
+
+### Cursor crafting and furnace slots
+
+Inventory stacks can be picked up and placed with a left click. Right-click an
+inventory stack to take half; right-click a destination to place one. Items
+follow the cursor. Hand crafting is 2×2 and a placed crafting table opens 3×3;
+matched output is collected onto the cursor. Recipes accept translated/mirrored
+shapes and validate resources on the server. The recipe book lists ingredients.
+
+Furnaces have persistent shared raw-input, fuel and output slots and automatically
+start the next available job. A closing inventory returns carried items and
+crafting inputs to the bag; overflow drops into the world. Cursor/grid state is
+saved with the player, returned safely on reconnect and included in death loot.
+Station destruction drops its remaining input and fuel. All slot operations use
+the existing transactional persistence and rollback. Right-click in the world
+suppresses the browser menu; the cursor is released only for an inventory/station
+interface. Shift-click armor still equips it.

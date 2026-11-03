@@ -85,3 +85,21 @@ body.playing .swatch{image-rendering:pixelated;transform:none}
 @media(max-width:370px){#inventory{padding:8px}#inventory .inventory-upper{grid-template-columns:26px 76px 1fr;gap:3px;min-height:116px}#inventory #equipment button{width:26px;height:26px}#inventory .character-panel,#inventory #character-preview{width:76px;height:110px}#inventory #offhand-button{left:110px;top:82px;width:26px;height:26px}#inventory #survival-crafting{margin-left:0}#inventory .ingredient{width:22px;height:22px}#inventory #recipe-pattern{grid-template-columns:repeat(2,22px)}#inventory .survival-recipe{gap:4px}}
 
 #inventory{--craft-cell:26px}#inventory .inventory-help{margin-top:5px;font-size:9px;color:#555}#inventory .inventory-help summary{cursor:pointer}#inventory .ingredient{width:var(--craft-cell);height:var(--craft-cell)}@media(max-width:370px){#inventory{--craft-cell:22px}}
+/* Click-to-carry station interfaces. World right-click never opens a context menu. */
+#world{cursor:none}#carried-item{position:fixed;z-index:1000;width:32px;height:32px;transform:translate(-50%,-50%);background-size:contain;background-repeat:no-repeat;image-rendering:pixelated;color:#fff;text-shadow:2px 2px #222;text-align:right;padding-top:18px;font:12px monospace;pointer-events:none}#carried-item[hidden]{display:none}#inventory:has(#carried-item:not([hidden])),#inventory:has(#carried-item:not([hidden])) *{cursor:none!important}
+#inventory .ingredient,#inventory #recipe-output,#inventory #furnace-output{border-radius:0;border:2px solid #fff;border-top-color:#555;border-left-color:#555;background-color:#8b8b8b;background-size:contain;background-repeat:no-repeat;image-rendering:pixelated;color:#fff;text-align:right;text-shadow:1px 1px #222;padding:0;font:12px monospace;box-shadow:none}
+#inventory #recipe-book{position:absolute;left:164px;top:98px;width:28px;height:28px;border:2px outset #ddd;border-radius:0;padding:0;background:#aaa;color:#246b29;font-size:24px}
+#inventory[data-station="table"] .character-panel,#inventory[data-station="table"] #equipment,#inventory[data-station="table"] #offhand-button,#inventory[data-station="furnace"] .character-panel,#inventory[data-station="furnace"] #equipment,#inventory[data-station="furnace"] #offhand-button{display:none}
+#inventory[data-station="table"] .inventory-upper,#inventory[data-station="furnace"] .inventory-upper{display:block;min-height:142px}
+#inventory[data-station="table"] #survival-crafting,#inventory[data-station="furnace"] #survival-crafting{margin:0;padding:0;width:100%}
+#inventory[data-station="table"] #station-name,#inventory[data-station="furnace"] #station-name{font-size:17px;font-weight:normal;text-align:center;margin:0 0 10px}
+#inventory[data-station="table"] .survival-recipe{justify-content:center;gap:20px;margin:0}
+#inventory[data-station="table"]{--craft-cell:32px}#inventory[data-station="table"] #recipe-output{width:46px;height:46px}#inventory[data-station="table"] .survival-recipe>span{font-size:32px;color:#888}
+#inventory[data-station="table"] #recipe-book,#inventory[data-station="furnace"] #recipe-book{left:6px;top:68px}
+#inventory[data-station="furnace"] .survival-recipe{display:none}
+#inventory #furnace-controls{margin:0}#inventory .furnace-layout{position:relative;margin:0 auto;width:164px;height:100px}
+#inventory #furnace-input,#inventory #furnace-fuel{position:absolute;left:12px;width:34px;height:34px}#inventory #furnace-input{top:0}#inventory #furnace-fuel{top:64px}#inventory #furnace-output{position:absolute;left:112px;top:23px;width:48px;height:48px}
+#inventory .furnace-flame{position:absolute;left:17px;top:33px;font-size:25px;color:#999}#inventory .burning .furnace-flame{color:#e7a32a;text-shadow:0 0 3px #ff7630}#inventory .furnace-arrow{position:absolute;left:60px;top:29px;font-size:31px;color:#888}
+#inventory #furnace-status{font-size:8px;text-align:center;margin:2px 0}#inventory .inventory-label{font-size:14px;margin:1px 0 5px;color:#444}
+#inventory #recipe-list:not([hidden]){position:relative;z-index:2}#inventory #recipe-needs:not([hidden]){position:relative;z-index:2;background:#c6c6c6}
+@media(max-width:370px){#inventory #recipe-book{left:145px;top:82px}#inventory[data-station="table"] #recipe-book,#inventory[data-station="furnace"] #recipe-book{left:0;top:68px}}

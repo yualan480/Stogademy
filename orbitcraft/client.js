@@ -1,9 +1,9 @@
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-inventory7';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-slots8';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,raycast,solid,collides } from './world.js';
 import { createResourceEffects,blockGeometry } from './mining-visuals.js';
-import { createPlayerModel } from './players.js?v=20261103-inventory7';
+import { createPlayerModel } from './players.js?v=20261103-slots8';
 import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-classic6';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
@@ -87,18 +87,19 @@ function updatePreview(){
   previewRenderer.render(previewScene,previewCamera);
  }catch{ $('character-preview').setAttribute('aria-label','Player preview unavailable'); }
 }
-function inventorySlot(id,index,hotbar=false,countOverride){
+function inventorySlot(id,index,hotbar=false,countOverride,inDialog=false){
  const b=document.createElement('button'),count=countOverride??inventory[id]??0,name=itemName(id);
  b.title=count?`${name} (${count})`:'Empty slot';b.setAttribute('aria-label',b.title);b.classList.toggle('active',hotbar&&index===selected);b.setAttribute('aria-pressed',String(hotbar&&index===selected));
  if(count>0){const swatch=document.createElement('span');swatch.className='swatch';swatch.style.backgroundImage=`url("${blockIcon(id)}")`;b.append(swatch);if(count>1){const amount=document.createElement('span');amount.className='amount';amount.textContent=count;b.append(amount);}}
  if(hotbar){const key=document.createElement('kbd');key.textContent=index+1;b.append(key);b.onclick=()=>chooseSlot(index);}
  if(!hotbar&&count>0)b.onclick=e=>send(e.shiftKey&&ITEMS[id]?.slot?{type:'equip',item:id}:{type:'swap',from:index,to:selected});
+ if(inDialog){b.onclick=e=>{if(e.shiftKey&&ITEMS[id]?.slot&&!survival.state.container?.cursor)send({type:'equip',item:id});else survival.containerClick(index,e);};b.oncontextmenu=e=>survival.containerClick(index,e);}
  return b;
 }
 function updateInventory(){
  for(const name of ['hotbar','inventory-hotbar','inventory-grid'])$(name).replaceChildren();
- hotbarSlots.forEach((id,i)=>{for(const name of ['hotbar','inventory-hotbar'])$(name).append(inventorySlot(id,i,true,bagSlots[i]?.count||0));});
- for(let i=9;i<36;i++)$('inventory-grid').append(inventorySlot(bagSlots[i]?.id||0,i,false,bagSlots[i]?.count||0));
+ hotbarSlots.forEach((id,i)=>{for(const name of ['hotbar','inventory-hotbar'])$(name).append(inventorySlot(id,i,true,bagSlots[i]?.count||0,name==='inventory-hotbar'));});
+ for(let i=9;i<36;i++)$('inventory-grid').append(inventorySlot(bagSlots[i]?.id||0,i,false,bagSlots[i]?.count||0,true));
  const id=hotbarSlots[selected];held.select(id,inventory[id]||0);$('selected-name').textContent='';
  updatePreview();survival.recipes();
 }
@@ -152,7 +153,7 @@ async function join(){
   else if(m.type==='error'){toast(m.message);$('gate-status').textContent=m.message;}
  };
  socket.onerror=()=>{$('gate-status').textContent='Cannot reach the public world. Please retry shortly.';};
- socket.onclose=()=>{const was=connected;connected=false;me=null;inputReset();resources.clear();miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
+ socket.onclose=()=>{const was=connected;connected=false;for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();me=null;inputReset();resources.clear();miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
  }catch(e){$('gate-status').textContent=e.message;$('join').disabled=false;$('login').hidden=dev;}
 }
 $('join').onclick=join;
@@ -189,7 +190,10 @@ function useOrPlace(){const id=hotbarSlots[selected],hit=me&&raycast(me,get);if(
 function action(type){if(!connected||!me||Date.now()-lastAction<190)return;lastAction=Date.now();setMining(false);held.swing();sendInput();if(type==='use'||hotbarSlots[selected])send({type,block:hotbarSlots[selected]});}
 canvas.addEventListener('mousedown',e=>{if(!controls())return;e.preventDefault();if(e.button===0)setMining(true);else if(e.button===2)useOrPlace();});
 addEventListener('mouseup',e=>{if(e.button===0)setMining(false);});
-canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('wheel',e=>{if(!connected)return;e.preventDefault();setMining(false);chooseSlot((selected+(e.deltaY>0?1:8))%9);},{passive:false});
+canvas.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();});
+canvas.addEventListener('pointerup',e=>{if(e.button===2&&!menuOpen()&&connected&&!coarse&&document.pointerLockElement!==canvas)canvas.requestPointerLock?.();});
+$('inventory').addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('contextmenu',e=>{if(controls()){e.preventDefault();e.stopPropagation();}},true);canvas.addEventListener('wheel',e=>{if(!connected)return;e.preventDefault();setMining(false);chooseSlot((selected+(e.deltaY>0?1:8))%9);},{passive:false});
 $('touch-mine').onpointerdown=e=>{e.preventDefault();if(!connected||menuOpen())return;$('touch-mine').setPointerCapture(e.pointerId);setMining(true);};
 $('touch-mine').onpointerup=$('touch-mine').onpointercancel=()=>setMining(false);
 $('touch-place').onclick=useOrPlace;document.querySelectorAll('[data-key]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);input[b.dataset.key]=true;};b.onpointerup=b.onpointercancel=()=>input[b.dataset.key]=false;});

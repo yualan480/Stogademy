@@ -1,0 +1,32 @@
+import {spawn} from 'node:child_process';
+import {mkdtempSync,rmSync,mkdirSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
+import {chromium} from '@playwright/test';
+import {Game} from '../server/game.js';
+import {openStore} from '../server/db.js';
+const dir=mkdtempSync(join(tmpdir(),'orbit-slots-browser-')),db=join(dir,'world.db'),port=18979,base=`http://127.0.0.1:${port}`,artifacts='/workspace/artifacts';mkdirSync(artifacts,{recursive:true});
+const store=openStore(db),g=new Game(store),p=g.join({id:'dev-SlotMaker',name:'SlotMaker'},()=>{}),blocks=[];
+for(let x=-4;x<=4;x++)for(let z=-5;z<=4;z++){blocks.push({x,y:44,z,block:3});for(let y=45;y<49;y++)blocks.push({x,y,z,block:0});}
+blocks.push({x:0,y:45,z:-2,block:18},{x:2,y:45,z:-2,block:19});store.commit(null,{blocks});Object.assign(p,{x:.5,y:45.01,z:.5,yaw:0,pitch:-.4});p.inventory={5:8,102:2,101:2};p.hotbar=[5,102,101,0,0,0,0,0,0];p.survival.layout=p.hotbar;store.savePlayer(p);store.close();
+const child=spawn(process.execPath,['server/index.js'],{cwd:fileURLToPath(new URL('..',import.meta.url)),env:{...process.env,PORT:String(port),ORBITCRAFT_DEV:'1',ORBITCRAFT_DB:db},stdio:'ignore'});let browser;
+try{
+ for(let i=0;i<80;i++){try{if((await fetch(base+'/orbitcraft/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
+ browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});const page=await browser.newPage({viewport:{width:1000,height:740}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/orbitcraft/');await page.locator('#dev-name').fill('SlotMaker');await page.locator('#join').click();await page.locator('#gate').waitFor({state:'hidden'});
+ await page.locator('#inventory-button').click();await page.locator('#inventory-hotbar button').first().click();await page.locator('#carried-item:not([hidden])').waitFor();assert.equal(await page.locator('#carried-item').textContent(),'8');
+ await page.locator('#recipe-pattern button').first().click({button:'right'});await page.waitForFunction(()=>document.querySelector('#carried-item').textContent==='7');await page.locator('#inventory-grid button').first().click();await page.locator('#carried-item').waitFor({state:'hidden'});await page.locator('#recipe-output').click();await page.waitForFunction(()=>document.querySelector('#carried-item').textContent==='4');await page.locator('#inventory-grid button').nth(1).click();await page.locator('#carried-item').waitFor({state:'hidden'});
+ await page.locator('[data-close="inventory"]').click();await page.locator('#world').click();await page.waitForFunction(()=>!!document.pointerLockElement);await page.mouse.click(500,350,{button:'right'});await page.locator('#inventory[data-station="table"][open]').waitFor();assert.equal(await page.locator('#recipe-pattern button').count(),9);await page.screenshot({path:artifacts+'/orbitcraft-crafting-table-slots.png'});
+ await page.locator('[data-close="inventory"]').click();await page.locator('#world').click();await page.waitForFunction(()=>!!document.pointerLockElement);await page.mouse.move(500,100);await page.evaluate(()=>document.addEventListener('contextmenu',e=>window.rightClickBlocked=e.defaultPrevented,{once:true}));await page.mouse.click(500,100,{button:'right'});assert.equal(await page.evaluate(()=>{const cv=document.querySelector('#world'),event=new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2});cv.dispatchEvent(event);return !!document.pointerLockElement&&event.defaultPrevented&&getComputedStyle(cv).cursor==='none';}),true);
+ // Test the furnace UI using a separate saved position looking directly at it.
+ await page.close();await browser.close();browser=null;child.kill('SIGTERM');await new Promise(r=>child.once('exit',r));
+ const saved=openStore(db),next=new Game(saved),q=next.join({id:'dev-SlotMaker',name:'SlotMaker'},()=>{});Object.assign(q,{x:2.5,y:45.01,z:.5,yaw:0,pitch:-.4});saved.savePlayer(q);saved.close();
+ const second=spawn(process.execPath,['server/index.js'],{cwd:fileURLToPath(new URL('..',import.meta.url)),env:{...process.env,PORT:String(port),ORBITCRAFT_DEV:'1',ORBITCRAFT_DB:db},stdio:'ignore'});try{
+ for(let i=0;i<80;i++){try{if((await fetch(base+'/orbitcraft/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
+ browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});const tab=await browser.newPage({viewport:{width:1000,height:740}});tab.on('pageerror',e=>errors.push(e.message));await tab.goto(base+'/orbitcraft/');await tab.locator('#dev-name').fill('SlotMaker');await tab.locator('#join').click();await tab.locator('#gate').waitFor({state:'hidden'});await tab.locator('#world').click();await tab.waitForFunction(()=>!!document.pointerLockElement);await tab.mouse.click(500,350,{button:'right'});await tab.locator('#inventory[data-station="furnace"][open]').waitFor();
+ await tab.locator('#inventory-hotbar button').nth(1).click();await tab.locator('#carried-item:not([hidden])').waitFor();await tab.locator('#furnace-input').click();await tab.locator('#carried-item').waitFor({state:'hidden'});await tab.locator('#inventory-hotbar button').nth(2).click();await tab.locator('#carried-item:not([hidden])').waitFor();await tab.locator('#furnace-fuel').click();await tab.locator('#furnace-controls.burning').waitFor();await tab.locator('#recipe-book').click();await tab.locator('#recipe-list').waitFor({state:'visible'});await tab.locator('#recipe-book').click();await tab.screenshot({path:artifacts+'/orbitcraft-furnace-slots.png'});await tab.locator('#furnace-output').waitFor({state:'visible'});await tab.waitForFunction(()=>document.querySelector('#furnace-output').title.includes('Iron ingot'),null,{timeout:20000});await tab.locator('#furnace-output').click();await tab.locator('#carried-item:not([hidden])').waitFor();assert.deepEqual(errors,[]);
+ console.log('PASS: real browser cursor pickup, one-item right-click, crafting output, table 3x3, furnace input/fuel/output, persistent resources and no JS errors');
+ }finally{second.kill('SIGTERM');}
+}finally{if(browser)await browser.close();child.kill('SIGTERM');rmSync(dir,{recursive:true,force:true});}

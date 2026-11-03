@@ -1,3 +1,4 @@
+import {containerMessage,returnContainer,startFurnace} from './containers.js';
 import {stacks,swapSlots} from '../inventory.js';
 import { ITEMS,RECIPES,SMELTING,FUEL,defaultHotbar,isBlock } from '../items.js';
 import { inside,solid,collides,step,raycast,terrain,hash,resourceBlock,MINING_MS } from '../world.js';
@@ -5,7 +6,7 @@ const xyz=a=>`${a.x},${a.y},${a.z}`;
 const clone=a=>JSON.parse(JSON.stringify(a));
 export class Survival{
  constructor(game){this.g=game;this.world=game.store.loadSurvival?.()||{time:6000,mobs:[],crops:{},furnaces:{}};this.world.mobs??=[];this.world.crops??={};this.world.furnaces??={};this.world.chests??={};this.world.spawn??=this.g.spawn();this.acc=0;this.spawnAt=0;this.g.store.saveSurvival(this.world);}
- init(p){p.survival={health:20,hunger:20,saturation:5,exhaustion:0,durability:{},equipment:{},regen:0,starve:0,...p.survival};p.hotbar=Array.isArray(p.hotbar)&&p.hotbar.length===9?p.hotbar:[...defaultHotbar];p.selected=0;p.fallTop=p.y;}
+ init(p){p.survival={health:20,hunger:20,saturation:5,exhaustion:0,durability:{},equipment:{},regen:0,starve:0,...p.survival};p.hotbar=Array.isArray(p.hotbar)&&p.hotbar.length===9?p.hotbar:[...defaultHotbar];p.selected=0;p.fallTop=p.y;returnContainer(p);}
  state(p){return {...p.survival,hotbar:p.hotbar,slots:stacks(p),selected:p.selected,time:this.world.time,furnace:p.station&&Math.hypot(p.station.x-p.x,p.station.z-p.z)<6?this.world.furnaces[xyz(p.station)]||{output:{}}:null,fishing:p.fishing?{bite:p.fishing.bite,end:p.fishing.end}:null};}
  send(p){p.send({type:'survival',state:this.state(p)});}
  selected(p){return p.hotbar[p.selected]||0;}
@@ -33,11 +34,12 @@ export class Survival{
  if(id===22){const crop=this.world.crops[xyz(hit)],ripe=crop&&this.world.time-crop.planted>=2400;return ripe?[[111,1],[113,2]]:[[113,1]];}
  if(id===6)return hash(hit.x,Math.floor(this.world.time),hit.z)>.65?[[117,1]]:[[113,1]];
  return [[({3:11,13:101,14:102,15:106,16:104,21:2})[id]||id,1]];}
- mine(p,hit){const result=this.harvest(p,hit);this.atomic(p,tx=>{tx.block({...hit,broken:hit.block},0);for(const [id,count]of result)tx.drop(id,count,hit);const furnace=this.world.furnaces[xyz(hit)];if(furnace){for(const [id,count]of Object.entries(furnace.output||{}))tx.drop(+id,count,hit);if(furnace.job)tx.drop(furnace.job.out,1,hit);delete this.world.furnaces[xyz(hit)];}const chest=this.world.chests[xyz(hit)];if(chest){for(const [id,n]of Object.entries(chest))tx.drop(+id,n,hit);delete this.world.chests[xyz(hit)];}delete this.world.crops[xyz(hit)];this.wear(p,this.selected(p));p.survival.exhaustion+=.15;p.mined++;});}
+ mine(p,hit){const result=this.harvest(p,hit);this.atomic(p,tx=>{tx.block({...hit,broken:hit.block},0);for(const [id,count]of result)tx.drop(id,count,hit);const furnace=this.world.furnaces[xyz(hit)];if(furnace){for(const [id,count]of Object.entries(furnace.output||{}))tx.drop(+id,count,hit);if(furnace.job)tx.drop(furnace.job.out,1,hit);for(const stack of [furnace.input,furnace.fuelStack])if(stack)tx.drop(stack.id,stack.count,hit);delete this.world.furnaces[xyz(hit)];}const chest=this.world.chests[xyz(hit)];if(chest){for(const [id,n]of Object.entries(chest))tx.drop(+id,n,hit);delete this.world.chests[xyz(hit)];}delete this.world.crops[xyz(hit)];this.wear(p,this.selected(p));p.survival.exhaustion+=.15;p.mined++;});}
  craft(p,m){const recipe=RECIPES.find(r=>r.id===(m.recipe||'planks'));if(!recipe)throw Error('Unknown recipe.');if(recipe.station==='table'&&!this.nearby(p,18))throw Error('Stand near a placed crafting table.');if(ITEMS[recipe.out]?.durability&&p.inventory[recipe.out]>0)throw Error('You already have this tool or armor.');for(const [id,n] of Object.entries(recipe.ingredients))if((p.inventory[id]||0)<n)throw Error('You need more ingredients.');if((p.inventory[recipe.out]||0)+recipe.count>9999)throw Error('Inventory stack is full.');this.atomic(p,()=>{for(const [id,n]of Object.entries(recipe.ingredients))p.inventory[id]-=n;p.inventory[recipe.out]=(p.inventory[recipe.out]||0)+recipe.count;if(ITEMS[recipe.out]?.durability)p.survival.durability[recipe.out]=ITEMS[recipe.out].durability;const empty=p.hotbar.findIndex(id=>!id||!p.inventory[id]);if(empty>=0&&!p.hotbar.includes(recipe.out))p.hotbar[empty]=recipe.out;});}
  handle(p,m){if(m.type==='select'){if(Number.isInteger(m.slot)&&m.slot>=0&&m.slot<9){p.selected=m.slot;p.mining=null;}return true;}
  if(m.type==='respawn'){if(p.survival.health>0)return true;const bed=p.survival.respawn;let point=bed&&this.g.get(bed.bx,bed.by,bed.bz)===20?{x:bed.x,y:bed.y,z:bed.z}:null;if(!point||collides(point,this.g.get)){point=this.world.spawn;if(collides(point,this.g.get))point=this.g.spawn();}Object.assign(p,point,{vy:0});p.survival.health=20;p.survival.hunger=20;p.survival.saturation=5;p.input={};p.fallTop=p.y;this.g.store.savePlayer(p);this.send(p);return true;}
  if(p.survival.health<=0)return m.type!=='chat'&&m.type!=='chunks';
+ if(containerMessage(this,p,m))return true;
  if(m.type==='swap'){this.atomic(p,()=>swapSlots(p,m.from,m.to));return true;}
  if(m.type==='chest'){this.chest(p,m);return true;}
  if(m.type==='offhand'){this.atomic(p,()=>{const old=p.survival.offhand;if(old){p.inventory[old.id]=(p.inventory[old.id]||0)+old.count;p.survival.offhand=null;}if(m.item&&p.inventory[m.item]>0){const count=Math.min(64,p.inventory[m.item]);p.inventory[m.item]-=count;p.survival.offhand={id:m.item,count};}});return true;}
@@ -97,7 +99,7 @@ export class Survival{
   if(p.survival.health<=0)this.dropPlayer(p,tx);
  }
  hurt(p,damage,source){if(p.survival.health<=0||this.g.now()-(p.lastHurt??-Infinity)<700)return;this.atomic(p,tx=>this.applyDamage(p,damage,source,tx));}
- dropPlayer(p,tx){for(const [id,count]of Object.entries(p.inventory))if(count>0)tx.drop(+id,count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});for(const id of Object.values(p.survival.equipment))tx.drop(id,1,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});if(p.survival.offhand)tx.drop(p.survival.offhand.id,p.survival.offhand.count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});p.survival.offhand=null;p.inventory={};p.survival.equipment={};p.survival.durability={};p.survival.sleeping=false;p.survival.health=0;p.input={};p.mining=null;}
+ dropPlayer(p,tx){returnContainer(p);for(const [id,count]of Object.entries(p.inventory))if(count>0)tx.drop(+id,count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});for(const id of Object.values(p.survival.equipment))tx.drop(id,1,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});if(p.survival.offhand)tx.drop(p.survival.offhand.id,p.survival.offhand.count,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});p.survival.offhand=null;p.inventory={};p.survival.equipment={};p.survival.durability={};p.survival.sleeping=false;p.survival.health=0;p.input={};p.mining=null;}
  die(p){this.atomic(p,tx=>this.dropPlayer(p,tx));}
 
  spawn(kind,x,y,z){if(this.world.mobs.length>=48||!inside(Math.floor(x),Math.floor(y),Math.floor(z)))return null;const m={id:crypto.randomUUID(),kind,x,y,z,yaw:0,vy:0,health:kind==='spider'?16:kind==='chicken'?4:kind==='pig'||kind==='sheep'?10:20,hostile:['zombie','skeleton','creeper','spider','enderman'].includes(kind),next:0};if(collides(m,this.g.get))return null;this.world.mobs.push(m);return m;}
@@ -121,6 +123,7 @@ export class Survival{
  }
  for(const [k,crop]of Object.entries(this.world.crops)){if(this.g.get(crop.x,crop.y,crop.z)!==22||this.g.get(crop.x,crop.y-1,crop.z)!==21){if(this.g.get(crop.x,crop.y,crop.z)===22)this.atomic(null,tx=>{tx.block(crop,0);tx.drop(113,1,crop);delete this.world.crops[k];});else delete this.world.crops[k];continue;}if(this.world.time-crop.planted<2400){let wet=false;for(let dx=-2;dx<=2&&!wet;dx++)for(let dz=-2;dz<=2;dz++)if(this.g.get(crop.x+dx,crop.y-1,crop.z+dz)===8)wet=true;if(wet)crop.planted-=elapsed*20;}}
  for(const f of Object.values(this.world.furnaces))if(f.job&&this.world.time>=f.job.done){const id=f.job.out;f.output[id]=(f.output[id]||0)+1;delete f.job;}
+ for(const key of Object.keys(this.world.furnaces))startFurnace(this,key);
  this.g.broadcast({type:'survival-world',time:this.world.time,mobs:this.world.mobs.map(({id,kind,x,y,z,yaw,health,hostile,fuse,hurt})=>({id,kind,x,y,z,yaw,health,hostile,fuse,hurt})),crops:Object.values(this.world.crops).map(c=>({...c,stage:Math.min(3,Math.floor((this.world.time-c.planted)/600))}))});for(const p of this.g.players.values())this.send(p);
  }
 }
