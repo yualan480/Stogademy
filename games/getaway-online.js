@@ -180,6 +180,12 @@
   var toastEl = txt('div', '', ''); toastEl.id = 'gwToast'; toastEl.setAttribute('role', 'status');
   var vid = document.createElement('video'); vid.id = 'gwVid'; vid.hidden = true; vid.muted = true; vid.autoplay = true; vid.playsInline = true; vid.setAttribute('playsinline', '');
   document.body.appendChild(vid);
+  // shown over the guest's video whenever the host's picture is frozen or black, so it never looks like a dead black screen
+  var note = document.createElement('div'); note.id = 'gwNote'; note.hidden = true;
+  note.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:16;max-width:88vw;padding:12px 18px;border-radius:14px;background:rgba(20,20,42,.92);border:2px solid rgba(255,255,255,.35);color:#fff;text-align:center;font:600 16px var(--pixel,"Pixelify Sans","Courier New",monospace);pointer-events:none';
+  document.body.appendChild(note);
+  var hostHidNow = false;
+  function setNote(msg) { if (msg) { note.textContent = msg; note.hidden = false; } else { note.hidden = true; } }
   document.body.appendChild(onBtn); document.body.appendChild(ov); document.body.appendChild(hud); document.body.appendChild(tap); document.body.appendChild(toastEl);
 
   // panels
@@ -392,7 +398,11 @@
       var hid = !!document.hidden;
       if (hid !== hostHidSent) { hostHidSent = hid; if (dcOpen()) { try { dc.send(JSON.stringify({ t: 'h', v: hid ? 1 : 0 })); } catch (e) { /* ignore */ } } }
       if (!hid && mirrorCv && !usedDirect) { blackN = looksBlack(mirrorCv) ? blackN + 1 : 0; if (blackN >= 3) switchToDirect(); }
-    } else if (vid && !vid.hidden && vid.videoWidth) {
+    } else {
+      var stalled = hostHidNow || zeroN >= 3 || (vid && !vid.hidden && vid.videoWidth && blackN >= 3);
+      setNote(!stalled ? '' : hostHidNow ? 'The host switched away from the game tab, so the game is paused. Ask them to come back to it.' : 'Waiting for the host\u2019s picture... The host must keep the game tab in front and visible (use two separate windows side by side, not two tabs).');
+    }
+    if (mode !== 'host' && vid && !vid.hidden && vid.videoWidth) {
       if (looksBlack(vid)) { blackN++; if (blackN === 5 && !warnedBlack) { warnedBlack = true; toast('The host\u2019s picture is arriving but it is black. Tell the host to keep the game tab in front.', 8000); } }
       else blackN = 0;
     }
@@ -424,7 +434,7 @@
     if (outStream) { outStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* ignore */ } }); outStream = null; }
     stopMirror();
     try { vid.srcObject = null; } catch (e) { /* ignore */ }
-    vid.hidden = true;
+    vid.hidden = true; hostHidNow = false; setNote('');
   }
   function newPC() {
     closePC();
@@ -452,7 +462,7 @@
     ch.onmessage = function (ev) {
       var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
       if (mode === 'host') onRemoteMsg(m);
-      else if (m && m.t === 'h') { if (m.v) toast('The host switched away from the game tab, so the picture will freeze or go black until they come back.', 7000); }
+      else if (m && m.t === 'h') { hostHidNow = !!m.v; if (m.v) toast('The host switched away from the game tab, so the picture will freeze or go black until they come back.', 7000); }
       else if (m && m.t === 'o') { rttNow = Math.max(0, Date.now() - (+m.s || Date.now())); renderHud(); }
     };
   }
