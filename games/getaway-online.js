@@ -496,11 +496,10 @@
         var conn = newPC(); startMonitor();
         conn.ontrack = function (e) {
           vid.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
-          // keep the video hidden (not a black cover) until a real frame is playing; show it anyway after 4s
+          // keep the video hidden (so no black cover) until a real frame is playing
           vid.hidden = true;
-          var showVid = function () { vid.hidden = false; };
-          vid.onplaying = showVid; vid.onloadeddata = showVid;
-          setTimeout(function () { if (phase === 'play' && vid.srcObject) showVid(); }, 4000);
+          var showVid = function () { if (vid.videoWidth) { vid.hidden = false; renderHud(); } };
+          vid.onplaying = showVid; vid.onloadeddata = showVid; vid.onresize = showVid;
           try { var pl = vid.play(); if (pl && pl.catch) pl.catch(function () { /* ignore */ }); } catch (x) { /* ignore */ }
           try { e.receiver.playoutDelayHint = 0; } catch (x) { /* ignore */ }
           try { e.receiver.jitterBufferTarget = 0; } catch (x) { /* ignore */ }
@@ -577,7 +576,7 @@
     if (mode === 'host') hud.appendChild(txt('span', 'me', 'You: Player 1 \u00b7 W/E/R (you run the game)'));
     else hud.appendChild(txt('span', 'me', 'You: Player 2 \u00b7 I/O/P'));
     hud.appendChild(txt('span', '', mode === 'host' ? 'vs ' + opp : 'host: ' + opp));
-    hud.appendChild(txt('span', 'png', (rttNow ? rttNow + ' ms' : (linked ? 'live' : 'connecting...')) + (linked ? ' \u00b7 ' + fpsNow + ' fps' : '')));
+    hud.appendChild(txt('span', 'png', (linked ? ((rttNow ? rttNow + ' ms' : 'live') + ' \u00b7 ' + fpsNow + ' fps' + (mode === 'guest' ? (vid.videoWidth ? ' \u00b7 ' + vid.videoWidth + 'x' + vid.videoHeight : ' \u00b7 no picture yet') : '')) : ('link: ' + (pc ? pc.iceConnectionState : 'waiting')))));
     var lv = txt('button', '', 'Leave'); lv.type = 'button'; lv.addEventListener('click', function () { endOnline(''); });
     hud.appendChild(lv);
   }
