@@ -68,3 +68,20 @@ body.playing .world-info{border-radius:0;background:#0005;color:#fff;font-family
 body.playing #chat{font-family:inherit;padding:6px 8px}body.playing .chat-title{border:0;color:#ddd}body.playing #messages p{text-shadow:1px 1px #111}
 body.playing .brand b{font-family:inherit;color:#fff;text-shadow:1px 1px #111;letter-spacing:0}
 body.playing .swatch{image-rendering:pixelated;transform:none}
+
+/* Compact survival inventory, proportioned like the supplied classic reference. */
+#inventory{width:360px;max-width:96vw;padding:12px;background:#c6c6c6;border:3px solid #fff;border-right-color:#555;border-bottom-color:#555;border-radius:3px;box-shadow:0 0 0 2px #111;font-family:"Courier New",monospace;color:#333}
+#inventory .dialog-head{position:absolute;right:3px;top:2px;z-index:2}#inventory .dialog-head h2{display:none}#inventory .dialog-head button{background:none;border:0;color:#555;padding:0 3px;font-size:15px}
+#inventory .inventory-upper{position:relative;display:grid;grid-template-columns:30px 92px 1fr;gap:4px;align-items:start;min-height:132px;margin-bottom:9px}
+#inventory #equipment{grid-column:1;grid-row:1;gap:2px}#inventory #equipment button{width:30px;height:30px;background-color:#8b8b8b;background-size:80%;background-repeat:no-repeat;background-position:center;margin:0}
+#inventory .character-panel{grid-column:2;grid-row:1;width:92px;height:126px;background:#000;display:flex;align-items:center;justify-content:center}
+#inventory #character-preview{width:92px;height:126px;max-height:none;image-rendering:pixelated;object-fit:contain}
+#inventory #offhand-button{position:absolute;left:130px;top:96px;width:30px;height:30px;margin:0;padding:0;background-color:#8b8b8b;background-size:contain;background-position:center;background-repeat:no-repeat;color:white;text-shadow:1px 1px #333}
+#inventory #survival-crafting{grid-column:3;grid-row:1;margin-left:6px;padding:0 0 28px;border:0;min-width:0}#inventory #station-name{font-size:12px;margin:0 0 4px}
+#inventory .survival-recipe{gap:7px;margin:4px 0;justify-content:start}#inventory #recipe-pattern{grid-template-columns:repeat(2,26px)}#inventory .ingredient{width:26px;height:26px}#inventory #recipe-output{width:30px;height:30px;flex-shrink:0}
+#inventory #recipe-list{font-size:9px;padding:2px;max-width:160px}#inventory #recipe-needs{font-size:8px!important;line-height:1.2}
+#inventory-grid,#inventory-hotbar{grid-template-columns:repeat(9,minmax(0,1fr));gap:1px}#inventory-grid{margin:0}#inventory-hotbar{margin-top:8px}#inventory-grid button,#inventory-hotbar button{min-width:0;aspect-ratio:1}
+#inventory .inventory-tip{font-size:8px;margin:4px 0}#inventory #equip-selected{padding:2px 4px;font-size:8px;margin-bottom:5px}#inventory .save-note{display:none}
+@media(max-width:370px){#inventory{padding:8px}#inventory .inventory-upper{grid-template-columns:26px 76px 1fr;gap:3px;min-height:116px}#inventory #equipment button{width:26px;height:26px}#inventory .character-panel,#inventory #character-preview{width:76px;height:110px}#inventory #offhand-button{left:110px;top:82px;width:26px;height:26px}#inventory #survival-crafting{margin-left:0}#inventory .ingredient{width:22px;height:22px}#inventory #recipe-pattern{grid-template-columns:repeat(2,22px)}#inventory .survival-recipe{gap:4px}}
+
+#inventory{--craft-cell:26px}#inventory .inventory-help{margin-top:5px;font-size:9px;color:#555}#inventory .inventory-help summary{cursor:pointer}#inventory .ingredient{width:var(--craft-cell);height:var(--craft-cell)}@media(max-width:370px){#inventory{--craft-cell:22px}}

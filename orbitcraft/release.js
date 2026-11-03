@@ -1,2 +1,2 @@
 // Shared by the static game and both multiplayer server runtimes.
-export const RELEASE = 'orbitcraft-classic-combat-6';
+export const RELEASE = 'orbitcraft-classic-inventory-7';

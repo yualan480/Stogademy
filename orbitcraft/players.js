@@ -4,7 +4,7 @@ import * as THREE from './vendor/three.module.js';
 // the multiplayer server. No bots, stock Minecraft skins, or account impersonation.
 export function createPlayerModel(id) {
   const seed=[...id].reduce((n,c)=>Math.imul(n^c.charCodeAt(0),16777619),2166136261)>>>0;
-  const shirt=['#376da5','#398d86','#6857a5','#956344','#6e8746'][seed%5];
+  const shirt='#229b9d';
   const hair=['#4b3020','#292823','#865232','#af894c'][(seed>>>3)%4];
   const skin=['#c9956f','#ad7651','#dfb28c','#8a5942'][(seed>>>5)%4];
   function paint(base,draw){
@@ -24,7 +24,7 @@ export function createPlayerModel(id) {
   const hairMaterial=paint(hair),skinMaterial=paint(skin);
   const torsoMaterial=paint(shirt,c=>{c.fillStyle=skin;c.fillRect(6,0,4,2);c.fillStyle='#00000020';c.fillRect(3,4,2,10);c.fillRect(11,6,2,8);c.fillRect(0,14,16,2);});
   const armMaterial=paint(skin,c=>{c.fillStyle=shirt;c.fillRect(0,0,16,6);c.fillStyle='#00000010';c.fillRect(0,14,16,2);});
-  const trouserMaterial=paint('#3e4c70',c=>{c.fillStyle='#273341';c.fillRect(0,13,16,3);c.fillStyle='#00000018';c.fillRect(2,2,3,11);});
+  const trouserMaterial=paint('#4945a0',c=>{c.fillStyle='#273341';c.fillRect(0,13,16,3);c.fillStyle='#00000018';c.fillRect(2,2,3,11);});
   const group=new THREE.Group(),head=new THREE.Group();head.position.y=1.3;group.add(head);
   const headMesh=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),[side,side,hairMaterial,skinMaterial,hairMaterial,face]);headMesh.position.y=.25;head.add(headMesh);
   const torso=new THREE.Mesh(new THREE.BoxGeometry(.5,.7,.25),torsoMaterial);torso.position.y=.95;group.add(torso);

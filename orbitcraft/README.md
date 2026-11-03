@@ -299,3 +299,9 @@ Left-click or the touch mine/attack button sends an immediate server-validated
 melee attempt and holding continues attacks. Reach, line of sight, cooldown,
 armor, shields, durability and PvP persistence still apply. Mob hits now produce
 the same crosshair confirmation as PvP. Existing worlds and builds are retained.
+
+The compact inventory reference layout has four armor slots, a separate off-hand
+slot, a black live character preview, a 2×2 hand grid (3×3 at a crafting table),
+27 backpack slots and nine hotbar slots. Recipe selection remains available;
+extra inventory instructions and the equipment action are under Inventory controls.
+The shared original pixel character uses a teal shirt and blue-purple trousers.
