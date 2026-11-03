@@ -8,6 +8,7 @@ export function containerShortcut(s,p,m){
   if(m.type==='container-drag'){
    if(!c.cursor||!Array.isArray(m.slots))return;const seen=new Set(),targets=[];
    for(const spec of m.slots.slice(0,72)){if(!spec||spec.area==='output')continue;const k=spec.area+':'+spec.index;if(seen.has(k))continue;seen.add(k);const a=containerSlot(s,p,c,spec.area,spec.index);if(!a||!a.accept(c.cursor.id))continue;const v=a.get();if(!v||v.id===c.cursor.id&&v.count<64)targets.push(a);}
+   if(!m.right&&targets.length>c.cursor.count)targets.length=c.cursor.count;
    const n=m.right?1:Math.floor(c.cursor.count/Math.max(1,targets.length));if(n<1)return;
    for(const a of targets){if(!c.cursor)break;const old=a.get(),amount=Math.min(n,c.cursor.count,64-(old?.count||0));if(amount<1)continue;a.put({id:c.cursor.id,count:(old?.count||0)+amount});c.cursor.count-=amount;if(!c.cursor.count)c.cursor=null;}
   }else if(m.type==='container-hotbar'){

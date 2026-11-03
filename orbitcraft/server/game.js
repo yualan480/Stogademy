@@ -124,8 +124,9 @@ export class Game {
     const id=m.block;
     if(!isBlock(id)||[8,9,21,22].includes(id)||(p.inventory[id]||0)<1)throw new Error('Collect that block before placing it.');
     const a=hit.place;
-    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z)))throw new Error('Cannot place here.');
-    if([...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw new Error('A player is standing there.');
+    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===25)throw new Error('Cannot place here.');
+    if(id===25&&(this.get(a.x,a.y,a.z)!==0||!solid(this.get(a.x,a.y-1,a.z))))throw Error('Place torches on a dry, solid block.');
+    if(id!==25&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw new Error('A player is standing there.');
     p.inventory[id]--;p.placed++;
     try{this.store.edit(p,a,id);}catch(e){p.inventory[id]++;p.placed--;throw e;}
     this.applyBlock(a,id);this.broadcast({type:'block',x:a.x,y:a.y,z:a.z,block:id});this.inventory(p);

@@ -364,3 +364,23 @@ for legacy profiles and "Player" when no full name is available. The username
 is never used as the displayed game name. Authentication UUIDs, inventory keys
 and existing world saves are unchanged; reconnect to refresh an authenticated
 player's name. Historical chat messages retain the name stored when sent.
+
+### Station reference faces, torches, boats and live drag feedback
+
+Crafting tables now have an inset 3×3 top and wooden tool panels. Furnaces have
+separate mottled stone tops/walls and an inset two-opening front. The same atlas
+mapping is used for world blocks, held items, drops and inventory icons.
+
+Coal above a stick crafts four torches in hand or table crafting. Torches are
+placeable non-solid light sources on dry solid ground, persist as world edits,
+and drop if their support is mined. Client lights are bounded to the closest
+four torches (two on touch devices); nearby torches prevent hostile spawning.
+Five oak planks arranged in a U at a table craft one oak boat inventory item,
+with its own pixel icon for holding, storage and drops.
+
+During a carried-stack drag, visited slots now show live item/count previews:
+left-drag rebalances evenly as more slots are visited; right-drag shows one per
+visited slot. Mouse release still commits the server-validated transaction
+atomically. Background updates preserve the preview, and closing/cancelling
+removes it without duplicating resources. A drag cannot select more slots than
+there are carried items.

@@ -1,11 +1,11 @@
-import {createShortcuts} from './game-shortcuts.js?v=20261103-offhand10';
+import {createShortcuts} from './game-shortcuts.js?v=20261103-stations11';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-offhand10';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261103-stations11';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,raycast,solid,collides } from './world.js';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js';
-import { createPlayerModel } from './players.js?v=20261103-offhand10';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-offhand10';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261103-stations11';
+import { createPlayerModel } from './players.js?v=20261103-stations11';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261103-stations11';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const chunks=new Map(),pending=new Set(),dirty=new Set(),edits=new Map(),avatars=new Map();
@@ -27,6 +27,7 @@ const atmosphere = createAtmosphere(scene);
 const held = createHeldBlock(camera, texture);
 const leftHeld=createHeldBlock(camera,texture,{left:true});
 const resources=createResourceEffects(scene,texture);
+const torchPositions=new Map(),torchLights=Array.from({length:coarse?2:4},()=>{const light=new THREE.PointLight(0xffb56c,0,12,1.5);scene.add(light);return light;});let torchLightAt=0;
 const firstShield=new THREE.Group();camera.add(firstShield);for(const [w,h,d,color]of [[.31,.43,.06,0x999b9b],[.26,.37,.07,0x987345]]){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color,depthTest:false,fog:false}));m.renderOrder=1002;firstShield.add(m);}
 function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='left'?'offhandId':'heldId',meshKey=side==='left'?'offhandMesh':'itemMesh',arm=side==='left'?model.arm:model.arm2;if(model[key]===id)return;model[key]=id;if(model[meshKey]){arm.remove(model[meshKey]);model[meshKey].geometry.dispose();model[meshKey].material.dispose();model[meshKey]=null;}if(!id)return;const mesh=new THREE.Mesh(blockGeometry(id,.23),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.name=side==='left'?'left-hand-item':'right-hand-item';mesh.position.set(0,-.55,-.15);mesh.rotation.x=-.45;arm.add(mesh);model[meshKey]=mesh;}
 
@@ -43,26 +44,28 @@ const faces=[
  {n:[0,0,-1],v:[[1,0,0],[0,0,0],[0,1,0],[1,1,0]],s:.76}
 ];
 function meshChunk(k){
- const chunk=chunks.get(k);if(!chunk)return;const [cx,cz]=k.split(',').map(Number),groups=[{p:[],n:[],uv:[],c:[]},{p:[],n:[],uv:[],c:[]}];
+ const chunk=chunks.get(k);if(!chunk)return;const [cx,cz]=k.split(',').map(Number),torches=[],groups=[{p:[],n:[],uv:[],c:[]},{p:[],n:[],uv:[],c:[]}];
  // Neighbors missing from the streamed set are opaque to avoid exposed world walls.
  const block=(x,y,z)=>{if(y<0)return 9;if(y>=HEIGHT)return 0;if(!inside(x,y,z))return 0;const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:9;};
  for(let y=0;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++){
   const id=chunk.data[chunkIndex(x,y,z)];if(!id)continue;const wx=cx*CHUNK+x,wz=cz*CHUNK+z,g=groups[id===8?1:0];
-  if(id===22||(id===1&&block(wx,y+1,wz)===0)){const detail=id===22?29:terrainDetail(wx,wz);if(detail!==null){
-    const stage=cropStages.get(`${wx},${y},${wz}`)||0,height=id===22?.3+stage*.2:detail===13?.6:.46,half=.32,cx=wx+.5,cz=wz+.5;
-    const quads=[[[cx-half,y+(id===22?0:1),cz-half],[cx+half,y+(id===22?0:1),cz+half],[cx+half,y+(id===22?0:1)+height,cz+half],[cx-half,y+(id===22?0:1)+height,cz-half]],[[cx-half,y+(id===22?0:1),cz+half],[cx+half,y+(id===22?0:1),cz-half],[cx+half,y+(id===22?0:1)+height,cz-half],[cx-half,y+(id===22?0:1)+height,cz+half]]];
+  if(id===25)torches.push({x:wx+.5,y:y+.65,z:wz+.5});
+  if(id===22||id===25||(id===1&&block(wx,y+1,wz)===0)){const detail=id===25?34:id===22?29:terrainDetail(wx,wz);if(detail!==null){
+    const stage=cropStages.get(`${wx},${y},${wz}`)||0,height=id===25?.85:id===22?.3+stage*.2:detail===13?.6:.46,half=id===25?.2:.32,cx=wx+.5,cz=wz+.5;
+    const quads=[[[cx-half,y+(id===22||id===25?0:1),cz-half],[cx+half,y+(id===22||id===25?0:1),cz+half],[cx+half,y+(id===22||id===25?0:1)+height,cz+half],[cx-half,y+(id===22||id===25?0:1)+height,cz-half]],[[cx-half,y+(id===22||id===25?0:1),cz+half],[cx+half,y+(id===22||id===25?0:1),cz-half],[cx+half,y+(id===22||id===25?0:1)+height,cz-half],[cx-half,y+(id===22||id===25?0:1)+height,cz+half]]];
     for(const [q,verts] of quads.entries())for(const backwards of [false,true])for(const i of backwards?[0,2,1,0,3,2]:[0,1,2,0,2,3]){const sign=backwards?-1:1;g.p.push(...verts[i]);g.n.push(sign*(q ? .707 : -.707),0,sign*.707);const uv=[[0,0],[1,0],[1,1],[0,1]][i];g.uv.push((detail*16+.2+uv[0]*15.6)/(TILE_COUNT*16),(.2+uv[1]*15.6)/16);g.c.push(1,1,1);}
   }}
-  if(id===22)continue;
-  for(const f of faces){const b=block(wx+f.n[0],y+f.n[1],wz+f.n[2]);if(b && (id===8||b!==8))continue;
-   const uv=[[0,0],[1,0],[1,1],[0,1]],tile=tileFor(id,f.n[1]);
+  if(id===22||id===25)continue;
+  for(const f of faces){const b=block(wx+f.n[0],y+f.n[1],wz+f.n[2]);if(b&&b!==25&&b!==22&&(id===8||b!==8))continue;
+   const uv=[[0,0],[1,0],[1,1],[0,1]],tile=tileFor(id,f.n[1],f.n[2]);
    for(const i of [0,1,2,0,2,3]){const v=f.v[i];g.p.push(wx+v[0],y+v[1],wz+v[2]);g.n.push(...f.n);g.uv.push((tile*16+.2+uv[i][0]*15.6)/(TILE_COUNT*16),(.2+uv[i][1]*15.6)/16);const outside=[wx+f.n[0],y+f.n[1],wz+f.n[2]],tangents=[0,1,2].filter(axis=>!f.n[axis]);
     const offset=(axis,sign)=>{const p=[...outside];p[axis]+=sign;return p;};
-    const opaque=p=>{const b=block(...p);return b&&b!==8&&b!==6;};
+    const opaque=p=>{const b=block(...p);return b&&b!==8&&b!==6&&b!==25;};
     const first=offset(tangents[0],v[tangents[0]]?1:-1),second=offset(tangents[1],v[tangents[1]]?1:-1),corner=[...first];corner[tangents[1]]+=v[tangents[1]]?1:-1;
     const shade=f.s*(1-.14*(Number(!!opaque(first))+Number(!!opaque(second))+Number(!!opaque(corner))));g.c.push(shade,shade,shade);}
   }
  }
+ torchPositions.set(k,torches);
  if(chunk.group){scene.remove(chunk.group);for(const m of chunk.group.children)m.geometry.dispose();}
  chunk.group=new THREE.Group();groups.forEach((g,i)=>{if(!g.p.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(g.p,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(g.n,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(g.uv,2));geometry.setAttribute('color',new THREE.Float32BufferAttribute(g.c,3));geometry.computeBoundingSphere();chunk.group.add(new THREE.Mesh(geometry,i?waterMaterial:material));});scene.add(chunk.group);
 }
@@ -70,7 +73,7 @@ function mark(cx,cz){for(const [dx,dz] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]])if(c
 function requestChunks(){if(!me||!connected)return;const cx=Math.floor(me.x/CHUNK),cz=Math.floor(me.z/CHUNK),want=[];
  for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++){const x=cx+dx,z=cz+dz,k=`${x},${z}`;if(x< -4||x>=4||z< -4||z>=4)continue;if(!chunks.has(k)&&!pending.has(k)){want.push([x,z]);pending.add(k);}}
  want.sort((a,b)=>Math.hypot(a[0]-cx,a[1]-cz)-Math.hypot(b[0]-cx,b[1]-cz));if(want.length)send({type:'chunks',chunks:want});
- for(const [k,c] of chunks){const [x,z]=k.split(',').map(Number);if(Math.abs(x-cx)>3||Math.abs(z-cz)>3){if(c.group){scene.remove(c.group);c.group.children.forEach(m=>m.geometry.dispose());}chunks.delete(k);dirty.delete(k);}}
+ for(const [k,c] of chunks){const [x,z]=k.split(',').map(Number);if(Math.abs(x-cx)>3||Math.abs(z-cz)>3){if(c.group){scene.remove(c.group);c.group.children.forEach(m=>m.geometry.dispose());}chunks.delete(k);torchPositions.delete(k);dirty.delete(k);}}
 }
 function send(m){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringify(m));}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('on');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('on'),3500);}
@@ -129,7 +132,7 @@ async function join(){
  socket.onopen=()=>socket.send(JSON.stringify(auth));
  socket.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch{return;}
   if(m.type==='welcome'){
-   for(const c of chunks.values())if(c.group){scene.remove(c.group);c.group.children.forEach(m=>m.geometry.dispose());}chunks.clear();dirty.clear();pending.clear();edits.clear();for(const id of avatars.keys())removeAvatar(id);
+   for(const c of chunks.values())if(c.group){scene.remove(c.group);c.group.children.forEach(m=>m.geometry.dispose());}chunks.clear();torchPositions.clear();dirty.clear();pending.clear();edits.clear();for(const id of avatars.keys())removeAvatar(id);
    resources.clear();predictionHistory.clear();correction.set(0,0,0);if(ownPlayer){scene.remove(ownPlayer.group);ownPlayer.group.traverse(o=>{o.geometry?.dispose();if(o.material)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.map&&material.map!==texture)material.map.dispose();material.dispose();}});}ownPlayer=createPlayerModel(m.you.id);ownPlayer.group.name='local-player';scene.add(ownPlayer.group);resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;connected=true;survival.update(m.survival||{health:20,hunger:20});document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();toast(coarse?'Drag the world to look. Use the controls to move.':'Click the world to look around. Press ? for controls.');
   }else if(m.type==='chunk'){
    const k=`${m.x},${m.z}`,binary=atob(m.data),data=Uint8Array.from(binary,c=>c.charCodeAt(0));if(data.length!==CHUNK*CHUNK*HEIGHT)return;
@@ -217,6 +220,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  shortcuts.tick();
  if(me&&connected){
   me.survival=survival.state;
+  if(now-torchLightAt>250){torchLightAt=now;const nearest=[...torchPositions.values()].flat().filter(t=>Math.hypot(t.x-me.x,t.y-me.y,t.z-me.z)<16).sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y,a.z-me.z)-Math.hypot(b.x-me.x,b.y-me.y,b.z-me.z));torchLights.forEach((light,i)=>{light.intensity=nearest[i]?2.4:0;if(nearest[i])light.position.set(nearest[i].x,nearest[i].y,nearest[i].z);});}
   if(controls()&&survival.state.health>0&&!survival.state.sleeping){for(let remaining=dt;remaining>0;remaining-=1/60)step(me,{...input,sprint:input.sprint&&survival.state.hunger>6},Math.min(remaining,1/60),get);}
   const blend=1-Math.exp(-dt*5);for(const axis of ['x','y','z']){const next={...me,[axis]:me[axis]+correction[axis]*blend};if(!collides(next,get))me[axis]=next[axis];else correction[axis]=0;}correction.multiplyScalar(1-blend);
   camera.position.set(me.x,me.y+1.62,me.z);camera.rotation.set(me.pitch,me.yaw,0,'YXZ');

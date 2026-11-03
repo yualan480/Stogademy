@@ -1,4 +1,4 @@
-import {createContainerView} from './containers-ui.js?v=20261103-offhand10';
+import {createContainerView} from './containers-ui.js?v=20261103-stations11';
 import * as THREE from './vendor/three.module.js';
 import {ITEMS,RECIPES,itemName,SMELTING,FUEL} from './items.js';
 export function applyEquipment(model,equipment={}){
