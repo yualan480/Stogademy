@@ -2,7 +2,7 @@ import {isTorch,isPlant,inShape} from './shapes.js';
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
-export const JUMP_DURATION_SECONDS=.6,JUMP_GRAVITY=28,JUMP_VELOCITY=8.4;
+export const JUMP_DURATION_SECONDS=.75,JUMP_GRAVITY=64/3,JUMP_VELOCITY=8;
 export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 56, CHUNK = 16, SEA = 13;
 export const BLOCKS = {
   1: { name: 'Grass', color: '#70a745' }, 2: { name: 'Dirt', color: '#926342' },

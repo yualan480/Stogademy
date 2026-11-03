@@ -534,14 +534,14 @@ output cannot grant more. Orbs persist with the world; death clears XP and drops
 a bounded share. Increasing level costs follow the classic survival progression.
 The armor and XP HUD also obey F1 and inventory hiding.
 
-Normal dry-ground jumps use shared gravity 28 and launch velocity 8.4, integrated
-with a half-step launch correction so return to the same height takes 0.6 seconds
-at both server 20 Hz and client 60 Hz. Jump height is about 1.26 blocks; swimming
+Normal dry-ground jumps use shared gravity 64/3 and launch velocity 8, integrated
+with a half-step launch correction so return to the same height takes 0.75 seconds
+at both server 20 Hz and client 60 Hz. Jump height is about 1.5 blocks; swimming
 and creative flight retain separate controls.
 
 Validation adds water descent/obstacle routing/range/draining/persistence/pause
 and rollback checks; animal/crop/furnace orb rewards and pickup rollback; level
-math and 0.6-second jump checks at both step rates. Browser checks verify visible
+math and 0.75-second jump checks at both step rates. Browser checks verify visible
 XP progression, armor points, durability strips, animated water without shader
 errors, and HUD hiding. The earlier snow, cursor-following preview and removal
 of the separate Eat binding remain in this release.
@@ -559,3 +559,13 @@ dead retains the score and functional death screen.
 
 The real-browser death check covers a lethal attack while pointer-locked, score
 persistence, title navigation, no accidental pause overlay, and respawn/focus.
+
+### One-block ledge jump fix
+
+The short 0.6-second arc has been replaced with a 0.75-second, roughly 1.5-block
+arc to give players a wider window for reaching a ledge one block higher. Client
+and server still use identical physics. Regression checks cover jumping from
+several close approach distances at both step rates, landing on a single block,
+and confirming that ordinary walking still cannot climb that wall. A real
+browser also jumps from directly beside the ledge and stays on top without
+authoritative position correction or damage.
