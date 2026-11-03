@@ -451,6 +451,7 @@
     conn.onconnectionstatechange = function () {
       if (conn !== pc || phase !== 'play') return;
       var s = conn.connectionState;
+      console.log('[getaway] connectionState', s, 'ice', conn.iceConnectionState);
       if (s === 'connected') { linked = true; clearTimeout(linkT); linkT = 0; clearTimeout(discT); discT = 0; renderHud(); }
       else if (s === 'failed' || s === 'closed') endOnline('The video link failed. Your network may be blocking peer-to-peer connections.');
       else if (s === 'disconnected' && !discT) {
@@ -497,11 +498,25 @@
       var offer = await conn.createOffer();
       await conn.setLocalDescription(offer);
       tuneSender(sender);
-      sendRoom('rtc', { to: oppId(), k: 'offer', d: { type: offer.type, sdp: offer.sdp } });
+      await gatherDone(conn, 4000);
+      if (conn !== pc) return;
+      var ld = conn.localDescription || offer;
+      console.log('[getaway] sending offer with candidates:', (ld.sdp.match(/a=candidate/g) || []).length);
+      sendRoom('rtc', { to: oppId(), k: 'offer', d: { type: ld.type, sdp: ld.sdp } });
       offerSent = true;
       var q = hostIceQ; hostIceQ = [];
       q.forEach(function (d) { sendRoom('rtc', { to: oppId(), k: 'ice', d: d }); });
     } catch (e) { console.warn('[getaway] startHostStream', e); endOnline('Could not start streaming the game.'); }
+  }
+  // wait (max ms) until the browser has finished collecting its candidates, so they can travel INSIDE the offer/answer
+  function gatherDone(conn, ms) {
+    return new Promise(function (res) {
+      if (conn.iceGatheringState === 'complete') { res(); return; }
+      var t = setTimeout(done, ms);
+      function done() { clearTimeout(t); conn.removeEventListener('icegatheringstatechange', chk); res(); }
+      function chk() { if (conn.iceGatheringState === 'complete') done(); }
+      conn.addEventListener('icegatheringstatechange', chk);
+    });
   }
   async function flushIce(conn) {
     var q = pendingIce; pendingIce = [];
@@ -509,6 +524,7 @@
   }
   // both sides: signaling messages
   async function onRtc(p) {
+    if (p && p.k) console.log('[getaway] rx', p.k, 'to-me:', p.to === myId, 'phase:', phase);
     if (!p || p.to !== myId || phase !== 'play') return;
     try {
       if (p.k === 'offer' && mode === 'guest') {
@@ -529,7 +545,11 @@
         await flushIce(conn);
         var ans = await conn.createAnswer();
         await conn.setLocalDescription(ans);
-        sendRoom('rtc', { to: oppId(), k: 'answer', d: { type: ans.type, sdp: ans.sdp } });
+        await gatherDone(conn, 4000);
+        if (conn !== pc) return;
+        var la = conn.localDescription || ans;
+        console.log('[getaway] sending answer with candidates:', (la.sdp.match(/a=candidate/g) || []).length);
+        sendRoom('rtc', { to: oppId(), k: 'answer', d: { type: la.type, sdp: la.sdp } });
       } else if (p.k === 'answer' && mode === 'host' && pc) {
         await pc.setRemoteDescription(p.d);
         await flushIce(pc);
