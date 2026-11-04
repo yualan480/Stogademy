@@ -7,6 +7,16 @@
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzb3B4ZW5nZXJrdmJ3aHJkbndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM5MDIsImV4cCI6MjEwNzMyOTkwMn0.7jOqjsJ2yAsRVThEuIyK6KI6D3cgs5SrxHg79nXlDBM';
   var GAMES = ['blockblast', 'tetris', 'game2048', 'snake', 'pacman', 'breakout', 'minesweeper', 'flappy', 'dino', 'blockout', 'slope', 'geodash', 'girder', 'sudoku'];
   var MAX_SCORE = 10000000;
+  // Capture bests before a game updates its own storage at the end of a round.
+  var guideBests = {};
+  // A cartridge can be nested inside the Orbit Games launcher. Only relay events
+  // from an actual same-origin child frame; the Orbit shell validates its frame too.
+  window.addEventListener('message', function (event) {
+    if (event.origin !== location.origin || event.data?.orbitGuide !== 'personal-best' || parent === window) return;
+    if (!Array.from(document.querySelectorAll('iframe')).some(function (f) { return f.contentWindow === event.source; })) return;
+    parent.postMessage(event.data, location.origin);
+  });
+
   var NAME_KEY = 'player-name';
   var AVATAR_KEY = 'player-avatar';
   var DEFAULT_AVATAR = 'gamer';
@@ -32,6 +42,8 @@
       localStorage.setItem('lb-halved-v1', '1');
     } catch (e) { /* storage unavailable */ }
   })();
+
+  GAMES.forEach(function (g) { try { guideBests[g] = Number(localStorage.getItem(g + '-best')) || 0; } catch (e) { guideBests[g] = 0; } });
 
   /* ---------- names ---------- */
   // names are checked in a simplified form (lowercase, look-alike characters swapped, spaces and symbols removed)
@@ -342,6 +354,16 @@
   // what the games call when a round ends: send the score, then show where the player stands
   function submit(game, score) {
     var p = sendScore(game, score);
+    var numeric = Math.floor(Number(score)), previous = guideBests[game];
+    if (GAMES.indexOf(game) !== -1 && numeric > 0 && numeric <= MAX_SCORE && numeric > previous) {
+      guideBests[game] = numeric;
+      p.then(function (saved) {
+        if (!saved) { if (guideBests[game] === numeric) guideBests[game] = previous; return; }
+        if (parent === window) return;
+        var uid = ''; try { uid = localStorage.getItem('orbit-uid') || ''; } catch (e) { /* guest */ }
+        parent.postMessage({ orbitGuide: 'personal-best', uid: uid, game: GAME_NAMES[game] || game, score: numeric }, location.origin);
+      }).catch(function () { /* A celebration must never interfere with gameplay. */ });
+    }
     try { showRank(game, score, p); } catch (e) { /* the banner is a bonus, never break a game */ }
     try { coinRound(game, score); } catch (e) { /* Orbits are a bonus, never break a game */ }
     return p;

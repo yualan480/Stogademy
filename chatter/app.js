@@ -1,9 +1,10 @@
+import { initGuides } from './guides.js?v=1';
 import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
 import { initOrbit } from './orbit.js?v=11';
-import { initCommunities } from './communities.js?v=2';
+import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
 const { initTournaments } = await import('./tournaments.js?v=2').catch(e => (console.warn('Tournaments unavailable', e), {}));
@@ -273,13 +274,14 @@ const O = initOrbit({ setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits
   searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff() });
 
 const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, menuBtn, bindMenu,
-  needProfiles: ids => needProfiles(ids), navTo: k => navTo(k), renderSide: () => renderSide(), profileModal: id => profileModal(id), isStaff: () => isStaff() });
+  needProfiles: ids => needProfiles(ids), navTo: k => navTo(k), renderSide: () => renderSide(), profileModal: id => profileModal(id), isStaff: () => isStaff(), onJoined: () => GUIDE.milestone('community') });
 
 SHOP = !initShop ? NO_SHOP : initShop({ S, sb, $, esc, ic, I, modal, toast, menuBtn, renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const TN = !initTournaments ? NO_TN : initTournaments({ S, sb, $, esc, ic, I, modal, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), isStaff: () => isStaff(), loadOrbits: () => loadOrbits() });
 const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); }, openIntelligence: text => { if(text) INT.setDraft(text); navTo('intelligence'); } });
 const INT = initIntelligence({ S, sb, esc, modal, toast, menuBtn, bindMenu, onViewItems: () => AR.openGear?.() });
+const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k) });
 
 /* ───────── device lock: the first account to sign in on a browser owns it ───────── */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, BOUND_KEY = 'chatter-bound-email';
@@ -832,8 +834,9 @@ async function startApp(session, force) {
   navigator.serviceWorker?.register('sw.js').catch(() => {}); setTimeout(askNotify, 2500);
   O.start(); CM.start();
   if (S.servers[0]) openServer(S.servers[0].id, null, true); else renderAll();
+  GUIDE.start(session.user, S.friends);
 }
-function teardown() { INT.stop(); O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
+function teardown() { GUIDE.stop(); INT.stop(); O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
 const renderAll = () => { renderSide(); renderMain(); renderMembers(); };
 const onlineCount = () => S.members.filter(m => statusOf(prof(m.user_id)) !== 'offline').length;
 
@@ -876,6 +879,14 @@ function voiceList() {
 function syncGamesIdentity() {
   try { const n = String(S.me?.display_name || '').trim().slice(0, 12); if (n && S.me?.id) { localStorage.setItem('player-name', n); localStorage.setItem('orbit-uid', S.me.id); } } catch {}
 }
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || e.data?.orbitGuide !== 'personal-best') return;
+  const frame = document.querySelector('.gframe');
+  if (!frame || e.source !== frame.contentWindow || e.data.uid !== S.me?.id) return;
+  const { game, score } = e.data;
+  if (typeof game !== 'string' || game.length > 60 || !Number.isFinite(score) || score < 1 || score > 10000000) return;
+  GUIDE.milestone('score', { game, score });
+});
 /* Orbit Games tells Orbit when a cartridge is chosen: until the player leaves, nothing but the top-left sidebar button
    (and the sidebar itself) can be clicked, and the page cannot scroll. */
 const gamesLock = on => document.documentElement.classList.toggle('games-locked', !!on);
@@ -1037,7 +1048,7 @@ async function loadFriends() {
   r.data.forEach(x => ids.add(x.sender_id === S.me.id ? x.receiver_id : x.sender_id));
   const need = [...ids].filter(i => !S.profiles.has(i));
   if (need.length) (await sb.from('profiles').select('*').in('id', need)).data?.forEach(p => S.profiles.set(p.id, p));
-  loadSeen([...ids]);
+  loadSeen([...ids]); GUIDE.friends(S.friends);
 }
 
 /* ───────── realtime + presence ───────── */
@@ -1206,6 +1217,7 @@ function renderMain(loading) {   // wraps the real renderer: page transition whe
   if (m) afterMain(m);
 }
 function renderMainInner(loading) {
+  GUIDE.onNav(S.view);
   if (S.view !== 'intelligence') INT.onNav(S.view);
   $('#app')?.classList.toggle('side-off', (S.view === 'gamer' || S.view === 'gamble' || S.view === 'orbitcraft') && !!S.sideOff);
   const main = $('#main'); if (!main) return;
@@ -1556,12 +1568,13 @@ function settingsModal() {
   <div id="curbox" style="margin-top:.8rem"></div>
   <label>Notifications</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span>Desktop banners: <b id="nst"></b></span><button type="button" class="btn ghost sm" id="nen">Turn on</button><button type="button" class="btn ghost sm" id="nsnd">Test sound</button></div>
   <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="nall" style="width:auto"> Notify me for every channel message, not just DMs, announcements and @mentions</label>
+  ${GUIDE.settingsHtml()}
   <label for="s7">New password (optional)</label><input id="s7" type="password" minlength="8" autocomplete="new-password">`,
     [{ label: 'Log out', cls: 'ghost', fn: () => { sb.auth.signOut(); } }, ...(canAdmin() ? [{ label: 'Admin dashboard', cls: 'ghost', fn: () => { setTimeout(() => adminDashboard()); } }] : []), { label: 'Cancel', cls: 'ghost' }, { label: 'Save', fn: async bg => {
       const upd = { bio: $('#s2', bg).value, status: $('#s3', bg).value, custom_status: $('#s4', bg).value, avatar_color: $('#s5', bg).value };
       const { data, error } = await sb.from('profiles').update(upd).eq('id', S.me.id).select().single(); if (error) { toast(error.message, true); return false; }
       const pw = $('#s7', bg).value; if (pw) { if (pw.length < 8) { toast('Password must be at least 8 characters.', true); return false; } const r = await sb.auth.updateUser({ password: pw }); if (r.error) { toast(r.error.message, true); return false; } }
-      S.me = data; S.profiles.set(data.id, data); trackStatus(); renderAll(); toast('Settings saved'); } }], (bg, close) => { notifyBind(bg); avatarBind(bg, close); const cb = $('#curbox', bg); if (cb && window.StgCursor) cb.append(window.StgCursor.panel()); });
+      S.me = data; S.profiles.set(data.id, data); await GUIDE.saveSettings(bg); trackStatus(); renderAll(); toast('Settings saved'); } }], (bg, close) => { GUIDE.bindSettings(bg, close); notifyBind(bg); avatarBind(bg, close); const cb = $('#curbox', bg); if (cb && window.StgCursor) cb.append(window.StgCursor.panel()); });
 }
 
 /* ───────── friends ───────── */

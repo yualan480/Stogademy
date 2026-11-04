@@ -150,7 +150,7 @@ export function initCommunities(c) {
     C.mine.set(id, 'member'); x.member_count++; C.invites = C.invites.filter(i => i.community_id !== id); refresh();
     const r = await sb.rpc('join_community', { p_id: id });
     if (r.error) { C.mine.delete(id); x.member_count = Math.max(0, x.member_count - 1); refresh(); fail(r.error); }
-    else toast('Joined ' + x.name);
+    else { toast('Joined ' + x.name); c.onJoined?.(x); }
   }
   function leave(id) {
     const x = get(id); if (!x) return;
