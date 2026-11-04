@@ -22,7 +22,9 @@
     const width = full ? document.documentElement.clientWidth : host.clientWidth;
     const height = full ? window.innerHeight : host.clientHeight;
     if (!width || !height) return;
-    const scale = Math.min(1, width / 640, height / 600);
+    let responsive = false;
+    try { responsive = frame.contentWindow.location.pathname.endsWith('/slither.html'); } catch {}
+    const scale = responsive ? 1 : Math.min(1, width / 640, height / 600);
     if (!full && getComputedStyle(host).position === 'static') host.style.position = 'relative';
     Object.assign(frame.style, {
       border: '0', position: full ? 'fixed' : 'absolute', inset: 'auto', left: '50%', top: '50%',
