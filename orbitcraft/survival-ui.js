@@ -1,6 +1,6 @@
 import {xpProgress} from './experience.js';
-import {tintAndFall,boatModel} from './entity-effects.js?v=20261103-ledge19';
-import {createContainerView} from './containers-ui.js?v=20261103-ledge19';
+import {tintAndFall,boatModel} from './entity-effects.js?v=20261104-audio20';
+import {createContainerView} from './containers-ui.js?v=20261104-audio20';
 import * as THREE from './vendor/three.module.js';
 import {ITEMS,RECIPES,itemName,SMELTING,FUEL} from './items.js';
 export function applyEquipment(model,equipment={}){

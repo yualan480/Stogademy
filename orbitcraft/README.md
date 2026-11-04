@@ -569,3 +569,23 @@ several close approach distances at both step rates, landing on a single block,
 and confirming that ordinary walking still cannot climb that wall. A real
 browser also jumps from directly beside the ledge and stays on top without
 authoritative position correction or damage.
+
+### Sound effects
+
+Original Web Audio synthesis supplies surface-aware footsteps, jumping/landing,
+mining/breaking/placing, attack/hurt/death, eating, water splashes/ambience, item
+and XP pickup/level-up, furnace crackle, nearby creatures, and menu feedback.
+There are no external sound downloads or copyrighted game recordings.
+
+Audio unlocks after a click or key gesture, so automatic joining does not bypass
+browser autoplay rules. Esc → Options offers master volume and mute; settings
+persist locally. Hidden tabs mute output. Distant events attenuate, automatic
+water-flow edits do not spam placement sounds, and short effects are throttled.
+Oscillator/filter/gain nodes disconnect when each effect ends; one noise buffer
+is reused. Browsers without Web Audio keep the game playable with sound controls
+disabled. The ledge-jump update (0.75 seconds / approximately 1.5 blocks) remains.
+
+A browser check confirms delayed audio initialization, a running context and
+real tone/noise output during movement/jumping, muted gameplay without new
+effects, persisted volume/mute settings and no JavaScript errors. The real
+browser single-block ledge landing check also passes.

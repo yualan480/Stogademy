@@ -1,6 +1,6 @@
 import {isTorch,isPlant,blockBoxes} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
-import { TILE_COUNT,tileFor } from './visuals.js?v=20261103-ledge19';
+import { TILE_COUNT,tileFor } from './visuals.js?v=20261104-audio20';
 
 export function blockGeometry(id,size){
   const geometry=id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(size*1.5,size*1.5):new THREE.BoxGeometry(size,size,size),uv=geometry.attributes.uv;
