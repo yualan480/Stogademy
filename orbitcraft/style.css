@@ -178,3 +178,5 @@ body.sleeping,body.sleeping #world{cursor:default!important}body.sleeping #sleep
 #inventory .furnace-arrow{background:#929292}#inventory .furnace-arrow:after{content:'';position:absolute;top:0;bottom:0;left:0;width:var(--smelt-progress,0%);background:#fff}#inventory .burning .furnace-arrow:after{transition:width .25s linear}
 
 #inventory .furnace-arrow.reset-progress:after{transition:none}
+
+.mouse-settings{padding:10px 0;border-bottom:2px solid #888;margin-bottom:10px}.mouse-settings label{font:20px OrbitPixel,monospace}.mouse-settings input{display:block;width:100%;accent-color:#777}.mouse-settings button{display:block;margin:7px auto 0;min-width:180px}

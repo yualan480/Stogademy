@@ -7,7 +7,7 @@ import {createXPVisuals} from './experience-visuals.js?v=20261104-audio20';
 import {isTorch,isPlant,blockBoxes} from './shapes.js';
 import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261104-audio20';
 import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261104-audio20';
-import {createKeybinds} from './keybinds.js?v=20261104-audio20';
+import {createKeybinds} from './keybinds.js?v=20261104-sensitivity30';
 import {createPauseMenu} from './pause-menu.js?v=20261104-audio20';
 import {furnitureModel} from './block-models.js?v=20261104-audio20';
 import {createShortcuts} from './game-shortcuts.js?v=20261104-audio20';
@@ -255,7 +255,7 @@ addEventListener('keydown',e=>{
  const movement=movementAction(e.code);if(movement&&controls()){e.preventDefault();input[movement]=true;}
  });addEventListener('keyup',e=>{if(bindings.action(e.code)==='players')$('player-list').hidden=true;if(shortcuts.keyup(e))return;const movement=movementAction(e.code);if(movement)input[movement]=false;if(bindings.action(e.code)==='attack')setMining(false);if(['use','place'].includes(bindings.action(e.code))){releaseBow();setEating(false);}});addEventListener('blur',inputReset);document.addEventListener('visibilitychange',()=>{if(document.hidden)inputReset();});document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===canvas){tryingFocus=false;if($('toast').textContent.startsWith('Click the world'))$('toast').classList.remove('on');return;}inputReset();if(connected&&survival.state.health>0&&!menuOpen()&&!tryingFocus)openDialog('pause-menu');});
 canvas.addEventListener('click',()=>{if(connected&&!coarse&&!menuOpen()){focusWorld();}});
-addEventListener('mousemove',e=>{if(!me||document.pointerLockElement!==canvas)return;me.yaw-=e.movementX*.0025;me.pitch=Math.max(-1.54,Math.min(1.54,me.pitch-e.movementY*.0025));});
+addEventListener('mousemove',e=>{if(!me||document.pointerLockElement!==canvas)return;const sensitivity=bindings.mouseSensitivity();me.yaw-=e.movementX*sensitivity;me.pitch=Math.max(-1.54,Math.min(1.54,me.pitch-e.movementY*sensitivity));});
 function sendInput(){if(me&&connected){input.sprint=sprintLatch;predictionHistory.set(++seq,{x:me.x,y:me.y,z:me.z});while(predictionHistory.size>100)predictionHistory.delete(predictionHistory.keys().next().value);send({type:'input',...(controls()?input:{}),mine:miningHeld&&controls(),yaw:me.yaw,pitch:me.pitch,seq});}}
 setInterval(sendInput,50);
 function setEating(value){input.eat=!!value&&!!ITEMS[hotbarSlots[selected]]?.food&&inventory[hotbarSlots[selected]]>0&&survival.state.hunger<20;if(input.eat){input.mine=false;miningHeld=false;}sendInput();}
