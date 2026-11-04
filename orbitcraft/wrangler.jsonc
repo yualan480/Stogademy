@@ -7,9 +7,9 @@
   "assets": {
     "directory": ".site",
     "binding": "ASSETS",
-    "run_worker_first": ["/orbitcraft/socket", "/orbitcraft/health"]
+    "run_worker_first": ["/orbitcraft/socket", "/orbitcraft/health", "/orbit-intelligence/socket", "/orbit-intelligence/health"]
   },
-  "durable_objects": { "bindings": [{ "name": "ORBITCRAFT_WORLD", "class_name": "OrbitcraftWorld" }] },
-  "migrations": [{ "tag": "orbitcraft-v1", "new_sqlite_classes": ["OrbitcraftWorld"] }],
+  "durable_objects": { "bindings": [{ "name": "ORBITCRAFT_WORLD", "class_name": "OrbitcraftWorld" }, { "name": "ORBIT_INTELLIGENCE", "class_name": "OrbitIntelligence" }] },
+  "migrations": [{ "tag": "orbitcraft-v1", "new_sqlite_classes": ["OrbitcraftWorld"] }, { "tag": "orbit-intelligence-v1", "new_sqlite_classes": ["OrbitIntelligence"] }],
   "observability": { "enabled": true }
 }

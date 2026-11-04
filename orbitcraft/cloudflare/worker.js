@@ -1,3 +1,4 @@
+export { OrbitIntelligence } from './intelligence.js';
 import {SIZE,HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
 import { Game } from '../server/game.js';
@@ -7,6 +8,7 @@ import { cloudStore } from './store.js';
 export default {
  async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==='/orbit-intelligence/socket'||url.pathname==='/orbit-intelligence/health')return env.ORBIT_INTELLIGENCE.get(env.ORBIT_INTELLIGENCE.idFromName('orbit-intelligence-v1')).fetch(request);
   if(url.pathname==='/orbitcraft/socket'||url.pathname==='/orbitcraft/health'){
    const id=env.ORBITCRAFT_WORLD.idFromName('orbitcraft-public-v1');
    return env.ORBITCRAFT_WORLD.get(id).fetch(request);

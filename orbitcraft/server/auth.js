@@ -1,6 +1,6 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../chatter/config.js';
 // Names and IDs always come from verified Orbit identity, never from the client.
-export async function authenticate(token) {
+export async function authenticate(token, { orbitName = false } = {}) {
   if(typeof token!=='string'||token.length>8192)throw new Error('Sign in to Orbit first.');
   const headers={apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${token}`};
   const response=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers,signal:AbortSignal.timeout(8000)});
@@ -14,6 +14,6 @@ export async function authenticate(token) {
   const clean=value=>typeof value==='string'?value.replace(/\s+/g,' ').trim():'';
   const full=[clean(rows[0].first_name),clean(rows[0].last_name)].filter(Boolean).join(' ');
   const display=clean(rows[0].display_name);
-  const name=full||(display!==rows[0].username&&display.includes(' ')?display:'Player');
+  const name=orbitName?(display||full||clean(rows[0].username)):(full||(display!==rows[0].username&&display.includes(' ')?display:'Player'));
   return {id:user.id,name:name.slice(0,80),expiresAt:expiry};
 }

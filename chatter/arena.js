@@ -2,7 +2,7 @@
    The browser only asks. Prices, amounts, cooldowns, weekly limits and every outcome are decided by the functions in migration-orbit-game.sql and migration-orbit-game-v2.sql. */
 
 export function initArena(c) {
-  const { S, sb, esc, ic, I, modal, toast, prof, av, needProfiles, setOrbits, loadOrbits, openChan } = c;
+  const { S, sb, esc, ic, I, modal, toast, prof, av, needProfiles, setOrbits, loadOrbits, openChan, openIntelligence } = c;
   Object.assign(I, { crosshair: '<circle cx="12" cy="12" r="8"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>' });
   const A = { st: null, err: '', busy: false, ch: null, t: 0, loading: false, at: 0 };
   const RM = matchMedia('(prefers-reduced-motion: reduce)');
@@ -88,7 +88,7 @@ export function initArena(c) {
       const k = b.dataset.ar;
       if (k === 'gear') gearModal();
       else if (k === 'hist') histModal();
-      else if (k === 'chat') { const ch = S.chans?.find(x => x.name === 'orbit-intelligence'); ch ? openChan(ch.id) : toast('The Intelligence Chat isn\'t set up yet.', true); }
+      else if (k === 'chat') openIntelligence();
     };
   }
 
@@ -131,7 +131,7 @@ export function initArena(c) {
     const s = A.st; if (!s) return;
     const p = prof(id), pl = s.players[id] || {}, isLoop = id === s.loop?.holder, cfg = s.cfg;
     let cur = tab || 'steal';
-    modal('Target: ' + p.display_name, '<div id="ar-m" class="ar-m"></div>', [{ label: 'Close', cls: 'ghost' }], bg => {
+    modal('Target: ' + p.display_name, '<div id="ar-m" class="ar-m"></div>', [{ label: 'Close', cls: 'ghost' }], (bg, close) => {
       const box = bg.querySelector('#ar-m');
       const tabs = () => `<div class="ar-tabs" role="tablist">${[['steal', 'Steal'], ['inv', 'Investigate'], ...(isLoop ? [['loop', 'Challenge']] : [])].map(([k, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" class="${cur === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>`;
       const head = `<div class="ar-th">${av(p)}<div><b>${esc(p.display_name)}</b>${isLoop ? ' <em class="ar-tag">Loop holder</em>' : ''}<small>${pl.victories ?? 0} victories · ${pl.discoveries ?? 0} discoveries</small></div></div>`;
@@ -178,9 +178,7 @@ export function initArena(c) {
           bump(holder.firstElementChild, 'pop');
           holder.querySelector('#ar-cs').onclick = async () => { const v = ((s.notes?.[id] ? s.notes[id] + ' · ' : '') + r.clue).slice(-280); if (await act('game_note_save', { p_target: id, p_note: v })) { s.notes[id] = v; const t = box.querySelector('#ar-note'); if (t) t.value = v; toast('Saved to your notes.'); } };
           holder.querySelector('#ar-cx').onclick = async () => {
-            const ch = S.chans?.find(x => x.name === 'orbit-intelligence'); if (!ch) return toast('The Intelligence Chat isn\'t set up yet.', true);
-            const { error } = await sb.from('messages').insert({ channel_id: ch.id, author_id: S.me.id, content: `🔎 Clue about ${p.display_name}: ${r.clue}` });
-            error ? toast(error.message, true) : toast('Shared in Orbit Intelligence Chat.');
+            close(); openIntelligence(`🔎 ${comp ? 'Astral Compass report' : 'Clue'} about ${p.display_name}: ${r.clue}`);
           };
         };
         g('#ar-inv') && (g('#ar-inv').onclick = () => clue(false)); g('#ar-comp') && (g('#ar-comp').onclick = () => clue(true));
@@ -230,5 +228,5 @@ export function initArena(c) {
     modal('Orbit Loop history', `<ul class="ar-notes">${h.length ? h.map(x => `<li><b>${esc(x.name || 'Unknown')}</b> ${x.how === 'challenge' ? 'won it with a Sword of Stars' : x.how === 'restored' ? 'had ownership restored' : x.how === 'event' ? 'received it at an event' : `bought it for ${fmt(x.price)}`} · ${ago(x.at)} ago</li>`).join('') : '<li>No transfers yet.</li>'}</ul>`, [{ label: 'Close', cls: 'ghost' }]);
   }
 
-  return { decorate, start, stop, load };
+  return { decorate, start, stop, load, openGear: gearModal };
 }

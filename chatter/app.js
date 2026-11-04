@@ -1,3 +1,4 @@
+import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
@@ -7,7 +8,7 @@ import { initCommunities } from './communities.js?v=2';
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
 const { initTournaments } = await import('./tournaments.js?v=2').catch(e => (console.warn('Tournaments unavailable', e), {}));
 const { initGamble } = await import('./gamble.js?v=5').catch(e => (console.warn('Orbit Casino unavailable', e), {}));
-const { initArena } = await import('./arena.js?v=3').catch(e => (console.warn('Orbit Game unavailable', e), {}));
+const { initArena } = await import('./arena.js?v=4').catch(e => (console.warn('Orbit Game unavailable', e), {}));
 const { dictateBtn, bindDictate } = await import('./dictate.js?v=1').catch(e => (console.warn('Voice typing unavailable', e), {}));
 const NO_AR = { decorate() {}, start() {}, stop() {}, load() {} };
 const NO_GB = { handles: v => v === 'gamble', render: m => { m.innerHTML = '<div class="empty"><h2>Orbit Casino is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, onNav() {}, stop() {} };
@@ -40,6 +41,7 @@ const TAB_TAGS = [
   ['tournaments', 'Tournaments', 'tournaments', 'trophy', ['tournament']],
   ['orbit-games', 'Orbit Games', 'gamer', 'gamepad', ['games', 'game']],
   ['orbit-shop', 'Orbit Shop', 'shop', 'shop', ['shop']],
+  ['orbit-intelligence', 'Orbit Intelligence', 'intelligence', 'crosshair', ['intelligence', 'intel']],
   ['orbit-leaderboard', 'Orbit Leaderboard', 'leaderboard', 'trophy', ['leaderboard', 'lb']],
   ['orbit-gamble', 'Orbit Casino', 'gamble', 'dice', ['gamble', 'casino', 'blackjack', 'slots', 'roulette']],
   ['orbitcraft', 'Orbitcraft', 'orbitcraft', 'gamepad', ['craft', 'sandbox']],
@@ -276,7 +278,8 @@ const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, pro
 SHOP = !initShop ? NO_SHOP : initShop({ S, sb, $, esc, ic, I, modal, toast, menuBtn, renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const TN = !initTournaments ? NO_TN : initTournaments({ S, sb, $, esc, ic, I, modal, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), isStaff: () => isStaff(), loadOrbits: () => loadOrbits() });
 const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
-const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); } });
+const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); }, openIntelligence: text => { if(text) INT.setDraft(text); navTo('intelligence'); } });
+const INT = initIntelligence({ S, sb, esc, modal, toast, menuBtn, bindMenu, onViewItems: () => AR.openGear?.() });
 
 /* ───────── device lock: the first account to sign in on a browser owns it ───────── */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, BOUND_KEY = 'chatter-bound-email';
@@ -830,7 +833,7 @@ async function startApp(session, force) {
   O.start(); CM.start();
   if (S.servers[0]) openServer(S.servers[0].id, null, true); else renderAll();
 }
-function teardown() { O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
+function teardown() { INT.stop(); O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
 const renderAll = () => { renderSide(); renderMain(); renderMembers(); };
 const onlineCount = () => S.members.filter(m => statusOf(prof(m.user_id)) !== 'offline').length;
 
@@ -845,7 +848,7 @@ function navTo(k) {
     if (id) return openConv(id); S.active = null; return renderAll();
   }
   const wasGamer = S.view === 'gamer'; S.view = k; if (wasGamer || k === 'gamer') trackStatus();   // the orange "playing" dot follows the person in and out of Orbit Games
-  renderAll(); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
+  renderAll(); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
   if (k === 'roles') loadClassRoles().then(() => S.view === 'roles' && renderMain());
 }
 function dmList() {
@@ -958,7 +961,7 @@ function renderSide() {
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Orbit Fun</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Orbit Fun"${funOpen ? '' : ' hidden'}>${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
   side.innerHTML = `<div class="brand"><div class="bwrap"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"></div></div>
-  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
+  <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>
   ${V.ch ? `<div class="vpanel" id="vp"><button class="t" id="vo" title="Open call" aria-label="Open call screen"><b>Voice connected</b><small></small></button><button class="ib" id="vl" title="Leave voice" aria-label="Leave voice channel">${ic('phoneOff', 18)}</button></div>` : ''}
@@ -1203,6 +1206,7 @@ function renderMain(loading) {   // wraps the real renderer: page transition whe
   if (m) afterMain(m);
 }
 function renderMainInner(loading) {
+  if (S.view !== 'intelligence') INT.onNav(S.view);
   $('#app')?.classList.toggle('side-off', (S.view === 'gamer' || S.view === 'gamble' || S.view === 'orbitcraft') && !!S.sideOff);
   const main = $('#main'); if (!main) return;
   if (S.view === 'orbitcraft') {
@@ -1221,6 +1225,7 @@ function renderMainInner(loading) {
   if (S.view === 'home') return renderHome(main);
   if (S.view === 'suggestions') return renderSuggestions(main);
   if (S.view === 'tutorials') return renderTutorials(main);
+  if (S.view === 'intelligence') return INT.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
   if (S.view === 'shop') return SHOP.render(main);
   if (S.view === 'gamer') return renderGamer(main);
@@ -1464,7 +1469,7 @@ function profileModal(uid) {
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
-  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', 'Ask Orbit AI'], ['leaderboard', 'Orbit Leaderboard'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
+  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', 'Ask Orbit AI'], ['leaderboard', 'Orbit Leaderboard'], ['intelligence', 'Orbit Intelligence'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
   const item = (kind, id, t, s) => `<button class="ores-i" data-k="${kind}" data-id="${esc(id)}"><span class="t"><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`;
   const group = (h, items) => items.length ? `<div class="ores-h">${h}</div>${items.join('')}` : '';
   let seq = 0;
