@@ -104,7 +104,8 @@ export class Game {
     for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;if(!stepRiding(this.survival,p,dt,(x,y,z)=>this.movementBlock(p,x,y,z)))step(p,p.input,dt,(x,y,z)=>this.movementBlock(p,x,y,z));if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
     this.moveDrops(dt,now);this.survival.tick(dt);
     const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
-    for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,roster:[...this.players.values()].map(q=>({id:q.id,name:q.name})),players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
+    const locators=state.filter(q=>(q.health??20)>0).map(({id,name,x,y,z})=>({id,name,x,y,z}));
+    for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,locators,roster:[...this.players.values()].map(q=>({id:q.id,name:q.name})),players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
     if(this.frames%20===0)this.pruneChunks();
     // One full-height column per tick, nearest first and round-robin between players.
     const active=[...this.players.values()];for(let i=0;i<active.length;i++){

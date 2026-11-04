@@ -1,3 +1,4 @@
+import {createLocatorBar,playerColor} from './locator.js?v=20261104-locator22';
 import {createSounds} from './sounds.js?v=20261104-audio20';
 import {xpProgress} from './experience.js';
 import {createXPVisuals} from './experience-visuals.js?v=20261104-audio20';
@@ -99,11 +100,12 @@ function send(m){if(socket?.readyState===WebSocket.OPEN)socket.send(JSON.stringi
 function toast(text){$('toast').textContent=text;$('toast').classList.add('on');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('on'),3500);}
 let chatTimer;function showChat(){clearTimeout(chatTimer);$('chat').classList.add('chat-recent');chatTimer=setTimeout(()=>$('chat').classList.remove('chat-recent'),5000);}
 function chat(name,text,notice=false){const p=document.createElement('p');if(notice)p.className='notice';else{const b=document.createElement('b');b.textContent=name+': ';p.append(b);}p.append(document.createTextNode(text));$('messages').append(p);while($('messages').children.length>70)$('messages').firstChild.remove();$('messages').scrollTop=$('messages').scrollHeight;if(!notice)showChat();}
-let rosterKey='';function updateRoster(players){const key=JSON.stringify(players.map(p=>[p.id,p.name]));if(key===rosterKey)return;rosterKey=key;const list=$('player-list');list.replaceChildren();for(const p of players){const row=document.createElement('div'),name=document.createElement('span'),signal=document.createElement('span');name.textContent=p.name;signal.textContent='▂▄▆█';signal.className='player-signal';row.append(name,signal);list.append(row);}}
+let rosterKey='';function updateRoster(players){const key=JSON.stringify(players.map(p=>[p.id,p.name]));if(key===rosterKey)return;rosterKey=key;const list=$('player-list');list.replaceChildren();for(const p of players){const row=document.createElement('div'),name=document.createElement('span'),signal=document.createElement('span');name.textContent=p.name;if(p.id!==me?.id){const dot=document.createElement('i');dot.className='locator-roster-dot';dot.style.backgroundColor=playerColor(p.id);name.prepend(dot);}signal.textContent='▂▄▆█';signal.className='player-signal';row.append(name,signal);list.append(row);}}
 
 let combatFlashTimer,hitMarkerTimer;
 let bagSlots=Array(36).fill(null);
 let hotbarSlots=[...SLOTS,0];
+let locatorTargets=[];const locator=createLocatorBar($('player-locator'));
 const survival=createSurvivalView({scene,send,icon:blockIcon,inventory:()=>inventory,selected:()=>hotbarSlots[selected]});
 const cropStages=new Map();
 function chooseSlot(index){if(index!==selected)sounds.play('click');setEating(false);selected=index;send({type:'select',slot:index});updateInventory();}
@@ -159,7 +161,7 @@ async function join(){
  socket.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch{return;}
   if(m.type==='welcome'){
    for(const c of chunks.values())if(c.group){scene.remove(c.group);c.group.traverse(m=>{m.geometry?.dispose();if(m.material&&(m.material.userData.owned||m.material.map!==texture))m.material.dispose();});}chunks.clear();bedDirections.clear();torchPositions.clear();dirty.clear();pending.clear();edits.clear();for(const id of avatars.keys())removeAvatar(id);
-   resources.clear();xpEffects.clear();predictionHistory.clear();correction.set(0,0,0);if(ownPlayer){scene.remove(ownPlayer.group);ownPlayer.group.traverse(o=>{o.geometry?.dispose();if(o.material)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.map&&material.map!==texture)material.map.dispose();material.dispose();}});}ownPlayer=createPlayerModel(m.you.id);ownPlayer.group.name='local-player';scene.add(ownPlayer.group);resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;connected=true;survival.update(m.survival||{health:20,hunger:20});document.body.classList.toggle('dead',(m.survival?.health??20)<=0);document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();$('chat').classList.remove('chat-recent');clearTimeout(chatTimer);
+   resources.clear();xpEffects.clear();locator.clear();locatorTargets=[];predictionHistory.clear();correction.set(0,0,0);if(ownPlayer){scene.remove(ownPlayer.group);ownPlayer.group.traverse(o=>{o.geometry?.dispose();if(o.material)for(const material of Array.isArray(o.material)?o.material:[o.material]){if(material.map&&material.map!==texture)material.map.dispose();material.dispose();}});}ownPlayer=createPlayerModel(m.you.id);ownPlayer.group.name='local-player';scene.add(ownPlayer.group);resources.setDrops(m.drops||[],true);miningFeedback=null;me={...m.you,vy:0};inventory=m.inventory;bagSlots=m.slots||m.survival?.slots||bagSlots;hotbarSlots=m.hotbar||hotbarSlots;mined=m.mined;placed=m.placed;connected=true;survival.update(m.survival||{health:20,hunger:20});document.body.classList.toggle('dead',(m.survival?.health??20)<=0);document.body.classList.remove('disconnected');document.body.classList.add('playing');$('gate').hidden=true;$('connection').textContent='● Connected';$('messages').replaceChildren();m.history.forEach(c=>chat(c.name,c.text));updateInventory();requestChunks();$('chat').classList.remove('chat-recent');clearTimeout(chatTimer);
   }else if(m.type==='chunk'){
    if(!Number.isInteger(m.x)||!Number.isInteger(m.z)||!retainChunk(m.x,m.z)){pending.delete(`${m.x},${m.z}`);return;}
    for(const bed of m.beds||[]){const direction={x:bed.head.x-bed.foot.x,z:bed.head.z-bed.foot.z};for(const a of [bed.foot,bed.head])bedDirections.set(`${a.x},${a.y},${a.z}`,direction);}
@@ -167,7 +169,7 @@ async function join(){
    for(const [key,id] of edits){const [x,y,z]=key.split(',').map(Number);if(Math.floor(x/CHUNK)===m.x&&Math.floor(z/CHUNK)===m.z)data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]=id;}
    const old=chunks.get(k);chunks.set(k,{data,group:old?.group});pending.delete(k);mark(m.x,m.z);
   }else if(m.type==='state'&&me){
-   updateRoster(m.roster||m.players);
+   updateRoster(m.roster||m.players); locatorTargets=m.locators||m.players;
 
    resources.setMining(m.players);miningFeedback=m.players.find(p=>p.id===me.id)?.mining||null;
    const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const snapshot=predictionHistory.get(p.seq),expected=snapshot?{x:p.x+me.x-snapshot.x,y:p.y+me.y-snapshot.y,z:p.z+me.z-snapshot.z}:p;const distance=Math.hypot(me.x-p.x,me.y-p.y,me.z-p.z);if(distance>3){Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});correction.set(0,0,0);predictionHistory.clear();}else{correction.set(expected.x-me.x,expected.y-me.y,expected.z-me.z);if(!input.jump&&Math.abs(expected.y-me.y)>.3)me.vy=p.vy;}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}if((a.target?.health??20)<=0&&(p.health??20)>0){delete a.group.userData.deathAt;delete a.group.userData.damageAt;}a.target=p;a.group.visible=(p.health??20)>0;applyEquipment(a,p.equipment);showHeldItem(a,p.held||0);showHeldItem(a,p.offhand===181?0:p.offhand||0,'left');}}
@@ -196,7 +198,7 @@ async function join(){
   else if(m.type==='error'){toast(m.message);$('gate-status').textContent=m.message;}
  };
  socket.onerror=()=>{$('gate-status').textContent='Cannot reach the public world. Please retry shortly.';};
- socket.onclose=()=>{const was=connected;connected=false;for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();me=null;inputReset();resources.clear();xpEffects.clear();miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';$('join').hidden=false;if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
+ socket.onclose=()=>{const was=connected;connected=false;for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();me=null;inputReset();resources.clear();xpEffects.clear();locator.clear();locatorTargets=[];miningFeedback=null;document.exitPointerLock?.();$('gate').hidden=false;$('join').disabled=false;$('join').textContent=was?'Reconnect to public world →':'Join public world →';$('connection').textContent='Disconnected';document.body.classList.add('disconnected');document.body.classList.remove('playing');$('online').textContent='0 online';$('join').hidden=false;if(was)$('gate-status').textContent='Connection lost. Your saved inventory and world are safe. Reconnect to continue.';};
  }catch(e){$('gate-status').textContent=e.message;$('join').disabled=false;$('login').hidden=dev;$('join').hidden=false;}
 }
 $('join').onclick=join;$('wake-button').onclick=()=>send({type:'wake'});$('death-title').onclick=()=>{socket?.close(1000,'Title screen');location.href='../games/';};
@@ -264,7 +266,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  if(dirty.size){const k=dirty.values().next().value;dirty.delete(k);meshChunk(k);}
  shortcuts.tick();
  if(me&&connected){
-  me.survival=survival.state;
+  me.survival=survival.state;locator.update(me,locatorTargets,now);
   if(now-torchLightAt>250){torchLightAt=now;const nearest=[...torchPositions.values()].flat().filter(t=>Math.hypot(t.x-me.x,t.y-me.y,t.z-me.z)<16).sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y,a.z-me.z)-Math.hypot(b.x-me.x,b.y-me.y,b.z-me.z));torchLights.forEach((light,i)=>{light.intensity=nearest[i]?2.4:0;if(nearest[i])light.position.set(nearest[i].x,nearest[i].y,nearest[i].z);});}
   if(controls()&&survival.state.health>0&&!survival.state.sleeping){for(let remaining=dt;remaining>0;remaining-=1/60)(survival.state.boat?stepBoat:step)(me,{...input,sprint:input.sprint&&survival.state.hunger>6},Math.min(remaining,1/60),get);}
   const blend=1-Math.exp(-dt*5);for(const axis of ['x','y','z']){const next={...me,[axis]:me[axis]+correction[axis]*blend};if(!collides(next,get))me[axis]=next[axis];else correction[axis]=0;}correction.multiplyScalar(1-blend);

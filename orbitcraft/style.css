@@ -160,3 +160,14 @@ body:not(.playing) #experience-hud,body:not(.playing) #armor-meter{display:none}
 body.dead #survival-hud,body.dead #hotbar,body.dead #experience-hud,body.dead #armor-meter,body.dead #offhand-hud,body.dead #crosshair,body.dead #target,body.dead #toast{visibility:hidden}
 
 .audio-settings{padding:10px 0;border-bottom:2px solid #888;margin-bottom:10px}.audio-settings label{font:20px OrbitPixel,monospace}.audio-settings input{display:block;width:100%;accent-color:#777}.audio-settings button{display:block;margin:7px auto 0;min-width:180px}
+
+/* Keep the experience bar and player locator as separate compact pixel rails. */
+#player-locator{position:absolute;z-index:6;pointer-events:none;left:50%;transform:translateX(-50%);bottom:calc(var(--hud-bottom) + var(--hud-slot) + 18px);width:var(--hud-width);height:6px;background:#15251b;border:1px solid #08100b;box-shadow:inset 0 1px #4b6250;image-rendering:pixelated}
+#player-locator:before{content:'';position:absolute;left:50%;top:0;height:4px;border-left:1px solid #a0b49a80}
+#player-locator[hidden]{display:none}.locator-marker{position:absolute;top:50%;width:10px;height:10px;transform:translate(-50%,-50%);background:var(--locator-color);border:2px solid #171c19;box-shadow:inset 1px 1px #ffffff8c,1px 1px #000;image-rendering:pixelated}
+.locator-marker.locator-behind{width:11px;height:10px;clip-path:polygon(0 50%,100% 0,100% 100%);border:0;box-shadow:inset 0 0 0 2px #111}.locator-marker.locator-behind[data-turn=right]{clip-path:polygon(0 0,100% 50%,0 100%)}
+.locator-marker[data-height=above]:after,.locator-marker[data-height=below]:after{content:'';position:absolute;left:0;top:-7px;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid var(--locator-color);filter:drop-shadow(0 1px #111)}.locator-marker[data-height=below]:after{top:9px;transform:rotate(180deg)}
+#survival-hud{bottom:calc(var(--hud-bottom) + var(--hud-slot) + 27px)}#armor-meter{bottom:calc(var(--hud-bottom) + var(--hud-slot) + 27px + var(--vital-size))}#experience-level{bottom:21px}
+body:not(.playing) #player-locator,body.gui-hidden #player-locator,body.dead #player-locator,body:has(#inventory[open]) #player-locator{visibility:hidden}
+
+.locator-roster-dot{display:inline-block;width:9px;height:9px;border:1px solid #111;margin-right:7px;box-shadow:inset 1px 1px #fff7;vertical-align:baseline}
