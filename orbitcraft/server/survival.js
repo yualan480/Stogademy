@@ -49,6 +49,7 @@ export class Survival{
  duration(p,id){const tool=this.tool(p),kind=[3,11,13,14,15,16,17,19].includes(id)?'pickaxe':[5,10,18].includes(id)?'axe':[1,2,4,7,12,21].includes(id)?'shovel':null;return (MINING_MS[id]||1000)/(tool?.tool===kind?tool.speed:1);}
  harvest(p,hit){const tool=this.tool(p),id=hit.block,required=({3:0,11:0,13:0,14:1,16:2,15:2,17:3,19:0})[id];if(required!==undefined&&(tool?.tool!=='pickaxe'||tool.tier<required))return [];
  if(id===22){const crop=this.world.crops[xyz(hit)],ripe=crop&&this.world.time-crop.planted>=2400;return ripe?[[111,1],[113,2]]:[[113,1]];}
+ if(id===12)return hash(hit.x,Math.floor(this.world.time)+hit.y,hit.z)>.9?[[238,1]]:[[12,1]];
  if(id===6)return hash(hit.x,Math.floor(this.world.time),hit.z)>.8?[[117,1]]:[];if(id===31)return hash(hit.x,Math.floor(this.world.time),hit.z)>.7?[[31,1],[113,1]]:[[31,1]];if(isTorch(id))return [[25,1]];
  return [[({3:11,13:101,14:102,15:106,16:104,21:2})[id]||id,1]];}
  mine(p,hit){if([20,26].includes(hit.block)){this.atomic(p,tx=>{removeBed(this,hit,tx);this.wear(p,this.selected(p));p.survival.exhaustion+=.15;p.mined++;});return;}const result=this.harvest(p,hit);this.atomic(p,tx=>{if(hit.block===22&&result.some(([id])=>id===111))tx.xp(1,{x:hit.x+.5,y:hit.y+.5,z:hit.z+.5});tx.block({...hit,broken:hit.block},0);if(isTorch(this.g.get(hit.x,hit.y+1,hit.z))){tx.block({...hit,y:hit.y+1},0);tx.drop(25,1,{...hit,y:hit.y+1});}for(const [id,count]of result)tx.drop(id,count,hit);for(const [dx,dy,dz]of [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1]]){const a={x:hit.x+dx,y:hit.y+dy,z:hit.z+dz},id=this.g.get(a.x,a.y,a.z),[sx,sz]=torchAxis(id);if(isTorch(id)&&a.x+sx===hit.x&&a.z+sz===hit.z){tx.block(a,0);tx.drop(25,1,a);}}const furnace=this.world.furnaces[xyz(hit)];if(furnace){for(const [id,count]of Object.entries(furnace.output||{}))tx.drop(+id,count,hit);if(furnace.job)tx.drop(furnace.job.out,1,hit);for(const stack of [furnace.input,furnace.fuelStack])if(stack)tx.drop(stack.id,stack.count,hit);delete this.world.furnaces[xyz(hit)];}const chest=this.world.chests[xyz(hit)];if(chest){for(const [id,n]of Object.entries(chest))tx.drop(+id,n,hit);delete this.world.chests[xyz(hit)];}delete this.world.crops[xyz(hit)];this.wear(p,this.selected(p));p.survival.exhaustion+=.15;p.mined++;});}
@@ -111,7 +112,7 @@ export class Survival{
  // Retain the existing helper for callers; it now resolves PvP and mobs alike.
  hitMob(p){return this.attack(p);}
 
- mobLoot(m){if(['fish','cod','salmon','dolphin'].includes(m.kind))return [[114,1]];if(['bat','squid','axolotl'].includes(m.kind))return [];return m.kind==='sheep'?[[109,1],[116,3]]:!m.hostile?[[109,2]]:m.kind==='skeleton'?[[119,2]]:m.kind==='spider'?[[231,2]]:m.kind==='creeper'?[[230,2]]:[[118,2]];}
+ mobLoot(m){if(m.kind==='chicken')return [[109,2],[237,1]];if(['fish','cod','salmon','dolphin'].includes(m.kind))return [[114,1]];if(['bat','squid','axolotl'].includes(m.kind))return [];return m.kind==='sheep'?[[109,1],[116,3]]:!m.hostile?[[109,2]]:m.kind==='skeleton'?[[119,2]]:m.kind==='spider'?[[231,2]]:m.kind==='creeper'?[[230,2]]:[[118,2]];}
  applyDamage(p,damage,source,tx){
   p.lastHurt=this.g.now();p.hurtAt=this.g.now();if(source)applyKnockback(p,source,this.g.get);const gear=p.survival.equipment;let defense=0;
   for(const [slot,id]of Object.entries(gear))if(slot!=='shield'){defense+=ITEMS[id]?.defense||0;this.wear(p,id);}
