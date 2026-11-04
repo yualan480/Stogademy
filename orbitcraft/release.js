@@ -1,2 +1,2 @@
 // Shared by the static game and both multiplayer server runtimes.
-export const RELEASE = 'orbitcraft-bow-controls-29';
+export const RELEASE = 'orbitcraft-inventory-drop-32';

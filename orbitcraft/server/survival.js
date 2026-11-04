@@ -1,3 +1,4 @@
+import {pearlLoot,throwPearl,tickPearls} from './pearls.js';
 import {handleBow,bowState,tickBows} from './bow.js';
 import {endermanTarget} from './enderman.js';
 import {applyKnockback} from './knockback.js';
@@ -71,7 +72,7 @@ export class Survival{
  if(m.type==='use'){this.use(p);return true;}
  if(m.type==='smelt'){this.smelt(p,m);return true;}if(m.type==='collect-furnace'){const a=(this.nearby(p,19)||this.nearby(p,24)),f=a&&this.world.furnaces[xyz(a)];if(f)this.atomic(p,()=>{let total=0;for(const [id,count]of Object.entries(f.output||{})){p.inventory[id]=(p.inventory[id]||0)+count;total+=count;}furnaceXP(this,p,f,total);f.output={};});return true;}
  return false;}
- use(p){const id=this.selected(p),item=ITEMS[id];let hit=raycast(p,this.g.get);if(hit?.block===26)hit={...bedPair(this,hit).foot,block:20};if(item?.food&&![18,19,20,23,24].includes(hit?.block)){this.handle(p,{type:'eat'});return;}
+ use(p){if(throwPearl(this,p))return;const id=this.selected(p),item=ITEMS[id];let hit=raycast(p,this.g.get);if(hit?.block===26)hit={...bedPair(this,hit).foot,block:20};if(item?.food&&![18,19,20,23,24].includes(hit?.block)){this.handle(p,{type:'eat'});return;}
  if(id===180&&p.inventory[id]>0){if(p.fishing){if(this.g.now()>=p.fishing.bite&&this.g.now()<=p.fishing.end)this.atomic(p,()=>{p.inventory[114]=(p.inventory[114]||0)+1;this.wear(p,180);});p.fishing=null;this.send(p);return;}const water=this.waterRay(p);if(!water)throw Error('Aim at nearby water to cast.');p.fishing={...water,bite:this.g.now()+4000+hash(Math.floor(p.x),Math.floor(this.world.time),Math.floor(p.z))*4000};p.fishing.end=p.fishing.bite+3000;this.send(p);return;}
  if(hit?.block===20){useBed(this,p,hit);return;}
  if(useBoat(this,p,hit))return;
@@ -113,7 +114,7 @@ export class Survival{
  // Retain the existing helper for callers; it now resolves PvP and mobs alike.
  hitMob(p){return this.attack(p);}
 
- mobLoot(m){if(m.kind==='chicken')return [[109,2],[237,1]];if(['fish','cod','salmon','dolphin'].includes(m.kind))return [[114,1]];if(['bat','squid','axolotl'].includes(m.kind))return [];return m.kind==='sheep'?[[109,1],[116,3]]:!m.hostile?[[109,2]]:m.kind==='skeleton'?[[119,2]]:m.kind==='spider'?[[231,2]]:m.kind==='creeper'?[[230,2]]:[[118,2]];}
+ mobLoot(m){if(m.kind==='enderman')return pearlLoot();if(m.kind==='chicken')return [[109,2],[237,1]];if(['fish','cod','salmon','dolphin'].includes(m.kind))return [[114,1]];if(['bat','squid','axolotl'].includes(m.kind))return [];return m.kind==='sheep'?[[109,1],[116,3]]:!m.hostile?[[109,2]]:m.kind==='skeleton'?[[119,2]]:m.kind==='spider'?[[231,2]]:m.kind==='creeper'?[[230,2]]:[[118,2]];}
  applyDamage(p,damage,source,tx){
   p.lastHurt=this.g.now();p.hurtAt=this.g.now();if(source)applyKnockback(p,source,this.g.get);const gear=p.survival.equipment;let defense=0;
   for(const [slot,id]of Object.entries(gear))if(slot!=='shield'){defense+=ITEMS[id]?.defense||0;this.wear(p,id);}
@@ -131,7 +132,7 @@ export class Survival{
  sight(a,b){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=Math.hypot(dx,dy,dz);for(let t=.5;t<d;t+=.3)if(solid(this.g.get(Math.floor(a.x+dx*t/d),Math.floor(a.y+.9+dy*t/d),Math.floor(a.z+dz*t/d))))return false;return true;}
  explode(m){this.atomic(null,tx=>{const players=[...this.g.players.values()],beds=new Set();for(let x=Math.floor(m.x)-2;x<=m.x+2;x++)for(let y=Math.floor(m.y)-1;y<=m.y+2;y++)for(let z=Math.floor(m.z)-2;z<=m.z+2;z++){const id=this.g.get(x,y,z);if(id&&id!==9&&id!==8&&id!==17&&Math.hypot(x+.5-m.x,y+.5-m.y,z+.5-m.z)<2.2&&!this.world.furnaces[`${x},${y},${z}`]){if(id===20||id===26){if(beds.has(`${x},${y},${z}`))continue;const bed=bedPair(this,{x,y,z,block:id});for(const a of [bed.foot,bed.head])if(a)beds.add(`${a.x},${a.y},${a.z}`);removeBed(this,{x,y,z,block:id},tx);continue;}tx.block({x,y,z},0);if(this.world.chests[`${x},${y},${z}`]){for(const [item,n]of Object.entries(this.world.chests[`${x},${y},${z}`]))tx.drop(+item,n,{x,y,z});delete this.world.chests[`${x},${y},${z}`];}if(id!==22)tx.drop(isTorch(id)?25:id,1,{x,y,z});delete this.world.crops[`${x},${y},${z}`];}}m.health=0;});for(const p of this.g.players.values()){const d=Math.hypot(m.x-p.x,m.y-p.y,m.z-p.z);if(d<4)this.hurt(p,(1-d/4)*14,m);}}
  shiftClocks(ticks,unloadedOnly=false){for(const crop of Object.values(this.world.crops))if(!unloadedOnly||!this.g.simulated(crop))crop.planted+=ticks;for(const [key,f]of Object.entries(this.world.furnaces)){const [x,y,z]=key.split(',').map(Number);if(f.job&&(!unloadedOnly||!this.g.simulated({x,z}))){f.job.done+=ticks;if(Number.isFinite(f.job.started))f.job.started+=ticks;}}}
- tick(dt){if(!this.g.players.size)return;tickBows(this,dt);this.water.tick(dt);tickExperience(this,dt);this.shiftClocks(dt*20,true);this.world.time+=dt*20;this.acc+=dt;
+ tick(dt){if(!this.g.players.size)return;tickBows(this,dt);tickPearls(this,dt);this.water.tick(dt);tickExperience(this,dt);this.shiftClocks(dt*20,true);this.world.time+=dt*20;this.acc+=dt;
  finishSleep(this);
  for(const p of this.g.players.values()){tickEating(this,p);const s=p.survival;if(s.health<=0){p.input={};continue;}if(this.g.now()-(p.lastInput||0)>350)p.input.block=false;if(s.hunger<=6)p.input.sprint=false;
  const moving=p.input.forward||p.input.back||p.input.left||p.input.right;s.exhaustion+=dt*(moving?(p.input.sprint?.22:.08):.012);if(s.exhaustion>=4){s.exhaustion-=4;if(s.saturation>0)s.saturation=Math.max(0,s.saturation-1);else s.hunger=Math.max(0,s.hunger-1);}
@@ -149,6 +150,6 @@ export class Survival{
  for(const [k,crop]of Object.entries(this.world.crops)){if(!this.g.simulated(crop))continue;if(this.g.get(crop.x,crop.y,crop.z)!==22||this.g.get(crop.x,crop.y-1,crop.z)!==21){if(this.g.get(crop.x,crop.y,crop.z)===22)this.atomic(null,tx=>{tx.block(crop,0);tx.drop(113,1,crop);delete this.world.crops[k];});else delete this.world.crops[k];continue;}if(this.world.time-crop.planted<2400){let wet=false;for(let dx=-2;dx<=2&&!wet;dx++)for(let dz=-2;dz<=2;dz++)if(this.g.get(crop.x+dx,crop.y-1,crop.z+dz)===8)wet=true;if(wet)crop.planted-=elapsed*20;}}
  for(const [key,f]of Object.entries(this.world.furnaces))if(this.g.simulated(fromKey(key))&&f.job&&this.world.time>=f.job.done){const id=f.job.out;f.output[id]=(f.output[id]||0)+1;f.experience=(f.experience||0)+1;delete f.job;}
  for(const key of Object.keys(this.world.furnaces))startFurnace(this,key);
- for(const p of this.g.players.values())p.send({type:'survival-world',time:this.world.time,arrows:[...(this.arrows?.values()||[])].filter(a=>this.g.visibleTo(p,a)),xpOrbs:this.world.xpOrbs.filter(o=>this.g.visibleTo(p,o)),boats:Object.values(this.world.boats).filter(b=>this.g.visibleTo(p,b)),mobs:this.world.mobs.filter(m=>this.g.visibleTo(p,m)).map(({id,kind,x,y,z,yaw,health,hostile,fuse,hurt,burning})=>({id,kind,x,y,z,yaw,health,hostile,fuse,hurt,burning})),crops:Object.values(this.world.crops).filter(c=>this.g.visibleTo(p,c)).map(c=>({...c,stage:Math.min(3,Math.floor((this.world.time-c.planted)/600))}))});for(const p of this.g.players.values())this.send(p);
+ for(const p of this.g.players.values())p.send({type:'survival-world',time:this.world.time,pearls:[...(this.pearls?.values()||[])].filter(a=>this.g.visibleTo(p,a)),arrows:[...(this.arrows?.values()||[])].filter(a=>this.g.visibleTo(p,a)),xpOrbs:this.world.xpOrbs.filter(o=>this.g.visibleTo(p,o)),boats:Object.values(this.world.boats).filter(b=>this.g.visibleTo(p,b)),mobs:this.world.mobs.filter(m=>this.g.visibleTo(p,m)).map(({id,kind,x,y,z,yaw,health,hostile,fuse,hurt,burning})=>({id,kind,x,y,z,yaw,health,hostile,fuse,hurt,burning})),crops:Object.values(this.world.crops).filter(c=>this.g.visibleTo(p,c)).map(c=>({...c,stage:Math.min(3,Math.floor((this.world.time-c.planted)/600))}))});for(const p of this.g.players.values())this.send(p);
  }
 }

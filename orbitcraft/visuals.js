@@ -1,4 +1,4 @@
-import {drawItem} from './item-art.js?v=20261104-bow27';
+import {drawItem} from './item-art.js?v=20261104-pearl31';
 import {isTorch,isPlant} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';
@@ -134,6 +134,12 @@ export async function createTextures() {
   }
   context.drawImage(atlas,16,0,16,16,12*16,0,16,16);
   for(let x=0;x<16;x++){const cap=6+Math.floor(random(x>>1,0,93)*4);for(let y=0;y<=cap+1;y++){const n=random(x,y,94);context.fillStyle=y===cap+1?'#6f8988':y===cap?'#a2b8b8':y>3?(n>.5?'#c1d0d0':'#b4c6c7'):(n>.5?'#d4dedd':'#cad7d6');context.fillRect(12*16+x,y,1,1);}}
+  // Diamond ore: gray stone with irregular cyan deposits and pale pixel highlights.
+  context.drawImage(atlas,2*16,0,16,16,20*16,0,16,16);
+  for(const [x,y]of [[2,2],[9,1],[12,5],[5,6],[1,10],[10,10],[6,13]]){
+    const rect=(dx,dy,w,h,color)=>{context.fillStyle=color;context.fillRect(20*16+x+dx,y+dy,w,h);};
+    rect(-1,0,4,3,'#576f70');rect(0,0,2,2,'#5de4dd');rect(2,1,1,2,'#28aea8');rect(0,0,1,1,'#c2ffff');rect(1,2,1,1,'#87f4e9');
+  }
   // Additional original pixel textures and silhouettes for survival equipment.
   for(let tile=21;tile<32;tile++){
    const colors=['#777875','#593e31','#ac824d','#9a713e','#777875','#696c70','#ae3939','#65432b','#b5a94f','#a2743f','#9c703b'];

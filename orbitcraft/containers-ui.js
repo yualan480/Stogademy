@@ -21,6 +21,11 @@ export function createContainerView({send,icon}){
  function quick(area,index,e){const previous=lastQuick,now=performance.now();let id=area==='bag'?state.slots?.[index]?.id:area==='chest'?state.chestSlots?.[index]?.id:null;const all=kind==='chest'&&previous&&previous.area===area&&previous.index===index&&now-previous.time<450;if(all)id=previous.id;lastQuick={area,index,id,time:now};send({type:'quick-move',area,index,id,all:!!all});}
  function click(area,index,e){e?.preventDefault();if(performance.now()<suppressUntil||drag)return;if(e){point={x:e.clientX,y:e.clientY};position();}if(e?.shiftKey&&!state.container?.cursor){quick(area,index,e);return;}send({type:'container-click',area,index,right:e?.button===2});}
  function tag(button,area,index){button.dataset.slotArea=area;button.dataset.slotIndex=index;}
+ $('inventory').addEventListener('pointerdown',e=>{
+  if(!$('inventory').open||!state.container?.cursor||drag||performance.now()<suppressUntil||![0,2].includes(e.button))return;
+  const r=$('inventory').getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)return;
+  e.preventDefault();e.stopImmediatePropagation();send({type:'drop-held',all:e.button===0,cursorOnly:true});
+ },true);
  $('inventory').addEventListener('pointerdown',e=>{const slot=slotOf(e.target);if(!slot||!state.container?.cursor||e.shiftKey||![0,2].includes(e.button))return;e.preventDefault();drag={right:e.button===2,snapshot:structuredClone(state),slots:new Map([[slot.area+':'+slot.index,slot]])};preview();});
  $('inventory').addEventListener('pointerover',e=>{if(!drag)return;const slot=slotOf(e.target);if(slot){drag.slots.set(slot.area+':'+slot.index,slot);preview();}});
  addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;if(d.slots.size>1){send({type:'container-drag',right:d.right,slots:[...d.slots.values()]});suppressUntil=performance.now()+150;}else if(d.right){const slot=[...d.slots.values()][0];send({type:'container-click',...slot,right:true});suppressUntil=performance.now()+150;}});
