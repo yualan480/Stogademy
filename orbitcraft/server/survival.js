@@ -1,3 +1,4 @@
+import {applyKnockback} from './knockback.js';
 import {EASY} from './difficulty.js';
 import {createOrb,furnaceXP,tickExperience} from './experience.js';
 import {xpProgress} from '../experience.js';
@@ -101,7 +102,7 @@ export class Survival{
    this.atomic(victim,tx=>{const before=victim.survival.health;p.lastAttack=now;p.survival.exhaustion+=.1;this.wear(p,id);this.applyDamage(victim,damage,p,tx);dealt=before-victim.survival.health;},{also:[p]});
    this.g.broadcast({type:'combat',attacker:p.id,target:victim.id,damage:dealt,killed:victim.survival.health<=0});
   }else{
-   this.atomic(p,tx=>{const mob=target.mob;p.lastAttack=now;mob.health-=damage;p.survival.exhaustion+=.1;this.wear(p,id);mob.hurt=this.world.time;if(mob.kind==='enderman')mob.angry=true;const dx=mob.x-p.x,dz=mob.z-p.z,n=Math.hypot(dx,dz)||1,q={...mob,x:mob.x+dx/n*.5,z:mob.z+dz/n*.5};if(!collides(q,this.g.get)){mob.x=q.x;mob.z=q.z;}mob.vy=3;if(mob.health<=0){for(const [item,n]of this.mobLoot(mob))tx.drop(item,n,{x:Math.floor(mob.x),y:mob.y,z:Math.floor(mob.z)});tx.xp(mob.hostile?5:2,{x:mob.x,y:mob.y+.5,z:mob.z});}});
+   this.atomic(p,tx=>{const mob=target.mob;p.lastAttack=now;mob.health-=damage;p.survival.exhaustion+=.1;this.wear(p,id);mob.hurt=this.world.time;if(mob.kind==='enderman')mob.angry=true;applyKnockback(mob,p,this.g.get,.45);if(mob.health<=0){for(const [item,n]of this.mobLoot(mob))tx.drop(item,n,{x:Math.floor(mob.x),y:mob.y,z:Math.floor(mob.z)});tx.xp(mob.hostile?5:2,{x:mob.x,y:mob.y+.5,z:mob.z});}});
    this.g.broadcast({type:'combat',attacker:p.id,target:target.mob.id,damage,killed:target.mob.health<=0});
   }
   return true;
@@ -111,7 +112,7 @@ export class Survival{
 
  mobLoot(m){if(['fish','cod','salmon','dolphin'].includes(m.kind))return [[114,1]];if(['bat','squid','axolotl'].includes(m.kind))return [];return m.kind==='sheep'?[[109,1],[116,3]]:!m.hostile?[[109,2]]:m.kind==='skeleton'?[[119,2]]:m.kind==='spider'?[[231,2]]:m.kind==='creeper'?[[230,2]]:[[118,2]];}
  applyDamage(p,damage,source,tx){
-  p.lastHurt=this.g.now();p.hurtAt=this.g.now();if(source){const dx=p.x-source.x,dz=p.z-source.z,n=Math.hypot(dx,dz)||1;const q={...p,x:p.x+dx/n*.35,z:p.z+dz/n*.35};if(!collides(q,this.g.get)){p.x=q.x;p.z=q.z;}p.vy=3;}const gear=p.survival.equipment;let defense=0;
+  p.lastHurt=this.g.now();p.hurtAt=this.g.now();if(source)applyKnockback(p,source,this.g.get);const gear=p.survival.equipment;let defense=0;
   for(const [slot,id]of Object.entries(gear))if(slot!=='shield'){defense+=ITEMS[id]?.defense||0;this.wear(p,id);}
   if(p.input.block&&this.g.now()-(p.lastInput??-Infinity)<=350&&(p.survival.offhand?.id===181||this.selected(p)===181&&p.inventory[181]>0)&&source){const yaw=Math.atan2(-(source.x-p.x),-(source.z-p.z));if(Math.cos(yaw-p.yaw)>.15){damage*=.15;this.wear(p,181,2);}}
   p.survival.sleeping=false;p.survival.bedPose=null;p.fishing=null;p.survival.health=Math.max(0,p.survival.health-damage*(1-Math.min(20,defense)*.04));
