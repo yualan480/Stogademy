@@ -11,7 +11,7 @@ import {createShortcuts} from './game-shortcuts.js?v=20261104-audio20';
 import { ITEMS,itemName,isBlock } from './items.js';
 import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261104-audio20';
 import * as THREE from './vendor/three.module.js';
-import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,raycast,solid,collides } from './world.js';
+import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,raycast,solid,collides } from './world.js?v=20261104-water21';
 import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261104-audio20';
 import { createPlayerModel } from './players.js?v=20261104-audio20';
 import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261104-audio20';

@@ -56,14 +56,19 @@ export function collides(p,get) {
   return false;
 }
 export function step(p,input,dt,get) {
-  const water=get(Math.floor(p.x),Math.floor(p.y+.8),Math.floor(p.z))===8;
+  // Keep swimming until the feet clear the surface; checking only the torso
+  // switched to air gravity before swimmers could rise onto a one-block bank.
+  const water=[.05,.8].some(h=>get(Math.floor(p.x),Math.floor(p.y+h),Math.floor(p.z))===8);
   const grounded=collides({...p,y:p.y-.065},get);
   let f=Number(!!input.forward)-Number(!!input.back),s=Number(!!input.right)-Number(!!input.left);
   const n=Math.hypot(f,s)||1; f/=n;s/=n;
   const flying=p.survival?.mode==='creative'&&p.survival.flying;
   const speed=flying?8:input.sneak?1.3:water?2.7:input.sprint&&(p.survival?.hunger??20)>6?6:4.3, yaw=p.yaw||0;
   p.vy=flying?(Number(!!input.jump)-Number(!!input.sneak))*6:Math.max(-22,(p.vy||0)-(water?5:JUMP_GRAVITY)*dt);
-  if(!flying&&input.jump && (grounded||water)) p.vy=water?4:JUMP_VELOCITY-JUMP_GRAVITY*dt/2;
+  if(!flying&&input.jump) {
+    if(grounded)p.vy=JUMP_VELOCITY-JUMP_GRAVITY*dt/2;
+    else if(water)p.vy=Math.max(p.vy,4); // Swimming must not cancel a jump off the bottom.
+  }
   const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*speed*dt,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*speed*dt;
   for(const [axis,d] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
     const count=Math.max(1,Math.ceil(Math.abs(d)/.15));
