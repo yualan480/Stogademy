@@ -1,7 +1,7 @@
 import {containerSlot,context,startFurnace,chestStacks} from './containers.js';
 import {ITEMS,SMELTING,FUEL} from '../items.js';
 import {matchGrid} from '../crafting-grid.js';
-import {stacks,swapSlots} from '../inventory.js';
+import {stacks,swapSlots,setLayout} from '../inventory.js';
 export function containerShortcut(s,p,m){
  if(!['container-drag','quick-move','container-hotbar'].includes(m.type))return false;const c=p.survival.container;if(!c)return true;const at=context(s,p,c.kind),key=at&&`${at.x},${at.y},${at.z}`;
  s.atomic(p,()=>{
@@ -14,10 +14,23 @@ export function containerShortcut(s,p,m){
   }else if(m.type==='container-hotbar'){
    if(!Number.isInteger(m.to)||m.to<0||m.to>8)return;if(m.area==='bag'){swapSlots(p,m.index,m.to);return;}const a=containerSlot(s,p,c,m.area,m.index),b=containerSlot(s,p,c,'bag',m.to);if(!a||!b)return;const av=a.get(),bv=b.get();if(bv&&!a.accept(bv.id)||av&&!b.accept(av.id))return;if(m.area==='bag'&&m.index===m.to)return;a.put(bv||null);b.put(av||null);
   }else{
-   if(c.cursor)return;
    if(m.area==='craft-output'){
-    const r=matchGrid(c.grid,c.size);if(!r)return;const times=Math.min(ITEMS[r.out]?.durability?1:Math.floor(64/r.count),...c.grid.filter(Boolean).map(v=>v.count));if(ITEMS[r.out]?.durability&&p.inventory[r.out]>0)return;for(let i=0;i<c.grid.length;i++)if(c.grid[i]){c.grid[i].count-=times;if(!c.grid[i].count)c.grid[i]=null;}p.inventory[r.out]=(p.inventory[r.out]||0)+r.count*times;if(ITEMS[r.out]?.durability)p.survival.durability[r.out]=ITEMS[r.out].durability;return;
+    if(!['hand','table'].includes(c.kind))return;
+    const r=matchGrid(c.grid,c.size);if(!r)return;
+    if(ITEMS[r.out]?.durability&&(p.inventory[r.out]>0||c.cursor?.id===r.out))return;
+    // The carried stack is independent of shift-crafting. Prefer hotbar stacks,
+    // then empty hotbar slots, before using the main inventory.
+    const slots=stacks(p),hotbar=Array.from({length:9},(_,i)=>i),bag=Array.from({length:27},(_,i)=>i+9);
+    const targets=[...hotbar.filter(i=>slots[i]?.id===r.out),...hotbar.filter(i=>!slots[i]),...bag.filter(i=>slots[i]?.id===r.out),...bag.filter(i=>!slots[i])];
+    const capacity=targets.reduce((n,i)=>n+64-(slots[i]?.count||0),0);
+    const times=Math.min(ITEMS[r.out]?.durability?1:Math.floor(64/r.count),Math.floor(capacity/r.count),...c.grid.filter(Boolean).map(v=>v.count));
+    if(times<1)return;
+    for(let i=0;i<c.grid.length;i++)if(c.grid[i]){c.grid[i].count-=times;if(!c.grid[i].count)c.grid[i]=null;}
+    const count=r.count*times;p.inventory[r.out]=(p.inventory[r.out]||0)+count;
+    let remaining=count;for(const i of targets){const n=Math.min(remaining,64-(slots[i]?.count||0));slots[i]={id:r.out,count:(slots[i]?.count||0)+n};remaining-=n;if(!remaining)break;}
+    setLayout(p,slots);if(ITEMS[r.out]?.durability)p.survival.durability[r.out]=ITEMS[r.out].durability;return;
    }
+   if(c.cursor)return;
    let source=containerSlot(s,p,c,m.area,m.index);if(!source)return;let value=source.get();
    if(m.all&&c.kind==='chest'&&Number.isInteger(m.id)&&m.id>0){const bag=m.area==='bag'?p.inventory:s.world.chests[key];if(bag?.[m.id]>0)value={id:m.id,count:bag[m.id]};}
    if(!value)return;let remaining=value.count;
