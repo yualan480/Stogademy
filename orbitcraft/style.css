@@ -173,3 +173,8 @@ body:not(.playing) #player-locator,body.gui-hidden #player-locator,body.dead #pl
 .locator-roster-dot{display:inline-block;width:9px;height:9px;border:1px solid #111;margin-right:7px;box-shadow:inset 1px 1px #fff7;vertical-align:baseline}
 
 body.sleeping,body.sleeping #world{cursor:default!important}body.sleeping #sleep-status{pointer-events:auto;visibility:visible}body.sleeping #wake-button{cursor:pointer}body.sleeping #crosshair,body.sleeping #touch-controls{visibility:hidden}
+
+#crosshair{width:30px;height:30px;font-size:0;text-shadow:none;color:#eee;mix-blend-mode:normal}#crosshair:before,#crosshair:after{content:'';position:absolute;background:currentColor;box-shadow:none}#crosshair:before{width:30px;height:3px;left:0;top:13.5px}#crosshair:after{width:3px;height:30px;top:0;left:13.5px}
+#inventory .furnace-arrow{background:#929292}#inventory .furnace-arrow:after{content:'';position:absolute;top:0;bottom:0;left:0;width:var(--smelt-progress,0%);background:#fff}#inventory .burning .furnace-arrow:after{transition:width .25s linear}
+
+#inventory .furnace-arrow.reset-progress:after{transition:none}

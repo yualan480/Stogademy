@@ -3,7 +3,7 @@ import {ITEMS,SMELTING,FUEL} from '../items.js';
 import {matchGrid} from '../crafting-grid.js';
 import {stacks,swapSlots,setLayout} from '../inventory.js';
 export function containerShortcut(s,p,m){
- if(!['container-drag','quick-move','container-hotbar'].includes(m.type))return false;const c=p.survival.container;if(!c)return true;const at=context(s,p,c.kind),key=at&&`${at.x},${at.y},${at.z}`;
+ if(!['container-drag','quick-move','container-hotbar','container-offhand'].includes(m.type))return false;const c=p.survival.container;if(!c)return true;const at=context(s,p,c.kind),key=at&&`${at.x},${at.y},${at.z}`;
  s.atomic(p,()=>{
   if(m.type==='container-drag'){
    if(!c.cursor||!Array.isArray(m.slots))return;const seen=new Set(),targets=[];
@@ -11,6 +11,8 @@ export function containerShortcut(s,p,m){
    if(!m.right&&targets.length>c.cursor.count)targets.length=c.cursor.count;
    const n=m.right?1:Math.floor(c.cursor.count/Math.max(1,targets.length));if(n<1)return;
    for(const a of targets){if(!c.cursor)break;const old=a.get(),amount=Math.min(n,c.cursor.count,64-(old?.count||0));if(amount<1)continue;a.put({id:c.cursor.id,count:(old?.count||0)+amount});c.cursor.count-=amount;if(!c.cursor.count)c.cursor=null;}
+  }else if(m.type==='container-offhand'){
+   if(m.area==='offhand')return;const slot=containerSlot(s,p,c,m.area,m.index);if(!slot)return;const item=slot.get(),off=p.survival.offhand;if(off&&!slot.accept(off.id))return;slot.put(off||null);p.survival.offhand=item||null;
   }else if(m.type==='container-hotbar'){
    if(!Number.isInteger(m.to)||m.to<0||m.to>8)return;if(m.area==='bag'){swapSlots(p,m.index,m.to);return;}const a=containerSlot(s,p,c,m.area,m.index),b=containerSlot(s,p,c,'bag',m.to);if(!a||!b)return;const av=a.get(),bv=b.get();if(bv&&!a.accept(bv.id)||av&&!b.accept(av.id))return;if(m.area==='bag'&&m.index===m.to)return;a.put(bv||null);b.put(av||null);
   }else{
