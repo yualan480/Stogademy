@@ -3,7 +3,7 @@ import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
-import { initOrbit } from './orbit.js?v=11';
+import { initOrbit } from './orbit.js?v=12';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -271,7 +271,7 @@ const grpErr = e => /could not find the function|schema cache/i.test(e?.message 
 const O = initOrbit({ setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, md, plain, menuBtn, bindMenu, gamerUrl: GAMER_URL, collectibles: () => SHOP?.collectibles?.() || [],
   needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), closeSide: () => closeSide(), navTo: k => navTo(k),
   openChan: id => openChan(id), openFirstChannel: () => openFirstChannel(), profileModal: id => profileModal(id), send: () => send(), osNotify: (t, b, g) => osNotify(t, b, g),
-  searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff() });
+  chooseGuide: () => GUIDE.chooseGuide(), searchModal: () => searchModal(), bindSearch: (i, o) => bindOrbitSearch(i, o), onlineCount: () => onlineCount(), unreadDms: () => S.convs.filter(unread).length, isStaff: () => isStaff() });
 
 const CM = initCommunities({ S, sb, $, esc, ic, I, modal, toast, confirmBox, prof, av, menuBtn, bindMenu,
   needProfiles: ids => needProfiles(ids), navTo: k => navTo(k), renderSide: () => renderSide(), profileModal: id => profileModal(id), isStaff: () => isStaff(), onJoined: () => GUIDE.milestone('community') });

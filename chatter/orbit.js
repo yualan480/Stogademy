@@ -239,6 +239,7 @@ export function initOrbit(c) {
       <button class="otb omus" type="button" aria-pressed="true" aria-label="Turn Orbit music off" title="Music on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="mx" d="M3 3l18 18"/></svg></button>
       <button class="otb" data-o="go" data-k="friends" aria-label="Friends${inN ? ' (' + inN + ' requests)' : ''}">${ic('friends', 20)}${inN ? '<i class="otbdot"></i>' : ''}</button>
       <button class="otb" data-o="go" data-k="dm" aria-label="Messages${dms ? ' (' + dms + ' unread)' : ''}">${ic('bell', 20)}${dms ? '<i class="otbdot"></i>' : ''}</button>
+      <button class="otb oguide" type="button" data-o="guide" aria-label="Choose your guide" title="Choose your guide — Elara or Stellan">${ic('sparkle', 20)}</button>
       <button class="otb oav" data-x="me" aria-label="Your profile">${av(S.me)}</button></div>
     <div class="panel orbithome${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">
       <canvas class="ostars" aria-hidden="true"></canvas>
@@ -936,6 +937,7 @@ export function initOrbit(c) {
       case 'delevent': return delEvent(id);
       case 'rsvp': return rsvp(id, d.s);
       case 'ics': { const e = O.events.find(x => x.id === id); return e && downloadIcs(e); }
+      case 'guide': return c.chooseGuide();
       case 'prof': return c.profileModal(id);
       case 'evtab': O.ev.tab = d.k; O.ev.day = null; return c.renderMain();
       case 'clearday': O.ev.day = null; return c.renderMain();
