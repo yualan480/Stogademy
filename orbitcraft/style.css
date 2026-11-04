@@ -171,3 +171,5 @@ body.dead #survival-hud,body.dead #hotbar,body.dead #experience-hud,body.dead #a
 body:not(.playing) #player-locator,body.gui-hidden #player-locator,body.dead #player-locator,body:has(#inventory[open]) #player-locator{visibility:hidden}
 
 .locator-roster-dot{display:inline-block;width:9px;height:9px;border:1px solid #111;margin-right:7px;box-shadow:inset 1px 1px #fff7;vertical-align:baseline}
+
+body.sleeping,body.sleeping #world{cursor:default!important}body.sleeping #sleep-status{pointer-events:auto;visibility:visible}body.sleeping #wake-button{cursor:pointer}body.sleeping #crosshair,body.sleeping #touch-controls{visibility:hidden}
