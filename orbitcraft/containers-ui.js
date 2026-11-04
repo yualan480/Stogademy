@@ -1,4 +1,4 @@
-import {ITEMS,itemName,RECIPES,SMELTING,FUEL} from './items.js';
+import {ITEMS,itemName,RECIPES,SMELTING,FUEL,stackLimit} from './items.js';
 import {matchGrid,recipePattern} from './crafting-grid.js';
 export function createContainerView({send,icon}){
  const $=id=>document.getElementById(id);let state={},kind='hand',point={x:innerWidth/2,y:innerHeight/2};
@@ -11,10 +11,10 @@ export function createContainerView({send,icon}){
  function stackAt(snapshot,slot){return slot.area==='bag'?snapshot.slots?.[slot.index]:slot.area==='grid'?snapshot.container?.grid?.[slot.index]:slot.area==='chest'?snapshot.chestSlots?.[slot.index]:slot.area==='offhand'?snapshot.offhand:slot.area==='input'?snapshot.furnace?.input:slot.area==='fuel'?snapshot.furnace?.fuelStack:null;}
  function clearPreview(){for(const el of $('inventory').querySelectorAll('.drag-preview-slot')){el.classList.remove('drag-preview-slot');delete el.dataset.previewCount;el.querySelector('.drag-preview-item')?.remove();}}
  function preview(){clearPreview();if(!drag)return;const carried=drag.snapshot.container?.cursor;if(!carried)return;
-  const valid=[...drag.slots.values()].filter(slot=>{if(slot.area==='output')return false;if(slot.area==='input'&&!SMELTING[carried.id]||slot.area==='fuel'&&!FUEL[carried.id])return false;const old=stackAt(drag.snapshot,slot);return !old||old.id===carried.id&&old.count<64;});
+  const valid=[...drag.slots.values()].filter(slot=>{if(slot.area==='output')return false;if(slot.area==='input'&&!SMELTING[carried.id]||slot.area==='fuel'&&!FUEL[carried.id])return false;const old=stackAt(drag.snapshot,slot);return !old||old.id===carried.id&&old.count<stackLimit(carried.id);});
   if(!drag.right&&valid.length>carried.count)valid.length=carried.count;
   const each=drag.right?1:Math.floor(carried.count/Math.max(1,valid.length));let remaining=carried.count;
-  for(const slot of valid){const old=stackAt(drag.snapshot,slot),n=Math.min(each,remaining,64-(old?.count||0));if(n<=0)continue;remaining-=n;const target=$('inventory').querySelector(`[data-slot-area="${slot.area}"][data-slot-index="${slot.index}"]`);if(!target)continue;target.classList.add('drag-preview-slot');const item=document.createElement('span');item.className='drag-preview-item';const value={id:carried.id,count:(old?.count||0)+n};paint(item,value,'');target.append(item);target.dataset.previewCount=value.count;}
+  for(const slot of valid){const old=stackAt(drag.snapshot,slot),n=Math.min(each,remaining,stackLimit(carried.id)-(old?.count||0));if(n<=0)continue;remaining-=n;const target=$('inventory').querySelector(`[data-slot-area="${slot.area}"][data-slot-index="${slot.index}"]`);if(!target)continue;target.classList.add('drag-preview-slot');const item=document.createElement('span');item.className='drag-preview-item';const value={id:carried.id,count:(old?.count||0)+n};paint(item,value,'');target.append(item);target.dataset.previewCount=value.count;}
   cursor.hidden=remaining<=0;paint(cursor,remaining?{id:carried.id,count:remaining}:null,'Carried item');
  }
  const slotOf=element=>{const b=element?.closest?.('[data-slot-area]');return b?{area:b.dataset.slotArea,index:+b.dataset.slotIndex}:null;};

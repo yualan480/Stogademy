@@ -1,7 +1,7 @@
 import {createMobModel,disposeMobModel} from './mob-models.js?v=20261104-mobs25';
 import {xpProgress} from './experience.js';
 import {tintAndFall,boatModel} from './entity-effects.js?v=20261104-audio20';
-import {createContainerView} from './containers-ui.js?v=20261104-drop32';
+import {createContainerView} from './containers-ui.js?v=20261104-stacks34';
 import * as THREE from './vendor/three.module.js';
 import {ITEMS,RECIPES,itemName,SMELTING,FUEL} from './items.js';
 export function applyEquipment(model,equipment={}){

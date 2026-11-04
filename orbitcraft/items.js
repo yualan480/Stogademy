@@ -34,3 +34,6 @@ export const FUEL={101:8,5:2,10:1,100:.5};
 export const itemName=id=>ITEMS[id]?.name||({1:'Grass block',2:'Dirt',3:'Stone',4:'Sand',5:'Oak log',6:'Oak leaves',7:'Snow',8:'Water',9:'Bedrock',10:'Oak planks'})[id]||'Item';
 export const isBlock=id=>id>0&&id<=38;
 export const defaultHotbar=[2,3,5,10,4,1,6,7,0];
+
+// Durable equipment occupies one inventory slot per item.
+export const stackLimit=id=>ITEMS[id]?.durability?1:64;

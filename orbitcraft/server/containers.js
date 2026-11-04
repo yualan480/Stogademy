@@ -1,6 +1,6 @@
 import {furnaceXP} from './experience.js';
 import {stacks,setLayout} from '../inventory.js';
-import {ITEMS,SMELTING,FUEL} from '../items.js';
+import {ITEMS,SMELTING,FUEL,stackLimit} from '../items.js';
 import {matchGrid} from '../crafting-grid.js';
 export function returnContainer(p,tx){const c=p.survival.container;if(!c)return;if(tx)stacks(p);const returned={};for(const item of [c.cursor,...c.grid||[]])if(item){p.inventory[item.id]=(p.inventory[item.id]||0)+item.count;returned[item.id]=(returned[item.id]||0)+item.count;}p.survival.container=null;
  if(tx){const represented={};for(const stack of stacks(p))if(stack)represented[stack.id]=(represented[stack.id]||0)+stack.count;for(const [id,n]of Object.entries(returned)){const overflow=Math.min(n,Math.max(0,(p.inventory[id]||0)-(represented[id]||0)));if(overflow){p.inventory[id]-=overflow;tx.drop(+id,overflow,{x:Math.floor(p.x),y:p.y,z:Math.floor(p.z)});}}}}
@@ -13,14 +13,14 @@ export function containerMessage(s,p,m){
  if(m.type==='container-open'){const kind=m.kind;if(!['hand','table','furnace','chest'].includes(kind))return true;context(s,p,kind);s.atomic(p,tx=>{returnContainer(p,tx);p.survival.container={kind,size:kind==='table'?3:2,grid:Array(kind==='chest'?0:kind==='table'?9:4).fill(null),cursor:null};});return true;}
  const c=p.survival.container;if(!c)return true;const a=context(s,p,c.kind);
  s.atomic(p,()=>{
-  if(m.type==='container-craft'){if(c.kind==='furnace'||c.kind==='chest')return;const r=matchGrid(c.grid,c.size);if(!r)return;if(c.cursor&&(c.cursor.id!==r.out||c.cursor.count+r.count>64))return;if(ITEMS[r.out]?.durability&&(p.inventory[r.out]>0||c.cursor?.id===r.out))throw Error('You already have this tool or armor.');for(let i=0;i<c.grid.length;i++)if(c.grid[i]&&!--c.grid[i].count)c.grid[i]=null;c.cursor={id:r.out,count:(c.cursor?.count||0)+r.count};if(ITEMS[r.out]?.durability)p.survival.durability[r.out]=ITEMS[r.out].durability;return;}
+  if(m.type==='container-craft'){if(c.kind==='furnace'||c.kind==='chest')return;const r=matchGrid(c.grid,c.size);if(!r)return;if(c.cursor&&(c.cursor.id!==r.out||c.cursor.count+r.count>stackLimit(r.out)))return;if(ITEMS[r.out]?.durability&&(p.inventory[r.out]>0||c.cursor?.id===r.out))throw Error('You already have this tool or armor.');for(let i=0;i<c.grid.length;i++)if(c.grid[i]&&!--c.grid[i].count)c.grid[i]=null;c.cursor={id:r.out,count:(c.cursor?.count||0)+r.count};if(ITEMS[r.out]?.durability)p.survival.durability[r.out]=ITEMS[r.out].durability;return;}
   const area=m.area,index=m.index;
   const access=containerSlot(s,p,c,area,index);if(!access)return;let slot=access.get();const put=access.put;
-  if(area==='output'){if(!slot||c.cursor&&c.cursor.id!==slot.id)return;const n=Math.min(slot.count,64-(c.cursor?.count||0));if(n<1)return;put(slot.count===n?null:{...slot,count:slot.count-n});c.cursor={id:slot.id,count:(c.cursor?.count||0)+n};return;}
+  if(area==='output'){if(!slot||c.cursor&&c.cursor.id!==slot.id)return;const n=Math.min(slot.count,stackLimit(slot.id)-(c.cursor?.count||0));if(n<1)return;put(slot.count===n?null:{...slot,count:slot.count-n});c.cursor={id:slot.id,count:(c.cursor?.count||0)+n};return;}
   if(c.cursor&&!access.accept(c.cursor.id))return;
   const cursor=c.cursor;
   if(!cursor){if(!slot)return;const n=m.right?Math.ceil(slot.count/2):slot.count;c.cursor={id:slot.id,count:n};put(slot.count===n?null:{...slot,count:slot.count-n});}
-  else if(!slot||slot.id===cursor.id){const n=Math.min(m.right?1:cursor.count,64-(slot?.count||0));if(n<=0)return;put({id:cursor.id,count:(slot?.count||0)+n});cursor.count-=n;if(!cursor.count)c.cursor=null;}
+  else if(!slot||slot.id===cursor.id){const n=Math.min(m.right?1:cursor.count,stackLimit(cursor.id)-(slot?.count||0));if(n<=0)return;put({id:cursor.id,count:(slot?.count||0)+n});cursor.count-=n;if(!cursor.count)c.cursor=null;}
   else if(!m.right){put({...cursor});c.cursor={...slot};}
   if(c.kind==='furnace')startFurnace(s,`${a.x},${a.y},${a.z}`);
  });return true;

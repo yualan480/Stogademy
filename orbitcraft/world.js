@@ -3,7 +3,7 @@ import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
 export const JUMP_DURATION_SECONDS=.75,JUMP_GRAVITY=64/3,JUMP_VELOCITY=8;
-export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 56, CHUNK = 16, SEA = 13;
+export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 320, CHUNK = 16, SEA = 13;
 export const BLOCKS = {
   1: { name: 'Grass', color: '#70a745' }, 2: { name: 'Dirt', color: '#926342' },
   3: { name: 'Stone', color: '#9298a0' }, 4: { name: 'Sand', color: '#e7ce8c' },
@@ -24,12 +24,13 @@ export function terrain(x,z) {
   const mountain = noise(x+130,z-81,33), moisture = noise(x-200,z+510,25);
   const height = Math.floor(10 + noise(x,z,29)*10 + noise(x+30,z-30,9)*4 + Math.max(0,mountain-.48)*65);
   const biome = height > 31 ? 'Alpine' : moisture < .32 ? 'Desert' : moisture > .51 ? 'Forest' : 'Meadow';
-  const value={height:Math.min(HEIGHT-7,height),biome};if(terrainMemo.size>=32768)terrainMemo.delete(terrainMemo.keys().next().value);terrainMemo.set(key,value);return value;
+  const value={height:Math.min(49,height),biome};if(terrainMemo.size>=32768)terrainMemo.delete(terrainMemo.keys().next().value);terrainMemo.set(key,value);return value;
 }
 const treeAt=(x,z)=> { const t=terrain(x,z);return t.biome==='Forest' && t.height>SEA+1 && hash(x,81,z)>.978 ? t.height : -100; };
 export function baseBlock(x,y,z) {
   if (!inside(x,y,z)) return 0;
   if (y===0) return 9;
+  if (y>54) return 0; // Original terrain and trees end here; higher space is buildable air.
   const {height:h,biome}=terrain(x,z);
   if(y<=h) {
     // Carve connected, branching underground tunnels, with occasional entrances.
@@ -49,13 +50,17 @@ export function baseBlock(x,y,z) {
   return 0;
 }
 export const chunkIndex=(x,y,z)=>y*CHUNK*CHUNK+z*CHUNK+x;
-export function overlaps(x,y,z,p) { return x+1>p.x-.3 && x<p.x+.3 && y+1>p.y && y<p.y+1.8 && z+1>p.z-.3 && z<p.z+.3; }
+export const playerHeight=p=>p.crouching?1.5:1.8;
+export const eyeHeight=p=>p.crouching?1.27:1.62;
+export function overlaps(x,y,z,p) { return x+1>p.x-.3 && x<p.x+.3 && y+1>p.y && y<p.y+playerHeight(p) && z+1>p.z-.3 && z<p.z+.3; }
 export function collides(p,get) {
-  if(p.x< -SIZE/2+.3 || p.x>SIZE/2-.3 || p.z< -SIZE/2+.3 || p.z>SIZE/2-.3 || p.y<1 || p.y>HEIGHT-1.8) return true;
-  for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+1.799);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) {const id=get(x,y,z),height=id===20||id===26?.6:id===23?.875:1;if(isStair(id)){for(const [a,b,c,d,e,f]of blockBoxes(id))if(p.x+.3>x+a&&p.x-.3<x+d&&p.z+.3>z+c&&p.z-.3<z+f&&p.y<y+e&&p.y+1.799>y+b)return true;continue;}if(solid(id)&&p.y<y+height&&p.y+1.799>y)return true;}
+  if(p.x< -SIZE/2+.3 || p.x>SIZE/2-.3 || p.z< -SIZE/2+.3 || p.z>SIZE/2-.3 || p.y<1 || p.y>HEIGHT+32) return true;
+  for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+playerHeight(p)-.001);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) {const id=get(x,y,z),height=id===20||id===26?.6:id===23?.875:1;if(isStair(id)){for(const [a,b,c,d,e,f]of blockBoxes(id))if(p.x+.3>x+a&&p.x-.3<x+d&&p.z+.3>z+c&&p.z-.3<z+f&&p.y<y+e&&p.y+playerHeight(p)-.001>y+b)return true;continue;}if(solid(id)&&p.y<y+height&&p.y+playerHeight(p)-.001>y)return true;}
   return false;
 }
 export function step(p,input,dt,get) {
+  const flyingMode=p.survival?.mode==='creative'&&p.survival.flying;
+  p.crouching=!flyingMode&&(!!input.sneak||!!p.crouching&&collides({...p,crouching:false},get));
   // Keep swimming until the feet clear the surface; checking only the torso
   // switched to air gravity before swimmers could rise onto a one-block bank.
   const water=[.05,.8].some(h=>get(Math.floor(p.x),Math.floor(p.y+h),Math.floor(p.z))===8);
@@ -63,7 +68,7 @@ export function step(p,input,dt,get) {
   let f=Number(!!input.forward)-Number(!!input.back),s=Number(!!input.right)-Number(!!input.left);
   const n=Math.hypot(f,s)||1; f/=n;s/=n;
   const flying=p.survival?.mode==='creative'&&p.survival.flying;
-  const speed=flying?8:input.sneak?1.3:water?2.7:input.sprint&&(p.survival?.hunger??20)>6?6:4.3, yaw=p.yaw||0;
+  const speed=flying?8:p.crouching?1.3:water?2.7:input.sprint&&(p.survival?.hunger??20)>6?6:4.3, yaw=p.yaw||0;
   p.vy=flying?(Number(!!input.jump)-Number(!!input.sneak))*6:Math.max(-22,(p.vy||0)-(water?5:JUMP_GRAVITY)*dt);
   if(!flying&&input.jump) {
     if(grounded)p.vy=JUMP_VELOCITY-JUMP_GRAVITY*dt/2;
@@ -72,7 +77,7 @@ export function step(p,input,dt,get) {
   const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*speed*dt,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*speed*dt;
   for(const [axis,d] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
     const count=Math.max(1,Math.ceil(Math.abs(d)/.15));
-    for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(input.sneak&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {
+    for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(p.crouching&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {
       if(axis!=='y'&&grounded&&!flying){let stair=false;for(const x of [Math.floor(next.x-.3),Math.floor(next.x+.3)])for(const z of [Math.floor(next.z-.3),Math.floor(next.z+.3)])if(isStair(get(x,Math.floor(p.y),z)))stair=true;
        const raised={...next,y:p.y+.5};if(stair&&!collides({...p,y:raised.y},get)&&!collides(raised,get)&&collides({...raised,y:raised.y-.065},get)){p[axis]=raised[axis];p.y=raised.y;p.vy=0;continue;}
       }
@@ -83,7 +88,7 @@ export function step(p,input,dt,get) {
 }
 export function stepBoat(p,input,dt,get){step(p,{...input,jump:false,sneak:false},dt,get);const x=Math.floor(p.x),z=Math.floor(p.z);for(let y=Math.floor(p.y);y>=Math.floor(p.y)-2;y--)if(get(x,y,z)===8&&get(x,y+1,z)!==8){const target=y+.85;if(p.y<target+.5&&!collides({...p,y:target},get)){p.y=target;p.vy=0;}break;}p.fallTop=p.y;}
 export function raycast(p,get,reach=6) {
-  const eye={x:p.x,y:p.y+1.62,z:p.z}, cp=Math.cos(p.pitch||0);
+  const eye={x:p.x,y:p.y+eyeHeight(p),z:p.z}, cp=Math.cos(p.pitch||0);
   const d={x:-Math.sin(p.yaw)*cp,y:Math.sin(p.pitch||0),z:-Math.cos(p.yaw)*cp};
   let previous=null;
   for(let t=0;t<=reach;t+=.035) {
