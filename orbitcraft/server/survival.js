@@ -10,7 +10,7 @@ import {spawnHabitats} from './ecology.js';
 import {useBed,finishSleep} from './bed-use.js';
 import {useBoat} from './boats.js';
 import {underCap,category,aquatic} from './mob-caps.js';
-import {isTorch,isPlant,torchAxis} from '../shapes.js';
+import {isTorch,isPlant,isStair,torchAxis} from '../shapes.js';
 import {tickEating} from './eating.js';
 import {bedPair,removeBed} from './beds.js';
 import {containerShortcut} from './container-shortcuts.js';
@@ -48,8 +48,8 @@ export class Survival{
  }
 
  wear(p,id,amount=1){const item=ITEMS[id];if(!item?.durability||!(p.inventory[id]||Object.values(p.survival.equipment).includes(id)||p.survival.offhand?.id===id))return;p.survival.durability[id]=(p.survival.durability[id]??item.durability)-amount;if(p.survival.durability[id]<=0){if(p.inventory[id]>0)p.inventory[id]--;if(p.survival.offhand?.id===id)p.survival.offhand=null;delete p.survival.durability[id];for(const slot in p.survival.equipment)if(p.survival.equipment[slot]===id)delete p.survival.equipment[slot];}}
- duration(p,id){const tool=this.tool(p),kind=[3,11,13,14,15,16,17,19].includes(id)?'pickaxe':[5,10,18].includes(id)?'axe':[1,2,4,7,12,21].includes(id)?'shovel':null;return (MINING_MS[id]||1000)/(tool?.tool===kind?tool.speed:1);}
- harvest(p,hit){const tool=this.tool(p),id=hit.block,required=({3:0,11:0,13:0,14:1,16:2,15:2,17:3,19:0})[id];if(required!==undefined&&(tool?.tool!=='pickaxe'||tool.tier<required))return [];
+ duration(p,id){const tool=this.tool(p),kind=[3,11,13,14,15,16,17,19].includes(id)?'pickaxe':[5,10,18,34,35,36,37,38].includes(id)?'axe':[1,2,4,7,12,21].includes(id)?'shovel':null;return (MINING_MS[id]||1000)/(tool?.tool===kind?tool.speed:1);}
+ harvest(p,hit){if(isStair(hit.block))return [[34,1]];const tool=this.tool(p),id=hit.block,required=({3:0,11:0,13:0,14:1,16:2,15:2,17:3,19:0})[id];if(required!==undefined&&(tool?.tool!=='pickaxe'||tool.tier<required))return [];
  if(id===22){const crop=this.world.crops[xyz(hit)],ripe=crop&&this.world.time-crop.planted>=2400;return ripe?[[111,1],[113,2]]:[[113,1]];}
  if(id===12)return hash(hit.x,Math.floor(this.world.time)+hit.y,hit.z)>.9?[[238,1]]:[[12,1]];
  if(id===6)return hash(hit.x,Math.floor(this.world.time),hit.z)>.8?[[117,1]]:[];if(id===31)return hash(hit.x,Math.floor(this.world.time),hit.z)>.7?[[31,1],[113,1]]:[[31,1]];if(isTorch(id))return [[25,1]];

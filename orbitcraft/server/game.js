@@ -1,5 +1,5 @@
 import {stepRiding} from './boats.js';
-import {isTorch,isPlant} from '../shapes.js';
+import {isTorch,isPlant,isStair} from '../shapes.js';
 import {chunkOf,chunkKey,inRange,renderDistance,SIMULATION_DISTANCE,MAX_CACHED_CHUNKS} from '../chunks.js';
 import {placeBed} from './beds.js';
 import { stacks } from '../inventory.js';
@@ -148,7 +148,9 @@ export class Game {
     if(offhand&&p.inventory[held]>0&&!(ITEMS[held]?.tool||held===180))throw Error('Hold a tool in your right hand to build with the off-hand.');
     if(!isBlock(id)||[8,9,21,22,26,27,28,29,30].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
     const a=hit.place;
-    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||isTorch(this.get(a.x,a.y,a.z)))throw Error('Cannot place here.');
+    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||isTorch(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===38)throw Error('Cannot place here.');
+    if(isStair(id))id=34+((Math.round(p.yaw/(Math.PI/2))%4+4)%4);
+    if(id===38&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Place the sign on solid ground.');
     if(id===20){placeBed(this.survival,p,a,offhand);return;}
     if(id===25){if(this.get(a.x,a.y,a.z)!==0||!solid(hit.block))throw Error('Attach the torch to a solid surface.');const dx=a.x-hit.x,dz=a.z-hit.z;if(a.y>hit.y)id=25;else if(dx===1)id=27;else if(dx===-1)id=28;else if(dz===1)id=29;else if(dz===-1)id=30;else throw Error('Cannot attach a torch underneath a block.');}if(isPlant(id)&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Plants need solid ground.');
     if(!isTorch(id)&&!isPlant(id)&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');

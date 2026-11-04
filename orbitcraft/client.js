@@ -5,20 +5,20 @@ import {createLocatorBar,playerColor} from './locator.js?v=20261104-locator22';
 import {createSounds} from './sounds.js?v=20261104-audio20';
 import {xpProgress} from './experience.js';
 import {createXPVisuals} from './experience-visuals.js?v=20261104-audio20';
-import {isTorch,isPlant,blockBoxes} from './shapes.js';
+import {isTorch,isPlant,isStair,blockBoxes} from './shapes.js';
 import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261104-audio20';
 import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261104-audio20';
 import {createKeybinds} from './keybinds.js?v=20261104-sensitivity30';
 import {createPauseMenu} from './pause-menu.js?v=20261104-audio20';
-import {furnitureModel} from './block-models.js?v=20261104-audio20';
+import {furnitureModel} from './block-models.js?v=20261104-stairs33';
 import {createShortcuts} from './game-shortcuts.js?v=20261104-audio20';
 import { ITEMS,itemName,isBlock } from './items.js';
 import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261104-drop32';
 import * as THREE from './vendor/three.module.js';
-import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,raycast,solid,collides } from './world.js?v=20261104-water21';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261104-audio20';
+import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,raycast,solid,collides } from './world.js?v=20261104-stairs33';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261104-stairs33';
 import { createPlayerModel } from './players.js?v=20261104-audio20';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261104-pearl31';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261104-stairs33';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();const sounds=createSounds();
@@ -66,7 +66,7 @@ function meshChunk(k){
  const block=(x,y,z)=>{if(y<0)return 9;if(y>=HEIGHT)return 0;if(!inside(x,y,z))return 0;const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:9;};
  for(let y=0;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++){
   const id=chunk.data[chunkIndex(x,y,z)];if(!id)continue;const wx=cx*CHUNK+x,wz=cz*CHUNK+z,g=groups[id===8?1:0];
-  if([20,26,23].includes(id)||isTorch(id)){let dx=0,dz=-1;const direction=bedDirections.get(`${wx},${y},${wz}`);if(direction){dx=direction.x;dz=direction.z;}else if(id!==23)for(const [x,z]of [[0,1],[0,-1],[1,0],[-1,0]])if(block(wx+x,y,wz+z)===(id===20?26:20)){dx=id===20?x:-x;dz=id===20?z:-z;break;}furniture.push({id,x:wx,y,z:wz,dx,dz});if(isTorch(id))torches.push({x:wx+.5,y:y+.8,z:wz+.5});continue;}
+  if([20,26,23,38].includes(id)||isTorch(id)||isStair(id)){let dx=0,dz=-1;const direction=bedDirections.get(`${wx},${y},${wz}`);if(direction){dx=direction.x;dz=direction.z;}else if(id!==23)for(const [x,z]of [[0,1],[0,-1],[1,0],[-1,0]])if(block(wx+x,y,wz+z)===(id===20?26:20)){dx=id===20?x:-x;dz=id===20?z:-z;break;}furniture.push({id,x:wx,y,z:wz,dx,dz});if(isTorch(id))torches.push({x:wx+.5,y:y+.8,z:wz+.5});continue;}
   if(id===25)torches.push({x:wx+.5,y:y+.65,z:wz+.5});
   if(id===22||isPlant(id)){const detail=id===22?29:id===31?13:id===32?14:15;if(detail!==null){
     const stage=cropStages.get(`${wx},${y},${wz}`)||0,height=id===25?.85:id===22?.3+stage*.2:detail===13?.6:.46,half=id===25?.2:.32,cx=wx+.5,cz=wz+.5;
@@ -74,7 +74,7 @@ function meshChunk(k){
     for(const [q,verts] of quads.entries())for(const backwards of [false,true])for(const i of backwards?[0,2,1,0,3,2]:[0,1,2,0,2,3]){const sign=backwards?-1:1;g.p.push(...verts[i]);g.n.push(sign*(q ? .707 : -.707),0,sign*.707);const uv=[[0,0],[1,0],[1,1],[0,1]][i];g.uv.push((detail*16+.2+uv[0]*15.6)/(TILE_COUNT*16),(.2+uv[1]*15.6)/16);g.c.push(1,1,1);}
   }}
   if(id===22||isTorch(id)||isPlant(id))continue;
-  for(const f of faces){const b=block(wx+f.n[0],y+f.n[1],wz+f.n[2]);if(b&&!isTorch(b)&&!isPlant(b)&&![20,26,23,22].includes(b)&&(id===8||b!==8))continue;
+  for(const f of faces){const b=block(wx+f.n[0],y+f.n[1],wz+f.n[2]);if(b&&!isTorch(b)&&!isPlant(b)&&![20,26,23,22,34,35,36,37,38].includes(b)&&(id===8||b!==8))continue;
    const uv=[[0,0],[1,0],[1,1],[0,1]],tile=tileFor(id,f.n[1],f.n[2]);
    for(const i of [0,1,2,0,2,3]){const v=f.v[i];g.p.push(wx+v[0],y+v[1],wz+v[2]);g.n.push(...f.n);g.uv.push((tile*16+.2+uv[i][0]*15.6)/(TILE_COUNT*16),(.2+uv[i][1]*15.6)/16);const outside=[wx+f.n[0],y+f.n[1],wz+f.n[2]],tangents=[0,1,2].filter(axis=>!f.n[axis]);
     const offset=(axis,sign)=>{const p=[...outside];p[axis]+=sign;return p;};

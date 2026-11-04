@@ -1,5 +1,6 @@
+import {stairGeometry} from './shape-geometry.js?v=20261104-stairs33';
 import {drawItem} from './item-art.js?v=20261104-pearl31';
-import {isTorch,isPlant} from './shapes.js';
+import {isTorch,isPlant,isStair,blockBoxes} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
 import { BLOCKS } from './world.js';
 import { ITEMS } from './items.js';
@@ -19,6 +20,7 @@ const random = (x, y, seed) => {
   return ((n ^ n >>> 16) >>> 0) / 4294967295;
 };
 export function tileFor(id, normalY, normalZ=0) {
+  if(isStair(id)||id===38)return 9;
   if(id>=100)return itemTiles.get(id)??1;
   if(isTorch(id))return 34;if(isPlant(id))return id===31?13:id===32?14:15;if(id===26)return 27;
   if(id===18)return normalY>0?23:normalY<0?9:normalZ>0?24:33;
@@ -193,6 +195,8 @@ export async function createTextures() {
         const [o,u,,v]=points;draw.transform((u[0]-o[0])/16,(u[1]-o[1])/16,(v[0]-o[0])/16,(v[1]-o[1])/16,o[0],o[1]);
         draw.drawImage(atlas,tile*16,0,16,16,0,0,16,16);draw.fillStyle=`rgba(0,0,0,${shade})`;draw.fillRect(0,0,16,16);draw.restore();
       }
+      if(id===38){draw.fillStyle='#553819';draw.fillRect(21,25,6,21);draw.drawImage(atlas,9*16,0,16,16,4,5,40,25);draw.strokeStyle='#553819';draw.strokeRect(4.5,5.5,39,24);icons.set(id,c.toDataURL());return icons.get(id);}
+      if(isStair(id)){const project=(x,y,z)=>[24+(x-z)*20,25+(x+z)*10-y*24];for(const [x,y,z,a,b,c] of blockBoxes(34)){face(9,[[x,b,c],[a,b,c],[a,y,c],[x,y,c]].map(p=>project(...p)),.1);face(9,[[a,b,c],[a,b,z],[a,y,z],[a,y,c]].map(p=>project(...p)),.28);face(9,[[x,b,z],[a,b,z],[a,b,c],[x,b,c]].map(p=>project(...p)),0);}icons.set(id,c.toDataURL());return icons.get(id);}
       if(id>=100||isTorch(id)||isPlant(id)||id===20){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
       face(tileFor(id,0,1),[[4,12],[24,22],[24,46],[4,36]],.1);
       face(tileFor(id,0),[[24,22],[44,12],[44,36],[24,46]],.28);
@@ -252,9 +256,10 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
   return {
     select(id, count) {
       group.userData.itemId=count>0?id:0;
-      if(id!==selected&&id){block.geometry.dispose();block.geometry=id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
+      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
+      if(isStair(id)||id===38)return;
       const uv = block.geometry.attributes.uv;
       for (let face = 0; face < (id>=100||isTorch(id)||isPlant(id)||id===20?1:6); face++) {
         const tile = tileFor(id, face === 2 ? 1 : face === 3 ? -1 : 0,face===4?1:face===5?-1:0);

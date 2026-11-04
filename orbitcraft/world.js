@@ -1,4 +1,4 @@
-import {isTorch,isPlant,inShape} from './shapes.js';
+import {isTorch,isPlant,inShape,isStair,blockBoxes} from './shapes.js';
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
@@ -13,7 +13,7 @@ export const BLOCKS = {
 };
 for(const [id,item] of Object.entries(ITEMS))if(item.block)BLOCKS[id]={name:item.name,color:'#8e8071'};
 export const SLOTS = [2,3,5,10,4,1,6,7];
-export const solid = b => b !== 0 && b !== 8 && b !== 22 && !isTorch(b)&&!isPlant(b);
+export const solid = b => b !== 0 && b !== 8 && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b);
 export const inside = (x,y,z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z) && x >= -SIZE/2 && x < SIZE/2 && z >= -SIZE/2 && z < SIZE/2 && y >= 0 && y < HEIGHT;
 export function hash(x,y=0,z=0) { let h = Math.imul(x ^ SEED, 374761393) ^ Math.imul(y,668265263) ^ Math.imul(z,2147483647); h = Math.imul(h ^ h>>>13,1274126177); return ((h ^ h>>>16)>>>0)/4294967295; }
 const mix=(a,b,t)=>a+(b-a)*t, smooth=t=>t*t*(3-2*t);
@@ -52,7 +52,7 @@ export const chunkIndex=(x,y,z)=>y*CHUNK*CHUNK+z*CHUNK+x;
 export function overlaps(x,y,z,p) { return x+1>p.x-.3 && x<p.x+.3 && y+1>p.y && y<p.y+1.8 && z+1>p.z-.3 && z<p.z+.3; }
 export function collides(p,get) {
   if(p.x< -SIZE/2+.3 || p.x>SIZE/2-.3 || p.z< -SIZE/2+.3 || p.z>SIZE/2-.3 || p.y<1 || p.y>HEIGHT-1.8) return true;
-  for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+1.799);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) {const id=get(x,y,z),height=id===20||id===26?.6:id===23?.875:1;if(solid(id)&&p.y<y+height&&p.y+1.799>y)return true;}
+  for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+1.799);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) {const id=get(x,y,z),height=id===20||id===26?.6:id===23?.875:1;if(isStair(id)){for(const [a,b,c,d,e,f]of blockBoxes(id))if(p.x+.3>x+a&&p.x-.3<x+d&&p.z+.3>z+c&&p.z-.3<z+f&&p.y<y+e&&p.y+1.799>y+b)return true;continue;}if(solid(id)&&p.y<y+height&&p.y+1.799>y)return true;}
   return false;
 }
 export function step(p,input,dt,get) {
@@ -72,7 +72,12 @@ export function step(p,input,dt,get) {
   const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*speed*dt,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*speed*dt;
   for(const [axis,d] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
     const count=Math.max(1,Math.ceil(Math.abs(d)/.15));
-    for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(input.sneak&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {if(axis==='y')p.vy=0;break;} }
+    for(let i=0;i<count;i++) { const next={...p,[axis]:p[axis]+d/count}; if(input.sneak&&grounded&&!flying&&axis!=='y'&&!collides({...next,y:next.y-.5},get))break; if(!collides(next,get)) p[axis]=next[axis];else {
+      if(axis!=='y'&&grounded&&!flying){let stair=false;for(const x of [Math.floor(next.x-.3),Math.floor(next.x+.3)])for(const z of [Math.floor(next.z-.3),Math.floor(next.z+.3)])if(isStair(get(x,Math.floor(p.y),z)))stair=true;
+       const raised={...next,y:p.y+.5};if(stair&&!collides({...p,y:raised.y},get)&&!collides(raised,get)&&collides({...raised,y:raised.y-.065},get)){p[axis]=raised[axis];p.y=raised.y;p.vy=0;continue;}
+      }
+      if(axis==='y')p.vy=0;break;
+     } }
   }
   if(p.vy<0&&collides({...p,y:p.y-.015},get))p.vy=0;
 }
@@ -91,7 +96,7 @@ export function raycast(p,get,reach=6) {
 }
 
 // Hand-mining times in milliseconds. Bedrock has no break duration.
-export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50});
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000});
 export const PICKUP_DELAY_MS = 750;
 
 // Resources only overlay natural stone; stored edits always take precedence.
