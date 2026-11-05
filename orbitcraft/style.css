@@ -180,3 +180,34 @@ body.sleeping,body.sleeping #world{cursor:default!important}body.sleeping #sleep
 #inventory .furnace-arrow.reset-progress:after{transition:none}
 
 .mouse-settings{padding:10px 0;border-bottom:2px solid #888;margin-bottom:10px}.mouse-settings label{font:20px OrbitPixel,monospace}.mouse-settings input{display:block;width:100%;accent-color:#777}.mouse-settings button{display:block;margin:7px auto 0;min-width:180px}
+
+/* Vanilla Java HUD sprites, rendered at a shared integer-style GUI scale. */
+:root{--hud-unit:2px;--hud-slot:40px;--hud-width:364px;--vital-size:18px}
+#hotbar{box-sizing:border-box;width:var(--hud-width);height:44px;padding:2px;border:0;gap:0;background:url('assets/reference/hotbar.png') center/100% 100% no-repeat;box-shadow:none;image-rendering:pixelated}
+#hotbar button,#hotbar button:hover,#hotbar button.active{box-sizing:border-box;position:relative;flex:0 0 var(--hud-slot);width:var(--hud-slot);height:40px;padding:4px;border:0;background:none;box-shadow:none}
+#hotbar button.active:before{content:'';position:absolute;z-index:-1;left:-4px;top:-2px;width:48px;height:46px;background:url('assets/reference/hotbar_selection.png') center/100% 100% no-repeat;image-rendering:pixelated}
+#survival-hud{bottom:calc(var(--hud-bottom) + 62px);padding:0;width:var(--hud-width);height:18px}
+#health-meter,#hunger-meter{height:18px}
+#survival-hud span{position:relative;flex:0 0 16px;width:16px;height:18px;background-size:18px 18px;background-position:left top}
+#survival-hud span:after{width:18px;height:18px;background-size:18px 18px;clip-path:none}
+#health-meter span{background-image:url('assets/reference/heart_container.png')}
+#health-meter .full:after{background-image:url('assets/reference/heart_full.png')}
+#health-meter .half:after{background-image:url('assets/reference/heart_half.png')}
+#hunger-meter span{background-image:url('assets/reference/food_empty.png')}
+#hunger-meter .full:after{background-image:url('assets/reference/food_full.png')}
+#hunger-meter .half:after{background-image:url('assets/reference/food_half.png')}
+#experience-hud{bottom:calc(var(--hud-bottom) + 48px);height:10px}
+#experience-bar{position:relative;height:10px;border:0;background:url('assets/reference/experience_bar_background.png') left top/var(--hud-width) 10px no-repeat;box-shadow:none}
+#experience-bar i{position:absolute;inset:0;width:100%;height:10px;background:url('assets/reference/experience_bar_progress.png') left top/var(--hud-width) 10px no-repeat;box-shadow:none;clip-path:inset(0 calc(100% - var(--xp-fill,0%)) 0 0)}
+#experience-level{bottom:10px;font-size:20px;color:#80ff20}
+#armor-meter{left:calc(50% - var(--hud-width)/2);bottom:calc(var(--hud-bottom) + 80px);height:18px}
+#armor-meter[hidden]{display:none}#armor-meter span{width:16px;height:18px;background:url('assets/reference/armor_empty.png') left top/18px 18px no-repeat}
+#armor-meter span:after{width:18px;height:18px;background:url('assets/reference/armor_full.png') left top/18px 18px no-repeat;clip-path:none}
+#armor-meter .half:after{background-image:url('assets/reference/armor_half.png');clip-path:none}
+#offhand-hud{left:calc(50% - var(--hud-width)/2 - 62px);bottom:calc(var(--hud-bottom) - 2px);width:58px;height:48px;padding:6px 12px 6px 6px;border:0;background:url('assets/reference/hotbar_offhand_left.png') center/100% 100% no-repeat;box-shadow:none}
+#player-locator{bottom:calc(var(--hud-bottom) + 48px);height:10px;border:0;background:none;box-shadow:none}#player-locator:before{display:none}
+.ingredient,#equipment button{position:relative}
+#inventory .durability-strip{position:absolute;left:12%;bottom:3px;width:76%;height:3px;background:#000;pointer-events:none}
+#inventory .durability-strip:after{content:'';display:block;width:var(--durability);height:2px;background:var(--durability-color)}
+@media(max-width:460px){:root{--hud-slot:calc((100vw - 36px)/9);--hud-width:calc(100vw - 32px)}#offhand-hud{left:calc(50% - var(--hud-width)/2);bottom:calc(var(--hud-bottom) + 82px)}#survival-hud span,#armor-meter span{flex-basis:calc(var(--hud-slot)*.4);width:calc(var(--hud-slot)*.4)}}
+#survival-hud .half:after,#hunger-meter .half:after{clip-path:none}

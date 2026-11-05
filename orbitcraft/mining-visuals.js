@@ -1,7 +1,7 @@
 import {stairGeometry} from './shape-geometry.js?v=20261104-stairs33';
 import {isTorch,isPlant,isStair,blockBoxes} from './shapes.js';
 import * as THREE from './vendor/three.module.js';
-import { TILE_COUNT,tileFor } from './visuals.js?v=20261104-audio20';
+import { TILE_COUNT,tileFor } from './visuals.js?v=20261104-reference36';
 
 export function blockGeometry(id,size){
   if(isStair(id)||id===38)return stairGeometry(blockBoxes(id),size,9,TILE_COUNT);

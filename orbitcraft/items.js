@@ -9,7 +9,7 @@ export const TIERS=[{name:'Wooden',base:120,material:10,tier:0,speed:2,uses:59},
 const tools=['pickaxe','axe','sword','shovel','hoe'];
 for(const t of TIERS)tools.forEach((tool,i)=>add(t.base+i,`${t.name} ${tool}`,{tool,tier:t.tier,speed:t.speed,durability:t.uses,damage:tool==='sword'?4+Math.min(t.tier,4):tool==='axe'?5+Math.min(t.tier,4):2}));
 ITEMS[235].durability=384;ITEMS[180].durability=64;ITEMS[181].durability=336;ITEMS[181].slot='shield';
-for(const [base,name,material,defense] of [[190,'Iron',103,[2,6,5,2]],[200,'Diamond',106,[3,8,6,3]],[210,'Netherite',108,[3,8,6,3]],[220,'Gold',105,[2,5,3,1]]])['helmet','chestplate','leggings','boots'].forEach((slot,i)=>add(base+i,`${name} ${slot}`,{slot,defense:defense[i],durability:base===210?480:base===200?400:base===190?240:100,material}));
+for(const [base,name,material,defense] of [[190,'Iron',103,[2,6,5,2]],[200,'Diamond',106,[3,8,6,3]],[210,'Netherite',108,[3,8,6,3]],[220,'Gold',105,[2,5,3,1]]])['helmet','chestplate','leggings','boots'].forEach((slot,i)=>add(base+i,`${name} ${slot}`,{slot,defense:defense[i],durability:[11,16,15,13][i]*(base===210?37:base===200?33:base===190?15:7),material}));
 export const RECIPES=[];
 const recipe=(id,name,ingredients,out,count=1,station='hand',pattern=[])=>RECIPES.push({id,name,ingredients,out,count,station,pattern});
 recipe('planks','Oak planks',{5:1},10,4,'hand',[5]);recipe('sticks','Sticks',{10:2},100,4,'hand',[10,0,10]);recipe('table','Crafting table',{10:4},18,1,'hand',[10,10,10,10]);

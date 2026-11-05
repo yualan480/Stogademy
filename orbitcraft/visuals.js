@@ -179,9 +179,16 @@ export async function createTextures() {
    else{const color=({100:'#8f6239',101:'#292c32',102:'#b6947e',103:'#d6dce0',104:'#b69840',105:'#f2cf55',106:'#47d5d6',107:'#6e514d',108:'#51464d',111:'#c0aa4e',113:'#608b3b',116:'#eee9db',118:'#6d803c',119:'#d7d4bf',230:'#49484c',231:'#dfdbd5'})[id]||'#aaa';rect(3,6,10,7,'#333');rect(3,5,10,6,color);rect(5,3,7,3,color);rect(5,5,5,2,'#ffffff44');}
   }
   for(const id of itemIds)drawItem(context,id,itemTiles.get(id)*16,ITEMS[id]);
+  try {
+    const load=path=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=new URL(path,import.meta.url).href;});
+    const [source,blocks,manifest]=await Promise.all([load('./assets/reference/items.png'),load('./assets/reference/blocks.png'),fetch(new URL('./assets/reference/manifest.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Texture manifest unavailable');return r.json();})]);
+    for(const id of Object.keys(manifest.items).map(Number)){const tile=itemTiles.get(id);if(tile==null)continue;context.clearRect(tile*16,0,16,16);context.drawImage(source,id*16,0,16,16,tile*16,0,16,16);}
+    for(const tile of Object.keys(manifest.blocks).map(Number)){context.clearRect(tile*16,0,16,16);context.drawImage(blocks,tile*16,0,16,16,tile*16,0,16,16);}
+    atlas.dataset.reference='minecraft-java-1.21.4';
+  } catch(error) {console.warn('Item reference artwork unavailable; using built-in textures.',error);}
   const texture = new THREE.CanvasTexture(atlas);
   texture.userData.grassSource=referenceLoaded?'block-reference':'fallback';
-  texture.userData.source=referenceLoaded?'reference-sheet':'procedural-fallback';
+  texture.userData.source=atlas.dataset.reference||(referenceLoaded?'reference-sheet':'procedural-fallback');
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -197,7 +204,7 @@ export async function createTextures() {
       }
       if(id===38){draw.fillStyle='#553819';draw.fillRect(21,25,6,21);draw.drawImage(atlas,9*16,0,16,16,4,5,40,25);draw.strokeStyle='#553819';draw.strokeRect(4.5,5.5,39,24);icons.set(id,c.toDataURL());return icons.get(id);}
       if(isStair(id)){const project=(x,y,z)=>[24+(x-z)*20,25+(x+z)*10-y*24];for(const [x,y,z,a,b,c] of blockBoxes(34)){face(9,[[x,b,c],[a,b,c],[a,y,c],[x,y,c]].map(p=>project(...p)),.1);face(9,[[a,b,c],[a,b,z],[a,y,z],[a,y,c]].map(p=>project(...p)),.28);face(9,[[x,b,z],[a,b,z],[a,b,c],[x,b,c]].map(p=>project(...p)),0);}icons.set(id,c.toDataURL());return icons.get(id);}
-      if(id>=100||isTorch(id)||isPlant(id)||id===20){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
+      if(id!==116&&(id>=100||isTorch(id)||isPlant(id)||id===20)){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
       face(tileFor(id,0,1),[[4,12],[24,22],[24,46],[4,36]],.1);
       face(tileFor(id,0),[[24,22],[44,12],[44,36],[24,46]],.28);
       face(tileFor(id,1),[[24,2],[44,12],[24,22],[4,12]],0);
@@ -256,7 +263,9 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
   return {
     select(id, count) {
       group.userData.itemId=count>0?id:0;
-      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(.3,.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
+      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isTorch(id)||isPlant(id)||id===20?new THREE.PlaneGeometry(ITEMS[id]?.tool?1.05:.3,ITEMS[id]?.tool?1.05:.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
+      const tool=!!ITEMS[id]?.tool;hand.visible=sleeve.visible=!tool||count<=0;
+      block.position.set(tool?.72:.43,tool?-.34:-.35,tool?-.85:-.76);block.rotation.set(tool?0:.12,tool?-.18:-.5,tool?-.08:-.1);block.userData.toolPose=tool;
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
       if(isStair(id)||id===38)return;

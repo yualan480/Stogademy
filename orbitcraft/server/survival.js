@@ -47,7 +47,7 @@ export class Survival{
   for(const player of participants){this.g.inventory(player);this.send(player);}
  }
 
- wear(p,id,amount=1){const item=ITEMS[id];if(!item?.durability||!(p.inventory[id]||Object.values(p.survival.equipment).includes(id)||p.survival.offhand?.id===id))return;p.survival.durability[id]=(p.survival.durability[id]??item.durability)-amount;if(p.survival.durability[id]<=0){if(p.inventory[id]>0)p.inventory[id]--;if(p.survival.offhand?.id===id)p.survival.offhand=null;delete p.survival.durability[id];for(const slot in p.survival.equipment)if(p.survival.equipment[slot]===id)delete p.survival.equipment[slot];}}
+ wear(p,id,amount=1){const item=ITEMS[id];if(!item?.durability||!(p.inventory[id]||Object.values(p.survival.equipment).includes(id)||p.survival.offhand?.id===id))return;p.survival.durability[id]=Math.min(item.durability,p.survival.durability[id]??item.durability)-amount;if(p.survival.durability[id]<=0){if(p.inventory[id]>0)p.inventory[id]--;if(p.survival.offhand?.id===id)p.survival.offhand=null;delete p.survival.durability[id];for(const slot in p.survival.equipment)if(p.survival.equipment[slot]===id)delete p.survival.equipment[slot];}}
  duration(p,id){const tool=this.tool(p),kind=[3,11,13,14,15,16,17,19].includes(id)?'pickaxe':[5,10,18,34,35,36,37,38].includes(id)?'axe':[1,2,4,7,12,21].includes(id)?'shovel':null;return (MINING_MS[id]||1000)/(tool?.tool===kind?tool.speed:1);}
  harvest(p,hit){if(isStair(hit.block))return [[34,1]];const tool=this.tool(p),id=hit.block,required=({3:0,11:0,13:0,14:1,16:2,15:2,17:3,19:0})[id];if(required!==undefined&&(tool?.tool!=='pickaxe'||tool.tier<required))return [];
  if(id===22){const crop=this.world.crops[xyz(hit)],ripe=crop&&this.world.time-crop.planted>=2400;return ripe?[[111,1],[113,2]]:[[113,1]];}
@@ -117,7 +117,7 @@ export class Survival{
  mobLoot(m){if(m.kind==='enderman')return pearlLoot();if(m.kind==='chicken')return [[109,2],[237,1]];if(['fish','cod','salmon','dolphin'].includes(m.kind))return [[114,1]];if(['bat','squid','axolotl'].includes(m.kind))return [];return m.kind==='sheep'?[[109,1],[116,3]]:!m.hostile?[[109,2]]:m.kind==='skeleton'?[[119,2]]:m.kind==='spider'?[[231,2]]:m.kind==='creeper'?[[230,2]]:[[118,2]];}
  applyDamage(p,damage,source,tx){
   p.lastHurt=this.g.now();p.hurtAt=this.g.now();if(source)applyKnockback(p,source,this.g.get);const gear=p.survival.equipment;let defense=0;
-  for(const [slot,id]of Object.entries(gear))if(slot!=='shield'){defense+=ITEMS[id]?.defense||0;this.wear(p,id);}
+  for(const [slot,id]of Object.entries(gear))if(slot!=='shield'){defense+=ITEMS[id]?.defense||0;this.wear(p,id,Math.max(1,Math.floor(damage/4)));}
   if(p.input.block&&this.g.now()-(p.lastInput??-Infinity)<=350&&(p.survival.offhand?.id===181||this.selected(p)===181&&p.inventory[181]>0)&&source){const yaw=Math.atan2(-(source.x-p.x),-(source.z-p.z));if(Math.cos(yaw-p.yaw)>.15){damage*=.15;this.wear(p,181,2);}}
   p.survival.sleeping=false;p.survival.bedPose=null;p.fishing=null;p.survival.health=Math.max(0,p.survival.health-damage*(1-Math.min(20,defense)*.04));
   if(p.survival.health<=0)this.dropPlayer(p,tx);

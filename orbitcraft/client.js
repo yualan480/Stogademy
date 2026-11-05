@@ -8,17 +8,17 @@ import {createXPVisuals} from './experience-visuals.js?v=20261104-audio20';
 import {isTorch,isPlant,isStair,blockBoxes} from './shapes.js';
 import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261104-audio20';
 import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261104-audio20';
-import {createKeybinds} from './keybinds.js?v=20261104-height35';
+import {createKeybinds} from './keybinds.js?v=20261104-reference36';
 import {createPauseMenu} from './pause-menu.js?v=20261104-audio20';
-import {furnitureModel} from './block-models.js?v=20261104-height35';
+import {furnitureModel} from './block-models.js?v=20261104-reference36';
 import {createShortcuts} from './game-shortcuts.js?v=20261104-audio20';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261104-height35';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261104-reference36';
 import * as THREE from './vendor/three.module.js';
-import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,eyeHeight,raycast,solid,collides } from './world.js?v=20261104-height35';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261104-height35';
+import { BLOCKS,SLOTS,CHUNK,HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,eyeHeight,raycast,solid,collides } from './world.js?v=20261104-reference36';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261104-reference36';
 import { createPlayerModel } from './players.js?v=20261104-audio20';
-import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261104-height35';
+import { createTextures, createAtmosphere, createHeldBlock, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261104-reference36';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();const sounds=createSounds();
@@ -44,7 +44,7 @@ const held = createHeldBlock(camera, texture);
 const leftHeld=createHeldBlock(camera,texture,{left:true});
 const resources=createResourceEffects(scene,texture);const xpEffects=createXPVisuals(scene);const drawnBow=createDrawnBow(),arrowVisuals=createArrowVisuals(scene),pearlVisuals=createPearlVisuals(scene);camera.add(drawnBow.group);let bowHeld=false,bowDrawAt=0;
 const bedDirections=new Map(),torchPositions=new Map(),torchLights=Array.from({length:coarse?2:4},()=>{const light=new THREE.PointLight(0xffb56c,0,12,1.5);scene.add(light);return light;});let torchLightAt=0;
-const firstShield=new THREE.Group();camera.add(firstShield);for(const [w,h,d,color]of [[.31,.43,.06,0x999b9b],[.26,.37,.07,0x987345]]){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color,depthTest:false,fog:false}));m.renderOrder=1002;firstShield.add(m);}
+const firstShield=new THREE.Group();firstShield.name='first-person-shield';camera.add(firstShield);const shieldTexture=new THREE.TextureLoader().load(new URL('./assets/reference/shield_front.png',import.meta.url).href);shieldTexture.magFilter=THREE.NearestFilter;shieldTexture.minFilter=THREE.NearestFilter;shieldTexture.colorSpace=THREE.SRGBColorSpace;const shieldPlate=new THREE.Mesh(new THREE.BoxGeometry(.36,.52,.035),new THREE.MeshLambertMaterial({map:shieldTexture,depthTest:false,fog:false}));shieldPlate.renderOrder=1002;firstShield.add(shieldPlate);
 function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='left'?'offhandId':'heldId',meshKey=side==='left'?'offhandMesh':'itemMesh',arm=side==='left'?model.arm:model.arm2;if(model[key]===id)return;model[key]=id;if(model[meshKey]){arm.remove(model[meshKey]);model[meshKey].geometry.dispose();model[meshKey].material.dispose();model[meshKey]=null;}if(!id)return;const mesh=new THREE.Mesh(blockGeometry(id,.23),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.name=side==='left'?'left-hand-item':'right-hand-item';mesh.position.set(0,-.55,-.15);mesh.rotation.x=-.45;arm.add(mesh);model[meshKey]=mesh;}
 
 
@@ -312,7 +312,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  pearlVisuals.animate(now);arrowVisuals.animate(now);const daylight=survival.animate(now,dt);sun.intensity=1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=.2+daylight*1.5;scene.fog.color.set(underwater?'#3887a9':'#b9d4ff').multiplyScalar(underwater?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=underwater?1:Math.max(8,(viewDistance-1)*CHUNK);scene.fog.far=underwater?16:viewDistance*CHUNK;
  if(miningHeld&&controls()&&now-lastMiningSwing>220){lastMiningSwing=now;held.swing();if(miningFeedback)sounds.play('mine',{block:miningFeedback.block});}
  leftHeld.select(survival.state.offhand?.id||0,survival.state.offhand?.count||0);leftHeld.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&perspective===0&&survival.state.health>0&&!menuOpen()&&survival.state.offhand?.id!==181);
- firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.scale.setScalar(Math.max(.6,Math.min(1,camera.aspect/1.25)));firstShield.position.lerp(new THREE.Vector3((input.block?-.18:-.4)*Math.min(1,camera.aspect/1.25),input.block?-.24:-.45,input.block?-.5:-.7),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
+ firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.scale.setScalar(2.2*Math.max(.6,Math.min(1,camera.aspect/1.25)));firstShield.position.lerp(new THREE.Vector3((input.block?-.4:-.7)*Math.min(1,camera.aspect/1.25),input.block?-.3:-.62,input.block?-.8:-.95),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
  sounds.frame({player:me,active:connected&&controls()&&survival.state.health>0&&!survival.state.sleeping,furnace:!!survival.state.furnace?.job,eating:input.eat&&!!ITEMS[hotbarSlots[selected]]?.food&&(inventory[hotbarSlots[selected]]||0)>0&&survival.state.hunger<20,get,grounded:!!me&&collides({...me,y:me.y-.065},get),now});
  resources.update(Date.now(),dt,camera);xpEffects.animate(now,dt);
  drawnBow.group.visible=connected&&inventory[235]>0&&hotbarSlots[selected]===235&&!survival.state.sleeping&&!menuOpen()&&perspective===0&&survival.state.health>0;drawnBow.update(bowHeld?Math.min(1,(now-bowDrawAt)/1000):0,!!((inventory[236]||0)>0||survival.state.offhand?.id===236));

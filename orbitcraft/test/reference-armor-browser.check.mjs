@@ -1,0 +1,23 @@
+import {spawn} from 'node:child_process';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
+import {chromium} from '@playwright/test';
+import {Game} from '../server/game.js';
+import {openStore} from '../server/db.js';
+const dir=mkdtempSync(join(tmpdir(),'orbit-reference-')),port=18973,base=`http://127.0.0.1:${port}`,db=join(dir,'world.db');
+const store=openStore(db),g=new Game(store),p=g.join({id:'dev-Reference',name:'Reference'},()=>{}),blocks=[];
+for(let x=-5;x<=5;x++)for(let z=-8;z<=5;z++)blocks.push({x,y:44,z,block:1});store.commit(null,{blocks});Object.assign(p,{x:.5,y:45.01,z:.5,yaw:0,pitch:0});p.inventory={142:1,106:12,10:32};p.hotbar=[142,106,10,0,0,0,0,0,0];p.survival.layout=p.hotbar;p.survival.offhand={id:181,count:1};p.survival.equipment={helmet:190,chestplate:191,leggings:192,boots:193};p.survival.durability={142:150,190:80,191:120,192:112,193:90};p.survival.xp=270;store.savePlayer(p);store.close();
+const server=spawn(process.execPath,['server/index.js'],{cwd:fileURLToPath(new URL('..',import.meta.url)),env:{...process.env,PORT:String(port),ORBITCRAFT_DEV:'1',ORBITCRAFT_DB:db},stdio:'ignore'});let browser;
+try{
+ for(let i=0;i<80;i++){try{if((await fetch(base+'/orbitcraft/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
+ browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});const page=await browser.newPage({viewport:{width:1920,height:1080}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'/orbitcraft/?manualJoin=1');await page.locator('#dev-name').fill('Reference');await page.locator('#join').click();await page.locator('#gate').waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelectorAll('#armor-meter span').length===10);await page.waitForTimeout(1500);
+ const checked=await page.evaluate(async()=>{
+ const {createTextures,createHeldBlock,tileFor}=await import('/orbitcraft/visuals.js?v=20261104-reference36'),{ITEMS}=await import('/orbitcraft/items.js'),T=await import('/orbitcraft/vendor/three.module.js');const {texture}=await createTextures(),manifest=await(await fetch('/orbitcraft/assets/reference/manifest.json')).json(),image=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src='/orbitcraft/assets/reference/items.png';}),source=document.createElement('canvas');source.width=image.width;source.height=16;source.getContext('2d').drawImage(image,0,0);const actual=texture.image.getContext('2d'),expected=source.getContext('2d');let count=0;
+ for(const id of Object.keys(ITEMS).map(Number).filter(id=>id>=100)){if(!manifest.items[id])throw Error('Missing reference for item '+id);const a=actual.getImageData(tileFor(id,0)*16,0,16,16).data,b=expected.getImageData(id*16,0,16,16).data;if(!a.every((v,i)=>v===b[i]))throw Error('Reference mismatch for '+id);count++;}
+ const camera=new T.PerspectiveCamera(74,1920/1080,.07,130),held=createHeldBlock(camera,texture);held.select(142,1);const sword=camera.getObjectByName('held-item');return{count,source:texture.userData.source,toolPose:sword.userData.toolPose,width:sword.geometry.parameters.width,x:sword.position.x,health:getComputedStyle(document.querySelector('#health-meter span'),'::after').backgroundImage,hotbar:getComputedStyle(document.querySelector('#hotbar')).backgroundImage};
+ });assert.ok(checked.count>=78);assert.equal(checked.source,'minecraft-java-1.21.4');assert.equal(checked.toolPose,true);assert.ok(checked.width>1);assert.ok(checked.x>.6);assert.ok(checked.health.includes('heart_full.png'));assert.ok(checked.hotbar.includes('reference/hotbar.png'));await page.screenshot({path:'/tmp/orbitcraft-reference-hud.png'});
+ await page.locator('#world').click();await page.keyboard.press('e');await page.locator('#inventory[open]').waitFor();assert.equal(await page.locator('#equipment .durability-strip').count(),4);assert.ok((await page.locator('#equipment button').first().getAttribute('title')).includes('80 / 165'));assert.ok(await page.locator('#inventory-hotbar .durability-strip').count()>0);await page.screenshot({path:'/tmp/orbitcraft-armor-durability.png'});assert.deepEqual(errors,[]);console.log('PASS: all '+checked.count+' item sprites pixel-match the reference atlas, full-size held sword pose, vanilla HUD sprites, and four armor durability bars/tooltips.');
+}finally{if(browser)await browser.close();server.kill('SIGTERM');await new Promise(r=>server.exitCode!==null?r():server.once('exit',r));rmSync(dir,{recursive:true,force:true});}

@@ -1,2 +1,2 @@
 // Shared by the static game and both multiplayer server runtimes.
-export const RELEASE = 'orbitcraft-height-crouch-35';
+export const RELEASE = 'orbitcraft-reference-armor-36';

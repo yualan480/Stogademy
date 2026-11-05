@@ -1,0 +1,1 @@
+Minecraft item, block and HUD textures from Minecraft Java Edition 1.21.4, mirrored by PrismarineJS/minecraft-assets. Minecraft artwork belongs to Mojang/Microsoft. Reference: https://minecraft.wiki/w/Item . This source note does not grant rights to the artwork.

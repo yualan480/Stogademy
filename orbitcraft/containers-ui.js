@@ -1,3 +1,4 @@
+import {showDurability} from './durability-ui.js?v=20261104-reference36';
 import {ITEMS,itemName,RECIPES,SMELTING,FUEL,stackLimit} from './items.js';
 import {matchGrid,recipePattern} from './crafting-grid.js';
 export function createContainerView({send,icon}){
@@ -6,7 +7,7 @@ export function createContainerView({send,icon}){
  const panel=$('furnace-controls');panel.innerHTML='<div class="furnace-layout"><button id="furnace-input" aria-label="Furnace input" class="ingredient"></button><div class="furnace-flame" aria-hidden="true"></div><button id="furnace-fuel" aria-label="Furnace fuel" class="ingredient"></button><span class="furnace-arrow" aria-hidden="true">➜</span><button id="furnace-output" aria-label="Furnace output" class="ingredient"></button></div><small id="furnace-status" role="status"></small>';
  function position(){const scale=Number(getComputedStyle($('inventory')).zoom)||1;cursor.style.left=point.x/scale+'px';cursor.style.top=point.y/scale+'px';}
  document.addEventListener('pointermove',e=>{point={x:e.clientX,y:e.clientY};position();});
- function paint(el,stack,label){el.style.backgroundImage=stack?`url("${icon(stack.id)}")`:'';el.textContent=stack?.count>1?stack.count:'';el.title=stack?`${itemName(stack.id)} (${stack.count})`:label;el.setAttribute('aria-label',el.title);}
+ function paint(el,stack,label){el.style.backgroundImage=stack?`url("${icon(stack.id)}")`:'';el.textContent=stack?.count>1?stack.count:'';el.title=stack?`${itemName(stack.id)} (${stack.count})`:label;el.setAttribute('aria-label',el.title);if(stack)showDurability(el,stack.id,state,el.title);}
  let drag=null,suppressUntil=0,lastQuick=null;
  function stackAt(snapshot,slot){return slot.area==='bag'?snapshot.slots?.[slot.index]:slot.area==='grid'?snapshot.container?.grid?.[slot.index]:slot.area==='chest'?snapshot.chestSlots?.[slot.index]:slot.area==='offhand'?snapshot.offhand:slot.area==='input'?snapshot.furnace?.input:slot.area==='fuel'?snapshot.furnace?.fuelStack:null;}
  function clearPreview(){for(const el of $('inventory').querySelectorAll('.drag-preview-slot')){el.classList.remove('drag-preview-slot');delete el.dataset.previewCount;el.querySelector('.drag-preview-item')?.remove();}}
