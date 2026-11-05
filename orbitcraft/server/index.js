@@ -45,9 +45,9 @@ wss.on('connection',socket=>{
         const m=JSON.parse(raw);if(m.type!=='auth')throw new Error('Authenticate first.');
         const identity=dev && /^dev-[a-zA-Z0-9_-]{1,32}$/.test(m.devId||'')?{id:m.devId,name:m.devId.slice(4),expiresAt:Date.now()+3600000}:await authenticate(m.token);
         if(socket.readyState!==1)return;
-        p=game.join(identity,send);p.close=()=>socket.close(4001,'Session expired; reconnect');clearTimeout(deadline);welcome(game,p);return;
+        p=game.join(identity,send);p.authToken=m.token;p.close=()=>socket.close(4001,'Session expired; reconnect');clearTimeout(deadline);welcome(game,p);return;
       }
-      receive(game,p,raw.toString());
+      await receive(game,p,raw.toString());
     }catch(e){send({type:'error',message:e.message});if(!p)socket.close(4001,'Authentication failed');}
   });
   const reset=setInterval(()=>{quota=0;},1000);

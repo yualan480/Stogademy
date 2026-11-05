@@ -1,0 +1,1 @@
+Default Minecraft Java Edition 1.21.4 player skins, mirrored by PrismarineJS/minecraft-assets (entity/player/wide). Artwork belongs to Mojang/Microsoft. Character reference: https://minecraft.wiki/w/Steve . Selection previews are composed from the original skin textures.

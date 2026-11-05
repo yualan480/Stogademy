@@ -31,9 +31,9 @@ export class OrbitcraftWorld {
    if(typeof event.data!=='string'||event.data.length>12288)return socket.close(4008,'Message too large');
    const now=Date.now();if(now-windowAt>1000){quota=0;windowAt=now;}if(++quota>160)return socket.close(4008,'Rate limit');
    try{
-    if(!p){if(busy)return;busy=true;const m=JSON.parse(event.data);if(m.type!=='auth')throw new Error('Authenticate first.');const identity=await authenticate(m.token);if(socket.readyState!==1)return;p=this.game.join(identity,send);clearTimeout(timeout);welcome(this.game,p);this.start();return;}
+    if(!p){if(busy)return;busy=true;const m=JSON.parse(event.data);if(m.type!=='auth')throw new Error('Authenticate first.');const identity=await authenticate(m.token);if(socket.readyState!==1)return;p=this.game.join(identity,send);p.authToken=m.token;clearTimeout(timeout);welcome(this.game,p);this.start();return;}
     if(Date.now()>p.expiresAt){socket.close(4001,'Session expired; reconnect');return;}
-    receive(this.game,p,event.data);
+    await receive(this.game,p,event.data);
    }catch(e){send({type:'error',message:e.message});if(!p)socket.close(4001,'Authentication failed');}
   });
   const close=()=>{clearTimeout(timeout);this.connections.delete(socket);if(p){this.game.leave(p);this.game.broadcast({type:'leave',id:p.id});p=null;}if(!this.game.players.size){clearInterval(this.timer);this.timer=null;}};

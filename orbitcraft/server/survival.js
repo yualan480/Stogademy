@@ -1,3 +1,4 @@
+import {signMessage,openSign,newSign} from './signs.js';
 import {pearlLoot,throwPearl,tickPearls} from './pearls.js';
 import {handleBow,bowState,tickBows} from './bow.js';
 import {endermanTarget} from './enderman.js';
@@ -23,7 +24,7 @@ const xyz=a=>`${a.x},${a.y},${a.z}`;
 const fromKey=key=>{const [x,y,z]=key.split(',').map(Number);return {x,y,z};};
 const clone=a=>JSON.parse(JSON.stringify(a));
 export class Survival{
- constructor(game){this.g=game;this.world=game.store.loadSurvival?.()||{time:6000,mobs:[],crops:{},furnaces:{}};this.world.mobs??=[];this.world.crops??={};this.world.furnaces??={};this.world.chests??={};this.world.boats??={};this.world.beds??={};this.world.xpOrbs??=[];this.world.spawn??=this.g.spawn();this.acc=0;this.spawnAt=0;this.water=new Water(this);this.g.store.saveSurvival(this.world);}
+ constructor(game){this.g=game;this.world=game.store.loadSurvival?.()||{time:6000,mobs:[],crops:{},furnaces:{}};this.world.signs??={};this.world.mobs??=[];this.world.crops??={};this.world.furnaces??={};this.world.chests??={};this.world.boats??={};this.world.beds??={};this.world.xpOrbs??=[];this.world.spawn??=this.g.spawn();this.acc=0;this.spawnAt=0;this.water=new Water(this);this.g.store.saveSurvival(this.world);}
  init(p){p.survival={health:20,hunger:20,xp:0,saturation:5,exhaustion:0,durability:{},equipment:{},regen:0,starve:0,...p.survival};p.hotbar=Array.isArray(p.hotbar)&&p.hotbar.length===9?p.hotbar:[...defaultHotbar];p.selected=0;if(p.survival.offhand&&p.survival.offhand.count>stackLimit(p.survival.offhand.id)){const off=p.survival.offhand,extra=off.count-stackLimit(off.id);off.count-=extra;p.inventory[off.id]=(p.inventory[off.id]||0)+extra;}p.survival.sleeping=false;p.survival.bedPose=null;p.survival.boat=null;p.fallTop=p.y;returnContainer(p);}
  state(p){return {...p.survival,bow:bowState(this,p),hotbar:p.hotbar,slots:stacks(p),selected:p.selected,time:this.world.time,chestSlots:p.station&&this.g.get(p.station.x,p.station.y,p.station.z)===23?chestStacks(this,xyz(p.station)):null,chest:p.station&&this.g.get(p.station.x,p.station.y,p.station.z)===23?this.world.chests[xyz(p.station)]||{}:null,furnace:p.station&&Math.hypot(p.station.x-p.x,p.station.z-p.z)<6?this.world.furnaces[xyz(p.station)]||{output:{}}:null,fishing:p.fishing?{bite:p.fishing.bite,end:p.fishing.end}:null};}
  send(p){p.send({type:'survival',state:this.state(p)});}
@@ -38,6 +39,7 @@ export class Survival{
   const before=new Map(participants.map(player=>[player,clone(Object.fromEntries(fields.map(k=>[k,player[k]])))])),worldBefore=clone(this.world),blocks=[],drops=[];
   try{
    fn({xp:(amount,a)=>createOrb(this,amount,a),block:(a,id)=>blocks.push({...a,block:id}),drop:(id,count,a)=>{if(count>0)drops.push({id:crypto.randomUUID(),block:id,count,x:a.x+.5,y:a.y+.5,z:a.z+.5,durability:ITEMS[id]?.durability?(p?.survival.durability[id]??ITEMS[id].durability):undefined,created:this.g.now(),pickupAt:this.g.now()+750,vy:1,grounded:false});}});
+   for(const a of blocks){const key=xyz(a);if(a.block===38)this.world.signs[key]??=newSign(a);else delete this.world.signs[key];}
    const size=bag=>Object.entries(bag).reduce((sum,[id,n])=>sum+Math.ceil(n/stackLimit(+id)),0);
    for(const player of participants)stacks(player,{strict:size(player.inventory)>size(before.get(player).inventory)});
    this.g.store.commit(p,{blocks,drops,survival:this.world,players:participants.filter(other=>other!==p)});
@@ -59,6 +61,7 @@ export class Survival{
  handle(p,m){if(handleBow(this,p,m))return true;if(m.type==='wake'){p.survival.sleeping=false;p.survival.bedPose=null;this.send(p);return true;}if(m.type==='select'){if(Number.isInteger(m.slot)&&m.slot>=0&&m.slot<9){if(m.slot!==p.selected){p.eating=null;delete p.bowDrawAt;}p.selected=m.slot;p.mining=null;}return true;}
  if(m.type==='respawn'){if(p.survival.health>0)return true;const bed=p.survival.respawn;let point=bed&&this.g.get(bed.bx,bed.by,bed.bz)===20&&(!bed.bedToken||(this.world.beds?.[`${bed.bx},${bed.by},${bed.bz}`]?.token||this.world.bedTokens?.[`${bed.bx},${bed.by},${bed.bz}`])===bed.bedToken)?{x:bed.x,y:bed.y,z:bed.z}:null;if(!point||collides(point,this.g.get)){point=this.world.spawn;if(collides(point,this.g.get))point=this.g.spawn();}Object.assign(p,point,{vy:0});p.survival.health=20;p.survival.hunger=20;p.survival.lifeXP=0;p.survival.saturation=5;p.input={};p.fallTop=p.y;this.g.store.savePlayer(p);this.send(p);return true;}
  if(p.survival.health<=0)return m.type!=='chat'&&m.type!=='chunks';
+ if(signMessage(this,p,m))return true;
  if(playerControl(this,p,m))return true;
  if(containerShortcut(this,p,m))return true;
  if(containerMessage(this,p,m))return true;
@@ -72,7 +75,7 @@ export class Survival{
  if(m.type==='use'){this.use(p);return true;}
  if(m.type==='smelt'){this.smelt(p,m);return true;}if(m.type==='collect-furnace'){const a=(this.nearby(p,19)||this.nearby(p,24)),f=a&&this.world.furnaces[xyz(a)];if(f)this.atomic(p,()=>{let total=0;for(const [id,count]of Object.entries(f.output||{})){p.inventory[id]=(p.inventory[id]||0)+count;total+=count;}furnaceXP(this,p,f,total);f.output={};});return true;}
  return false;}
- use(p){if(throwPearl(this,p))return;const id=this.selected(p),item=ITEMS[id];let hit=raycast(p,this.g.get);if(hit?.block===26)hit={...bedPair(this,hit).foot,block:20};if(item?.food&&![18,19,20,23,24].includes(hit?.block)){this.handle(p,{type:'eat'});return;}
+ use(p){let hit=raycast(p,this.g.get);if(hit?.block===38&&!p.input.sneak){openSign(this,p,hit);return;}if(throwPearl(this,p))return;const id=this.selected(p),item=ITEMS[id];if(hit?.block===26)hit={...bedPair(this,hit).foot,block:20};if(item?.food&&![18,19,20,23,24].includes(hit?.block)){this.handle(p,{type:'eat'});return;}
  if(id===180&&p.inventory[id]>0){if(p.fishing){if(this.g.now()>=p.fishing.bite&&this.g.now()<=p.fishing.end)this.atomic(p,()=>{p.inventory[114]=(p.inventory[114]||0)+1;this.wear(p,180);});p.fishing=null;this.send(p);return;}const water=this.waterRay(p);if(!water)throw Error('Aim at nearby water to cast.');p.fishing={...water,bite:this.g.now()+4000+hash(Math.floor(p.x),Math.floor(this.world.time),Math.floor(p.z))*4000};p.fishing.end=p.fishing.bite+3000;this.send(p);return;}
  if(hit?.block===20){useBed(this,p,hit);return;}
  if(useBoat(this,p,hit))return;

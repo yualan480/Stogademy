@@ -1,3 +1,4 @@
+import {publicSign} from './signs.js';
 import {stepRiding} from './boats.js';
 import {isTorch,isPlant,isStair} from '../shapes.js';
 import {chunkOf,chunkKey,inRange,renderDistance,SIMULATION_DISTANCE,MAX_CACHED_CHUNKS} from '../chunks.js';
@@ -37,7 +38,7 @@ export class Game {
     this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
   }
   leave(p) {if(this.players.get(p.id)!==p)return;if(p.survival.boat&&this.survival.world.boats[p.survival.boat])this.survival.world.boats[p.survival.boat].rider=null;p.survival.boat=null;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();this.pruneChunks();}
-  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,crouching:!!p.crouching,held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,eating:!!p.eating,bowDrawing:p.bowDrawAt!=null,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
+  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,crouching:!!p.crouching,skin:p.survival?.skin||'steve',held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,eating:!!p.eating,bowDrawing:p.bowDrawAt!=null,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
   inventory(p){p.send({type:'inventory',inventory:p.inventory,mined:p.mined,placed:p.placed,slots:stacks(p),hotbar:p.hotbar});}
   broadcast(message){for(const p of this.players.values())p.send(message);}
   publicDrop(d){return {id:d.id,block:d.block,count:d.count,x:d.x,y:d.y,z:d.z,created:d.created};}
@@ -101,9 +102,9 @@ export class Game {
   }
   tick(dt=.05){
     dt=Math.min(.1,Math.max(0,dt));const now=this.now();
-    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;if(!stepRiding(this.survival,p,dt,(x,y,z)=>this.movementBlock(p,x,y,z)))step(p,p.input,dt,(x,y,z)=>this.movementBlock(p,x,y,z));if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
+    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;if(!stepRiding(this.survival,p,dt,(x,y,z)=>this.movementBlock(p,x,y,z))){for(let remaining=dt;remaining>0;remaining-=1/120)step(p,p.input,Math.min(remaining,1/120),(x,y,z)=>this.movementBlock(p,x,y,z));}p.inputElapsed=(p.inputElapsed||0)+dt;if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
     this.moveDrops(dt,now);this.survival.tick(dt);
-    const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
+    const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,inputElapsed:p.inputElapsed||0,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
     const locators=state.filter(q=>(q.health??20)>0).map(({id,name,x,y,z})=>({id,name,x,y,z}));
     for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,locators,roster:[...this.players.values()].map(q=>({id:q.id,name:q.name})),players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
     if(this.frames%20===0)this.pruneChunks();
@@ -112,7 +113,7 @@ export class Game {
       const index=((this.chunkCursor||0)+i)%active.length,p=active[index],center=chunkOf(p.x,p.z);
       const candidates=[...p.pendingChunks].filter(([, [x,z]])=>Math.abs(x-center.x)<=p.viewDistance&&Math.abs(z-center.z)<=p.viewDistance).sort((a,b)=>(a[1][0]-center.x)**2+(a[1][1]-center.z)**2-((b[1][0]-center.x)**2+(b[1][1]-center.z)**2));
       if(!candidates.length){p.pendingChunks.clear();continue;}const [key,[x,z]]=candidates[0];p.pendingChunks.delete(key);p.sentChunks.add(key);
-      p.send({type:'chunk',x,z,beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;
+      p.send({type:'chunk',x,z,signs:Object.values(this.survival.world.signs||{}).filter(s=>Math.floor(s.x/CHUNK)===x&&Math.floor(s.z/CHUNK)===z).map(publicSign),beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;
     }
 
   }
@@ -123,7 +124,7 @@ export class Game {
     if(m.type==='input') {
       if(!Number.isFinite(m.yaw)||!Number.isFinite(m.pitch))return;
       p.yaw=m.yaw%(Math.PI*2);p.pitch=Math.max(-1.54,Math.min(1.54,m.pitch));p.seq=Number.isSafeInteger(m.seq)?m.seq:0;
-      p.input=Object.fromEntries(['forward','back','left','right','jump','sprint','sneak','mine','block','eat'].map(k=>[k,m[k]===true]));p.lastInput=this.now();if(!p.input.eat)p.eating=null;else this.survival.eat(p);if(!p.input.mine){p.mining=null;p.mineError=null;}return;
+      p.input=Object.fromEntries(['forward','back','left','right','jump','sprint','sneak','mine','block','eat'].map(k=>[k,m[k]===true]));p.lastInput=this.now();p.inputElapsed=0;if(!p.input.eat)p.eating=null;else this.survival.eat(p);if(!p.input.mine){p.mining=null;p.mineError=null;}return;
     }
     if(m.type==='chunks') {
       const cx=Math.floor(p.x/CHUNK),cz=Math.floor(p.z/CHUNK);

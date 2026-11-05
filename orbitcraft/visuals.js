@@ -1,3 +1,4 @@
+import {SKIN_COLORS} from './skins.js';
 import {stairGeometry} from './shape-geometry.js?v=20261104-stairs33';
 import {drawItem} from './item-art.js?v=20261104-pearl31';
 import {isTorch,isPlant,isStair,blockBoxes} from './shapes.js';
@@ -276,6 +277,7 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
       }
       uv.needsUpdate = true;
     },
+    setSkin(id){const colors=SKIN_COLORS[id]||SKIN_COLORS.steve;handMaterial.color.set(colors.hand);sleeveMaterial.color.set(colors.sleeve);},
     swing() { swingAt = performance.now(); },
     update(now, moving, visible, eating=false) {
       group.visible = visible;
