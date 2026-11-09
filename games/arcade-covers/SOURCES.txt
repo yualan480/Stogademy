@@ -1,0 +1,2 @@
+Basket Random, Soccer Random, Boxing Random and House of Hazards covers are unmodified screenshots captured from the game canvases bundled in Orbit. Original game attribution is retained in each game's SOURCES.txt.
+Pokémon Showdown uses its existing official 256px client icon, from games/pokemon-showdown/favicon-256.png. See that client's SOURCES.md for attribution.

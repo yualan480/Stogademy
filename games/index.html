@@ -5038,11 +5038,11 @@
       const GAMES = [
         { title: 'Getaway Shootout', src: 'getaway.html?embed=1', line: 'Two players, one keyboard', poster: true },
         { title: 'Rooftop Snipers', src: 'rooftop-snipers.html?embed=1', line: 'Local or online · W / E and I / O', poster: true, image: 'rooftop-snipers/img/preview.png' },
-        { title: 'Basket Random', src: 'basket-random.html?embed=1', line: 'Local or online · W and ↑', poster: false },
-        { title: 'Soccer Random', src: 'soccer-random.html?embed=1', line: 'Local or online · W and ↑', poster: false },
-        { title: 'Boxing Random', src: 'boxing-random.html?embed=1', line: 'Local or online · W and ↑', poster: false },
-        { title: 'House of Hazards', src: 'house-of-hazards.html?embed=1', line: 'Local multiplayer · Up to four players', poster: false },
-        { title: 'Pokémon Showdown', src: 'pokemon-showdown.html?embed=1', line: 'Online Pokémon battles · Play inside Orbit', poster: false }
+        { title: 'Basket Random', src: 'basket-random.html?embed=1', line: 'Local or online · W and ↑', poster: true, image: 'arcade-covers/basket-random.jpg' },
+        { title: 'Soccer Random', src: 'soccer-random.html?embed=1', line: 'Local or online · W and ↑', poster: true, image: 'arcade-covers/soccer-random.jpg' },
+        { title: 'Boxing Random', src: 'boxing-random.html?embed=1', line: 'Local or online · W and ↑', poster: true, image: 'arcade-covers/boxing-random.jpg' },
+        { title: 'House of Hazards', src: 'house-of-hazards.html?embed=1', line: 'Local multiplayer · Up to four players', poster: true, image: 'arcade-covers/house-of-hazards.jpg' },
+        { title: 'Pokémon Showdown', src: 'pokemon-showdown.html?embed=1', line: 'Online Pokémon battles · Play inside Orbit', poster: true, image: 'arcade-covers/pokemon-showdown.png' }
       ];
       const defaultPoster=posterEl.querySelector('img').getAttribute('src');
       let cur = 0, state = 'idle', frame = null;
@@ -5087,7 +5087,7 @@
         plateEl.textContent = g.title;
         lineEl.textContent = g.line || '';
         bootName.textContent = g.title;
-        posterEl.hidden = !g.poster;posterEl.querySelector('img').src=g.image||defaultPoster;
+        posterEl.hidden = !g.poster;const cover=posterEl.querySelector('img');cover.src=g.image||defaultPoster;cover.alt=g.title+' cover';
         const idle = state === 'idle';
         prevBtn.disabled = nextBtn.disabled = GAMES.length < 2 || !idle;
         coinBtn.disabled = !idle;
