@@ -36,8 +36,9 @@
   var SB = (window.Leaderboard && window.Leaderboard.config) || null;
   if (!SB || !window.WebSocket || !document.body) return;   // no matchmaking server: the game stays local only
 
-  var GAME_KIND=document.currentScript&&document.currentScript.getAttribute('data-game')==='rooftop-snipers'?'rooftop-snipers':'getaway';
-  var GAME_TITLE=GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=GAME_KIND==='rooftop-snipers'?2:3;
+  var requestedGame=document.currentScript&&document.currentScript.getAttribute('data-game');
+  var GAME_KIND=['rooftop-snipers','basket-random'].indexOf(requestedGame)>=0?requestedGame:'getaway';
+  var GAME_TITLE=GAME_KIND==='basket-random'?'Basket Random':GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=GAME_KIND==='basket-random'?1:GAME_KIND==='rooftop-snipers'?2:3;
   var CONTROL_INDICES=Array.from({length:CONTROL_COUNT},function(_,i){return i;});
 
   /* ---- Seat controls: three keys for Getaway, two for Rooftop Snipers. ---- */
@@ -45,8 +46,9 @@
     [ { key: 'w', code: 'KeyW', kc: 87 }, { key: 'e', code: 'KeyE', kc: 69 }, { key: 'r', code: 'KeyR', kc: 82 } ],   // Player 1: W / E / R
     [ { key: 'i', code: 'KeyI', kc: 73 }, { key: 'o', code: 'KeyO', kc: 79 }, { key: 'p', code: 'KeyP', kc: 80 } ]    // Player 2: I / O / P
   ];
+  if(GAME_KIND==='basket-random')SEAT_KEYS=[[{key:'w',code:'KeyW',kc:87}],[{key:'ArrowUp',code:'ArrowUp',kc:38,label:'↑'}]];
   SEAT_KEYS=SEAT_KEYS.map(function(keys){return keys.slice(0,CONTROL_COUNT);});
-  var SEAT_LABEL=SEAT_KEYS.map(function(keys){return keys.map(function(k){return k.key.toUpperCase();}).join(' / ');});
+  var SEAT_LABEL=SEAT_KEYS.map(function(keys){return keys.map(function(k){return k.label||k.key.toUpperCase();}).join(' / ');});
   // build a lookup from a pressed key's code to {seat, i} so we can tell which of the 6 keys was pressed
   var CODE_TO_SEAT = {};
   SEAT_KEYS.forEach(function (keys, seat) { keys.forEach(function (k, i) { CODE_TO_SEAT[k.code] = { seat: seat, i: i }; }); });
@@ -58,7 +60,7 @@
   var myId = Math.random().toString(36).slice(2, 10);
   var myName = function () { var n = ''; try { n = window.Leaderboard && window.Leaderboard.getName(); } catch (e) { n = ''; } return String(n || 'Player').slice(0, 20); };
   var myAvatar = function () { try { return window.Leaderboard ? window.Leaderboard.getAvatar() : ''; } catch (e) { return ''; } };
-  var gameCanvas = function () { return document.querySelector('#game canvas,#gameContainer canvas'); };
+  var gameCanvas = function () { return GAME_KIND==='basket-random'?window.c3canvas||document.querySelector('#c3canvas'):document.querySelector('#game canvas,#gameContainer canvas'); };
 
   /* ================= realtime: a tiny client for Supabase Realtime (Phoenix channels) ================= */
   function Chan(rt, name, key) { this.rt = rt; this.topic = 'realtime:' + name; this.key = key; this.h = {}; this.presence = {}; this.joined = false; this.onPresence = null; this.onClose = null; this.presenceReady = false; this.waiters = new Set(); }
@@ -318,9 +320,9 @@
   }
   function fireMouse(kind, nx, ny) {
     var cv = gameCanvas(); if (!cv) return;
-    var r = cv.getBoundingClientRect(), x = r.left + clamp(+nx || 0, 0, 1) * r.width, y = r.top + clamp(+ny || 0, 0, 1) * r.height;
+    var r=cv.getBoundingClientRect(),width=r.width,height=r.height,left=r.left,top=r.top;if(cv.width&&cv.height&&getComputedStyle(cv).objectFit==='contain'){var scale=Math.min(width/cv.width,height/cv.height);left+=(width-cv.width*scale)/2;top+=(height-cv.height*scale)/2;width=cv.width*scale;height=cv.height*scale;}var x=left+clamp(+nx||0,0,1)*width,y=top+clamp(+ny||0,0,1)*height;
     var base = { clientX: x, clientY: y, screenX: x + (window.screenX || 0), screenY: y + (window.screenY || 0), bubbles: true, cancelable: true, view: window, button: 0 };
-    function send(type, buttons) { cv.dispatchEvent(mark(new MouseEvent(type, Object.assign({}, base, { buttons: buttons })))); }
+    function send(type,buttons){var pointer=GAME_KIND==='basket-random'&&type!=='click'&&window.PointerEvent,EventClass=pointer?PointerEvent:MouseEvent;cv.dispatchEvent(mark(new EventClass(pointer?type.replace('mouse','pointer'):type,Object.assign({},base,{buttons:buttons,pointerId:1,pointerType:'mouse',isPrimary:true}))));}
     send('mousemove', mouseHeld ? 1 : 0);
     if (kind === 'd') { mouseHeld = true; send('mousedown', 1); }
     else { mouseHeld = false; send('mouseup', 0); send('click', 0); }
@@ -636,7 +638,7 @@
   }
   function seatKeyEvent(e) {
     if (phase !== 'play' || !mode || e.__gwNet) return;
-    var hit = CODE_TO_SEAT[e.code] || CODE_TO_SEAT['Key'+String(e.key||'').toUpperCase()];
+    var hit = CODE_TO_SEAT[e.code] || CODE_TO_SEAT[e.key] || CODE_TO_SEAT['Key'+String(e.key||'').toUpperCase()];
     if (!hit) return;
     // Stop BOTH seats' native events before Unity receives them. Only the assigned
     // seat is replayed locally (host) or sent to the host (guest).
@@ -676,7 +678,7 @@
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, function () { b.className = ''; myInput(i, false); }); });
   });
   function updateTapLabels() {
-    var letters=SEAT_KEYS[mySeat].map(function(k){return k.key.toUpperCase();});
+    var letters=SEAT_KEYS[mySeat].map(function(k){return k.label||k.key.toUpperCase();});
     tapBtns.forEach(function (b, i) { b.textContent = letters[i]; });
   }
 
@@ -714,7 +716,7 @@
   function hostStart() {
     if (!isHost || members().length < 2 || phase !== 'lobby') return;
     clearTimeout(autoT); autoT = 0;
-    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
+    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)||(GAME_KIND==='basket-random'&&!window.basketReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
     sendRoom('start', {});
     enterPlay(0);
   }
@@ -834,4 +836,5 @@
   // small hook so the page (or a test) can see the state
   window.GetawayOnline = { state: function () { return { game:GAME_KIND,controls:CONTROL_COUNT,phase: phase, mode: mode, seat: mySeat, host: isHost, linked: linked, rtt: rttNow }; }, leave: function () { endOnline(''); } };
   if(GAME_KIND==='rooftop-snipers')window.RooftopOnline=window.GetawayOnline;
+  if(GAME_KIND==='basket-random')window.BasketOnline=window.GetawayOnline;
 })();

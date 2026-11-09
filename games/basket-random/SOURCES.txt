@@ -1,0 +1,5 @@
+Basket Random package: https://github.com/BasketRandom/BasketRandom.github.io
+Upstream commit: 7f4cb94ea5cfb927f5272372e7edaf77e81e9cc6
+Original runtime attribution is retained in the game files.
+Orbit integration removes the external redirect, analytics and service-worker registration; sets the local runtime base URL; adds surrounding online matchmaking.
+A local portal SDK callback adapter is supplied at js/main.min.js.

@@ -2505,7 +2505,7 @@
           <div class="cab-base" aria-hidden="true"></div>
         </div>
       </div>
-      <p class="fine">Two players on one keyboard. Use the arrows to choose Getaway Shootout or Rooftop Snipers.</p>
+      <p class="fine">Two players on one keyboard. Use the arrows to choose Getaway Shootout, Rooftop Snipers, or Basket Random.</p>
     </section>
 
     <section class="section suggest" id="suggest">
@@ -5037,7 +5037,8 @@
       // add a game here and it shows up on the machine (the arrows pick between them)
       const GAMES = [
         { title: 'Getaway Shootout', src: 'getaway.html?embed=1', line: 'Two players, one keyboard', poster: true },
-        { title: 'Rooftop Snipers', src: 'rooftop-snipers.html?embed=1', line: 'Local or online · W / E and I / O', poster: true, image: 'rooftop-snipers/img/preview.png' }
+        { title: 'Rooftop Snipers', src: 'rooftop-snipers.html?embed=1', line: 'Local or online · W / E and I / O', poster: true, image: 'rooftop-snipers/img/preview.png' },
+        { title: 'Basket Random', src: 'basket-random.html?embed=1', line: 'Local or online · W and ↑', poster: false }
       ];
       const defaultPoster=posterEl.querySelector('img').getAttribute('src');
       let cur = 0, state = 'idle', frame = null;

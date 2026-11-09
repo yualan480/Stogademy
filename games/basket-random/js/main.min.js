@@ -1,0 +1,2 @@
+// Local compatibility bridge for the game's portal SDK callbacks.
+(function(){'use strict';function emit(name){window.GD_OPTIONS?.onEvent?.({name:name});}window.gdsdk={showAd:function(){emit('SDK_GAME_START');return Promise.resolve();},preloadAd:function(){return Promise.resolve();},showBanner:function(){return Promise.resolve();},cancelAd:function(){emit('SDK_GAME_START');},sendEvent:function(){},isAdSupported:function(){return false;}};setTimeout(function(){emit('SDK_READY');emit('SDK_GAME_START');},0);})();
