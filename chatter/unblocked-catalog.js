@@ -1,5 +1,12 @@
-// Add future gallery games here. Keep games and artwork on this site.
+// Curated games are played inside Orbit. Add future entries here.
 export const UNBLOCKED_GAMES=[{
+ id:'cookie-clicker',title:'Cookie Clicker',category:'Clicker',players:'Single player',
+ description:'Bake cookies, buy buildings, and grow your own cookie empire.',
+ image:'../games/cookie-clicker/cover.png',src:'../games/cookie-clicker/index.html',
+ mobileSrc:'../games/cookie-clicker/mobile.html',restartLabel:'Reload',
+ tags:['cookies','baking','idle','incremental','clicker','upgrades'],
+ controls:'Click the big cookie and buy buildings. The game autosaves; use Options → Save before leaving.'
+},{
  id:'moto-x3m',title:'Moto X3M',category:'Racing',players:'Single player',
  description:'Race across wild stunt tracks, clear the obstacles, and stick the landing.',
  image:'../games/moto-x3m/cover.png',src:'../games/moto-x3m/index.html',
