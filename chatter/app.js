@@ -1,4 +1,5 @@
-import { initGuides } from './guides.js?v=1';
+import {initUnblockedGames} from './unblocked-games.js?v=1';
+import { initGuides } from './guides.js?v=2';
 import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
@@ -40,6 +41,7 @@ const TAB_TAGS = [
   ['friends', 'Friends', 'friends', 'friends', ['friend']],
   ['events', 'Events', 'events', 'calendar', ['event']],
   ['tournaments', 'Tournaments', 'tournaments', 'trophy', ['tournament']],
+  ['unblocked-games', 'Unblocked Games', 'unblocked', 'compass', ['unblocked']],
   ['orbit-games', 'Orbit Games', 'gamer', 'gamepad', ['games', 'game']],
   ['orbit-shop', 'Orbit Shop', 'shop', 'shop', ['shop']],
   ['orbit-intelligence', 'Orbit Intelligence', 'intelligence', 'crosshair', ['intelligence', 'intel']],
@@ -280,6 +282,7 @@ SHOP = !initShop ? NO_SHOP : initShop({ S, sb, $, esc, ic, I, modal, toast, menu
 const TN = !initTournaments ? NO_TN : initTournaments({ S, sb, $, esc, ic, I, modal, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), renderMain: () => renderMain(), renderSide: () => renderSide(), navTo: k => navTo(k), isStaff: () => isStaff(), loadOrbits: () => loadOrbits() });
 const GB = !initGamble ? NO_GB : initGamble({ S, sb, esc, ic, I, toast, menuBtn, bindMenu, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits() });
 const AR = !initArena ? NO_AR : initArena({ S, sb, esc, ic, I, modal, toast, prof, av, needProfiles: ids => needProfiles(ids), setOrbits: n => setOrbits(n), loadOrbits: () => loadOrbits(), openChan: id => { S.view = 'server'; openChan(id); }, openIntelligence: text => { if(text) INT.setDraft(text); navTo('intelligence'); } });
+const UB = initUnblockedGames({menuBtn,bindMenu,ic,onPlaying: active => O.gameOpen(active)});
 const INT = initIntelligence({ S, sb, esc, modal, toast, menuBtn, bindMenu, onViewItems: () => AR.openGear?.() });
 const GUIDE = initGuides({ S, sb, esc, toast, navTo: k => navTo(k) });
 
@@ -836,14 +839,14 @@ async function startApp(session, force) {
   if (S.servers[0]) openServer(S.servers[0].id, null, true); else renderAll();
   GUIDE.start(session.user, S.friends);
 }
-function teardown() { GUIDE.stop(); INT.stop(); O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
+function teardown() { GUIDE.stop(); UB.stop(); INT.stop(); O.stop(); CM.stop(); TN.stop(); GB.stop(); AR.stop(); started = null; $('#maint')?.remove(); $('#maintpill')?.remove(); $('#namefix')?.remove(); syncInert(); maint = { on: false, msg: '', ready: maint.ready }; tabBadge(0); leaveVoice(true); if (V.pres) { sb.removeChannel(V.pres); V.pres = null; } clearPending(); [dbCh, presCh, typCh, ...xChs].forEach(c => c && sb.removeChannel(c)); dbCh = presCh = typCh = null; xChs = []; Object.assign(S, { tix: [], tixOpen: null, tixMsgs: [],  me: null, convs: [], active: null, list: [], friends: [], incoming: [], outgoing: [], servers: [], members: [], chans: [], cats: [], sv: null, ch: null, view: 'server', loaded: false, chUnread: {}, lastDm: null, perms: new Set(), pins: new Set(), pinRows: [], reportCount: 0, blocked: false, dash: null, croles: [], cmem: new Map(), crErr: null, rolesEdit: false }); }
 const renderAll = () => { renderSide(); renderMain(); renderMembers(); };
 const onlineCount = () => S.members.filter(m => statusOf(prof(m.user_id)) !== 'offline').length;
 
 function navTo(k) {
   closeSide(); if (k !== 'gamer') { gamesLock(false); O.gameOpen(false); }   // leaving Orbit Games: the music comes back
   if (k === 'dm' || k === 'communities' || k === 'friends') S.socialOpen = true;
-  if (k === 'gamer' || k === 'shop' || k === 'gamble' || k === 'orbitcraft') S.funOpen = true;
+  if (k === 'unblocked' || k === 'gamer' || k === 'shop' || k === 'gamble' || k === 'orbitcraft') S.funOpen = true;
   S.sideOff = k === 'gamer' || k === 'gamble' || k === 'orbitcraft';   // Orbit Games and Orbit Casino open full screen: the sidebar tucks away (the arrow in the top bar brings it back)
   S.gamerGo = k === 'gamer' ? (S.gamerNext || '') : ''; S.gamerNext = '';   // a tournament's Play button opens that game; the sidebar opens the game list
   if (k === 'dm') {
@@ -851,7 +854,7 @@ function navTo(k) {
     if (id) return openConv(id); S.active = null; return renderAll();
   }
   const wasGamer = S.view === 'gamer'; S.view = k; if (wasGamer || k === 'gamer') trackStatus();   // the orange "playing" dot follows the person in and out of Orbit Games
-  renderAll(); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
+  renderAll(); UB.onNav(k); INT.onNav(k); O.onNav(k); CM.onNav(k); TN.onNav(k); GB.onNav(k); if (k === 'tutorials') loadTuts(); if (k === 'leaderboard') { S.lbFresh = true; loadBoard(-1); }   // always opens on Current if (k === 'suggestions') loadSugs(); if (k === 'support') { S.tixOpen = null; loadTickets(); } if (k === 'gifs') loadUgifs().then(() => S.view === 'gifs' && renderMain());
   if (k === 'roles') loadClassRoles().then(() => S.view === 'roles' && renderMain());
 }
 function dmList() {
@@ -968,9 +971,9 @@ function renderSide() {
   const socialNav = `<div class="nav-grp${socOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inSocial && !socOpen ? ' on' : ''}" data-social aria-expanded="${socOpen}" aria-controls="navsoc">${ic('friends')}<span>Orbit Social</span>${!socOpen && socCount ? `<span class="pill">${socCount}</span>` : ''}<span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navsoc" role="group" aria-label="Orbit Social"${socOpen ? '' : ' hidden'}>${nav('dm', 'Direct Messages', 'dm', un)}${nav('communities', 'Communities', 'users', CM.invites())}${nav('friends', 'Friends', 'friends', S.incoming.length)}</div></div>`;
   /* Orbit Fun: one dropdown holding Orbit Games, Orbit Shop and Orbit Casino. It opens by itself while you are on one of them. */
-  const inFun = ['gamer', 'shop', 'gamble', 'orbitcraft'].includes(S.view), funOpen = S.funOpen ?? inFun;
+  const inFun = ['unblocked', 'gamer', 'shop', 'gamble', 'orbitcraft'].includes(S.view), funOpen = S.funOpen ?? inFun;
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Orbit Fun</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
-    <div class="nav-sub" id="navfun" role="group" aria-label="Orbit Fun"${funOpen ? '' : ' hidden'}>${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
+    <div class="nav-sub" id="navfun" role="group" aria-label="Orbit Fun"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
   side.innerHTML = `<div class="brand"><div class="bwrap"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"></div></div>
   <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
@@ -1219,6 +1222,7 @@ function renderMain(loading) {   // wraps the real renderer: page transition whe
 function renderMainInner(loading) {
   GUIDE.onNav(S.view);
   if (S.view !== 'intelligence') INT.onNav(S.view);
+  if (S.view !== 'unblocked') UB.onNav(S.view);
   $('#app')?.classList.toggle('side-off', (S.view === 'gamer' || S.view === 'gamble' || S.view === 'orbitcraft') && !!S.sideOff);
   const main = $('#main'); if (!main) return;
   if (S.view === 'orbitcraft') {
@@ -1237,6 +1241,7 @@ function renderMainInner(loading) {
   if (S.view === 'home') return renderHome(main);
   if (S.view === 'suggestions') return renderSuggestions(main);
   if (S.view === 'tutorials') return renderTutorials(main);
+  if (S.view === 'unblocked') return UB.render(main);
   if (S.view === 'intelligence') return INT.render(main);
   if (S.view === 'leaderboard') return renderLeaderboard(main);
   if (S.view === 'shop') return SHOP.render(main);
@@ -1502,7 +1507,7 @@ function profileModal(uid) {
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
-  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', 'Ask Orbit AI'], ['leaderboard', 'Orbit Leaderboard'], ['intelligence', 'Orbit Intelligence'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
+  const pages = [['home', 'Home'], ['dm', 'Direct Messages'], ['friends', 'Friends'], ['communities', 'Communities'], ['events', 'Events'], ['ai', 'Ask Orbit AI'], ['leaderboard', 'Orbit Leaderboard'], ['intelligence', 'Orbit Intelligence'], ['gamble', 'Orbit Casino'], ['orbitcraft', 'Orbitcraft'], ['shop', 'Orbit Shop'], ['support', 'Support'], ['unblocked', 'Unblocked Games'], ['gamer', 'Orbit Games'], ['tournaments', 'Tournaments'], ['roles', 'Roles'], ];
   const item = (kind, id, t, s) => `<button class="ores-i" data-k="${kind}" data-id="${esc(id)}"><span class="t"><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`;
   const group = (h, items) => items.length ? `<div class="ores-h">${h}</div>${items.join('')}` : '';
   let seq = 0;

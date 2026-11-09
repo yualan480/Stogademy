@@ -1,0 +1,4 @@
+Moto X3M game by MadPuffers. Supplied repository: https://github.com/schoolIsntFun/mnt . Source tree: 98a2bb39f93f7f9f878d41805d53a414f3160457 .
+The requested Moto-X3M.html wrapper points to a retired Google Sites proxy. Orbit uses the complete local HTML5 game from g/moto-x3m/ in the same repository instead. Original game credits are retained.
+Orbit supplies the gallery and embedded player, omits the unrelated everypage.js site script, and mirrors the two Phaser plugins locally. Phaser and its plugins retain their embedded license notices.
+The local host supplies the missing content/orientation containers expected by the game, and keeps outbound links inside Orbit.
