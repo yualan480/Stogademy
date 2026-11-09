@@ -1,0 +1,18 @@
+/* Shared game chrome follows the existing cartridge top bars and controls. */
+:root{--cartridge-bar:#34334d;--cartridge-action:#ffffff22}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--cartridge-bar);color:#fff;height:56px;max-width:none;border:0;padding:0 14px;gap:12px;display:flex;align-items:center;justify-content:space-between}
+header a,header button{background:var(--cartridge-action);color:#fff;border:0;border-radius:4px;padding:8px 12px;font:700 .9rem system-ui,sans-serif;text-decoration:none;min-height:36px}
+header a:hover,header button:hover{background:#ffffff38}
+header h1{font:700 21px system-ui,sans-serif;letter-spacing:0}header h1 span{display:none}
+header .brand{font:700 21px system-ui,sans-serif;letter-spacing:0;text-shadow:none}header .brand small{display:none}
+body[data-cartridge="slither"] header{position:absolute;top:0;left:0;right:0;width:100%;pointer-events:auto}
+body[data-cartridge="slither"] #pause{padding:8px 12px;font-size:17px}
+body[data-cartridge="slither"] #stats{top:72px}body[data-cartridge="slither"] #leaders{top:72px;border-radius:6px}
+body[data-cartridge="slither"] dialog{border-radius:10px;background:#24243c;border:1px solid #64647d;box-shadow:0 12px 50px #0008}
+body[data-cartridge="slither"] #play{border-radius:5px;background:#5e5cb0;border:0}
+body[data-cartridge="slither"] button,body[data-cartridge="slither"] select{border-radius:5px}
+body[data-cartridge="slither"] .menu-emblem{display:none}
+body[data-cartridge="wordle"] #actions button{border-radius:5px;background:var(--cartridge-bar)}
+body[data-cartridge="wordle"] dialog{font-family:system-ui,sans-serif}
+@media(max-width:500px){body[data-cartridge="slither"] #leaders{top:138px}header a{font-size:12px;padding:8px}}

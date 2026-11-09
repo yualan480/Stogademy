@@ -1,4 +1,4 @@
-/* Applies what the admin panel controls: maintenance mode, announcements, game on/off + names + badges + order, chat on/off.
+/* Applies what the admin panel controls: maintenance mode, announcements, game on/off + names + badges; cartridges stay alphabetical, chat on/off.
    Load it right after leaderboard.js on index.html (and on any game page that should obey "game disabled"). */
 (function () {
   'use strict';
@@ -29,7 +29,6 @@
       var card = document.querySelector('.cart[data-href="' + g.page + '"]'), btn = document.querySelector('#menu [data-href="' + g.page + '"]');
       if (g.enabled === false) { if (card) card.remove(); if (btn && btn.parentNode) btn.parentNode.remove(); return; }
       if (!card) return;
-      if (box) box.insertBefore(card, box.querySelector('.cart.empty'));   // follows sort_order, "Next cartridge" stays last
       var h3 = card.querySelector('h3'), p = card.querySelector('.cart-body > p');
       if (g.title && h3) { h3.textContent = g.title; card.dataset.title = g.title; }
       if (g.description && p) p.textContent = g.description;
@@ -38,11 +37,13 @@
         var b = card.querySelector('.badge'); if (b) b.after(s);
       });
     });
-    // cartridges the admin list doesn't know yet (like a newly added game) go to the end, in their page order
+    // Apply alphabetical order after configured names and visibility, including new games.
     if (box) {
-      var known = {}; G.forEach(function (g) { known[g.page] = true; });
-      var order = [].slice.call(box.querySelectorAll('.cart.playable')).filter(function (c) { return !known[c.getAttribute('data-href')]; });
-      order.forEach(function (c) { box.insertBefore(c, box.querySelector('.cart.empty')); });
+      var order = [].slice.call(box.querySelectorAll('.cart.playable'));
+      order.sort(function (a, b) {
+        return (a.dataset.title || '').localeCompare(b.dataset.title || '', 'en', { sensitivity: 'base', numeric: true });
+      });
+      order.forEach(function (card) { box.insertBefore(card, box.querySelector('.cart.empty')); });
     }
     N.forEach(function (n) {
       var key = 'ann-' + n.id; try { if (sessionStorage.getItem(key)) return; } catch (e) { /* ignore */ }

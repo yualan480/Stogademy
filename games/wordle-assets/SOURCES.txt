@@ -1,0 +1,3 @@
+Accepted five-letter guesses: https://github.com/tabatkins/wordle-list (MIT; see LICENSE.txt).
+Daily answer selection and puzzle implementation are original Orbit code.
+This game is independently made and is not affiliated with The New York Times.
