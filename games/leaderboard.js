@@ -5,7 +5,7 @@
   'use strict';
   var BASE = 'https://ysopxengerkvbwhrdnwq.supabase.co/rest/v1/scores';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzb3B4ZW5nZXJrdmJ3aHJkbndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM5MDIsImV4cCI6MjEwNzMyOTkwMn0.7jOqjsJ2yAsRVThEuIyK6KI6D3cgs5SrxHg79nXlDBM';
-  var GAMES = ['blockblast', 'tetris', 'game2048', 'snake', 'pacman', 'breakout', 'minesweeper', 'flappy', 'dino', 'blockout', 'slope', 'geodash', 'girder', 'sudoku', 'slither', 'wordle'];
+  var GAMES = ['blockblast', 'tetris', 'game2048', 'snake', 'pacman', 'breakout', 'minesweeper', 'flappy', 'dino', 'blockout', 'slope', 'geodash', 'girder', 'sudoku', 'slither', 'wordle', 'fruitninja'];
   var MAX_SCORE = 10000000;
   // Capture bests before a game updates its own storage at the end of a round.
   var guideBests = {};
@@ -459,7 +459,7 @@
   var TS_KEY = 'sync-ts';          // when each synced key last changed on this device
   var LINK_KEY = 'sync-account';   // which account this device last synced with
   var PROVIDERS = [{ id: 'google', name: 'Google' }];
-  var SYNC_RE = /^(site-theme|sfx-muted|streak|coin-wallet|(blockblast|tetris|game2048|snake|pacman|breakout|minesweeper|flappy|dino|blockout|slope|geodash|girder|sudoku|slither|wordle)-(best|sfx|music|vibrate|autohold|diff|save))$/;
+  var SYNC_RE = /^(site-theme|sfx-muted|streak|coin-wallet|(blockblast|tetris|game2048|snake|pacman|breakout|minesweeper|flappy|dino|blockout|slope|geodash|girder|sudoku|slither|wordle|fruitninja)-(best|sfx|music|vibrate|autohold|diff|save))$/;
   var MAX_VALUE = 100000;          // longest value (in characters) that is synced
 
   var origSet = Storage.prototype.setItem, origRemove = Storage.prototype.removeItem;
@@ -851,7 +851,7 @@
     clearTimeout(coinToastTimer);
     coinToastTimer = setTimeout(function () { if (coinToastEl) coinToastEl.classList.remove('on'); }, 3800);
   }
-  var GAME_NAMES = { wordle: 'Wordle', slither: 'Slither', game2048: '2048', blockblast: 'Block Blast', breakout: 'Block Breaker', dino: 'Dino Run', flappy: 'Flappy Bird', geodash: 'Geometry Dash', minesweeper: 'Minesweeper', pacman: 'Pac-Man', slope: 'Slope', snake: 'Snake', tetris: 'Tetris', girder: 'Girder Gorilla', sudoku: 'Sudoku' };
+  var GAME_NAMES = { fruitninja: 'Fruit Ninja', wordle: 'Wordle', slither: 'Slither', game2048: '2048', blockblast: 'Block Blast', breakout: 'Block Breaker', dino: 'Dino Run', flappy: 'Flappy Bird', geodash: 'Geometry Dash', minesweeper: 'Minesweeper', pacman: 'Pac-Man', slope: 'Slope', snake: 'Snake', tetris: 'Tetris', girder: 'Girder Gorilla', sudoku: 'Sudoku' };
   // called for every finished round (Leaderboard.submit); never throws into a game
   function coinRound(game, score) {
     score = Math.floor(Number(score));

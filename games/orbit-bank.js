@@ -6,7 +6,7 @@
   var ORBIT = 'https://qtmrtxgkisshdtqshjre.supabase.co', SESSION_KEY = 'sb-qtmrtxgkisshdtqshjre-auth-token';
   var CACHE = 'orbit-balance', QUEUE = 'orbit-claim-queue';
   // share of the final score that becomes Orbits (0.05 = 5%, 8 = 800%) (these are only the starting values: the owner can change them in the games admin panel, so the live table is loaded from the server below, and the server is the one that counts)
-  var RATES = { game2048: 0.25, blockblast: 0.75, breakout: 0.5, dino: 0.5, flappy: 10, geodash: 1, minesweeper: 0.5, pacman: 0.1, slope: 1, snake: 20, tetris: 0.05, girder: 0.05, sudoku: 0.25 };
+  var RATES = { fruitninja: 0.5, game2048: 0.25, blockblast: 0.75, breakout: 0.5, dino: 0.5, flappy: 10, geodash: 1, minesweeper: 0.5, pacman: 0.1, slope: 1, snake: 20, tetris: 0.05, girder: 0.05, sudoku: 0.25 };
   function get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
   function put(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
   function session() { try { var s = JSON.parse(get(SESSION_KEY) || 'null'); return s && s.user && s.access_token ? s : null; } catch (e) { return null; } }

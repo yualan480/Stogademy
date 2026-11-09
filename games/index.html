@@ -2189,6 +2189,9 @@
           </div>
           <div class="cart-pins"></div>
         </article>
+        <article class="cart playable" data-tags="arcade fruit ninja slice slicing bombs mouse swipe action" data-href="fruitninja.html" data-title="Fruit Ninja" data-art="fruitninja">
+          <div class="cart-grip"></div><div class="cart-body"><div class="label" aria-hidden="true"></div><h3>Fruit Ninja</h3><span class="badge">Playable now</span><p>Slice flying fruit, dodge bombs, and survive faster waves. Hold and drag with your mouse, or swipe on touch.</p><p class="card-best">Personal best: <b data-best="fruitninja-best">-</b></p><a class="btn play-btn" href="fruitninja.html"><span aria-hidden="true">&#9654;</span> Play</a></div><div class="cart-pins"></div>
+        </article>
         <article class="cart playable" data-tags="arcade platformer runner cube spikes endless geometry dash rhythm jump" data-href="geodash.html" data-title="Geometry Dash" data-art="geodash">
           <div class="cart-grip"></div>
           <div class="cart-body">
@@ -2791,7 +2794,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="leaderboard.js?v=20261109-wordle"></script>
+  <script src="leaderboard.js?v=20261109-fruitninja"></script>
   <script src="recorder.js"></script>
   <script src="site-config.js?v=20261109-alphabetical"></script>
   <script src="voice.js"></script>
@@ -3363,7 +3366,7 @@
           '<text x="200" y="84" text-anchor="middle" ' + ff + ' font-size="36" letter-spacing="4" fill="#53e0ff" stroke="#0d2a6b" stroke-width="7" paint-order="stroke">GORILLA</text>' +
           '</svg>';
       }
-      const COVERS = { wordle: () => '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:20px;background:#f5f5f2;height:100%;align-content:center">'+[...'ORBIT'].concat(['?']).map((c,i)=>'<span style="display:grid;place-items:center;aspect-ratio:1;background:'+['#538d4e','#b59f3b','#787c7e'][i%3]+';color:white;font:bold 27px system-ui">'+c+'</span>').join('')+'</div>',  slither: () => `<img src="slither-cover.svg" alt="" style="width:100%;height:100%;object-fit:cover">`, sudoku: buildCoverSudoku, girder: buildCoverGirder, tetris: buildTetrisCover, '2048': buildCover2048, snake: buildCoverSnake, pacman: buildCoverPacman, breakout: buildCoverBreakout, minesweeper: buildCoverMinesweeper, flappy: buildCoverFlappy, dino: buildCoverDino, blockout: buildCoverBlockout, slope: buildCoverSlope, geodash: buildCoverGeoDash };
+      const COVERS = { fruitninja: () => '<img src="fruitninja-cover.svg" alt="" style="width:100%;height:100%;object-fit:cover">', wordle: () => '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:20px;background:#f5f5f2;height:100%;align-content:center">'+[...'ORBIT'].concat(['?']).map((c,i)=>'<span style="display:grid;place-items:center;aspect-ratio:1;background:'+['#538d4e','#b59f3b','#787c7e'][i%3]+';color:white;font:bold 27px system-ui">'+c+'</span>').join('')+'</div>',  slither: () => `<img src="slither-cover.svg" alt="" style="width:100%;height:100%;object-fit:cover">`, sudoku: buildCoverSudoku, girder: buildCoverGirder, tetris: buildTetrisCover, '2048': buildCover2048, snake: buildCoverSnake, pacman: buildCoverPacman, breakout: buildCoverBreakout, minesweeper: buildCoverMinesweeper, flappy: buildCoverFlappy, dino: buildCoverDino, blockout: buildCoverBlockout, slope: buildCoverSlope, geodash: buildCoverGeoDash };
 
       // put a cartridge's picture into its label (a block pattern, or a full cover)
       function mountArt(labelEl, name) {
@@ -4284,7 +4287,7 @@
       if (playerName) authSettled.then(() => Leaderboard.claimName(playerName)).catch(() => {});
       /* ---- profile stats: click the picture on the console to see them, written beside it ---- */
       const statsPop = document.getElementById('statsPop');
-      const SP_GAMES = [['wordle', 'Wordle'], ['slither', 'Slither'], ['blockblast', 'Block Blast'], ['tetris', 'Tetris'], ['game2048', '2048'], ['snake', 'Snake'], ['pacman', 'Pac-Man'], ['breakout', 'Block Breaker'], ['minesweeper', 'Minesweeper'], ['sudoku', 'Sudoku'], ['flappy', 'Flappy Bird'], ['dino', 'Dino Run'], ['slope', 'Slope'], ['geodash', 'Geometry Dash'], ['girder', 'Girder Gorilla']];
+      const SP_GAMES = [['fruitninja', 'Fruit Ninja'], ['wordle', 'Wordle'], ['slither', 'Slither'], ['blockblast', 'Block Blast'], ['tetris', 'Tetris'], ['game2048', '2048'], ['snake', 'Snake'], ['pacman', 'Pac-Man'], ['breakout', 'Block Breaker'], ['minesweeper', 'Minesweeper'], ['sudoku', 'Sudoku'], ['flappy', 'Flappy Bird'], ['dino', 'Dino Run'], ['slope', 'Slope'], ['geodash', 'Geometry Dash'], ['girder', 'Girder Gorilla']];
       let statsRun = 0;
       const spEl = (tag, cls, text, parent) => {
         const e = document.createElement(tag);
@@ -5228,7 +5231,7 @@
       const MAX_ROWS = 80, COOLDOWN = 1500, OPEN_EVERY = 2500, CLOSED_EVERY = 20000, ALERT_EVERY = 6000, SYNC_EVERY = 8000;
       const QUICK = ['\uD83D\uDC4D', '\u2764\uFE0F', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDD25', '\uD83C\uDFAE'];
       const EMOJI = ('\uD83D\uDE00 \uD83D\uDE03 \uD83D\uDE04 \uD83D\uDE01 \uD83D\uDE06 \uD83D\uDE05 \uD83D\uDE02 \uD83E\uDD23 \uD83D\uDE0A \uD83D\uDE07 \uD83D\uDE42 \uD83D\uDE09 \uD83D\uDE0D \uD83E\uDD29 \uD83D\uDE18 \uD83D\uDE0B \uD83D\uDE1C \uD83E\uDD2A \uD83D\uDE0E \uD83E\uDD13 \uD83E\uDD73 \uD83D\uDE0F \uD83D\uDE12 \uD83D\uDE1E \uD83D\uDE22 \uD83D\uDE2D \uD83D\uDE24 \uD83D\uDE20 \uD83E\uDD2F \uD83D\uDE31 \uD83E\uDD14 \uD83D\uDE34 \uD83E\uDD71 \uD83D\uDE2C \uD83D\uDE44 \uD83D\uDC4D \uD83D\uDC4E \uD83D\uDC4F \uD83D\uDE4C \uD83D\uDCAA \uD83D\uDE4F \uD83E\uDD1D \u270C\uFE0F \uD83E\uDD1E \uD83D\uDC4B \u2764\uFE0F \uD83D\uDC99 \uD83D\uDC9C \uD83D\uDC94 \uD83D\uDD25 \u2B50 \u2728 \uD83D\uDCAF \uD83C\uDF89 \uD83C\uDFC6 \uD83E\uDD47 \uD83C\uDFAE \uD83D\uDD79\uFE0F \uD83D\uDC7E \uD83C\uDFB2 \uD83E\uDDE9 \uD83D\uDCA3 \uD83D\uDC80 \uD83D\uDC51 \uD83C\uDF55 \uD83C\uDF54 \uD83C\uDF6A \uD83C\uDF69 \uD83D\uDC31 \uD83D\uDC36 \uD83D\uDE80').split(' ');
-      const GNAME = { 'rooftop-snipers': 'Rooftop Snipers', wordle: 'Wordle', slither: 'Slither', sudoku: 'Sudoku', blockblast: 'Block Blast', tetris: 'Tetris', game2048: '2048', snake: 'Snake', pacman: 'Pac-Man', breakout: 'Block Breaker', minesweeper: 'Minesweeper', flappy: 'Flappy Bird', dino: 'Dino Run', blockout: 'Blockout', slope: 'Slope', geodash: 'Geometry Dash', girder: 'Girder Gorilla', getaway: 'Getaway Shootout', battleship: 'Battleship', chess: 'Chess' };
+      const GNAME = { fruitninja: 'Fruit Ninja', 'rooftop-snipers': 'Rooftop Snipers', wordle: 'Wordle', slither: 'Slither', sudoku: 'Sudoku', blockblast: 'Block Blast', tetris: 'Tetris', game2048: '2048', snake: 'Snake', pacman: 'Pac-Man', breakout: 'Block Breaker', minesweeper: 'Minesweeper', flappy: 'Flappy Bird', dino: 'Dino Run', blockout: 'Blockout', slope: 'Slope', geodash: 'Geometry Dash', girder: 'Girder Gorilla', getaway: 'Getaway Shootout', battleship: 'Battleship', chess: 'Chess' };
       const gname = id => GNAME[id] || id;
 
       const $ = id => document.getElementById(id);
