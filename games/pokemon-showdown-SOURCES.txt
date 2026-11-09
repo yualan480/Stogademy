@@ -1,9 +1,2 @@
-Pokémon Showdown: https://github.com/smogon/pokemon-showdown
-Browser client: https://github.com/smogon/pokemon-showdown-client
-Official online game: https://play.pokemonshowdown.com/
-
-Orbit provides an original launcher and friend-battle instructions. No server,
-battle engine, client code or Pokémon artwork is copied into this integration.
-The official browser client deliberately refuses to initialize in a frame;
-Orbit opens it in a separate tab instead of bypassing that restriction.
-Battles, teams, accounts and matchmaking are provided by Pokémon Showdown.
+Pokémon Showdown hosted client: see pokemon-showdown/SOURCES.md and pokemon-showdown/LICENSE.
+Orbit now hosts its own AGPL client adaptation within the site; it does not navigate users to the official website.

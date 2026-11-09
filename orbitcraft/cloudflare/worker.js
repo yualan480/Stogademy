@@ -1,3 +1,4 @@
+import {showdownGuestAuth} from '../server/showdown-auth.js';
 export { OrbitIntelligence } from './intelligence.js';
 import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
@@ -8,6 +9,7 @@ import { cloudStore } from './store.js';
 export default {
  async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==='/pokemon-showdown/action')return showdownGuestAuth(request);
   if(url.pathname==='/orbit-intelligence/socket'||url.pathname==='/orbit-intelligence/health')return env.ORBIT_INTELLIGENCE.get(env.ORBIT_INTELLIGENCE.idFromName('orbit-intelligence-v1')).fetch(request);
   if(url.pathname==='/orbitcraft/socket'||url.pathname==='/orbitcraft/health'){
    const id=env.ORBITCRAFT_WORLD.idFromName('orbitcraft-public-v1');

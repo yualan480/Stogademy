@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!--
+                      ,///////,
+      +#########+     ///////,
+   +###############+  ///////
+  +#################+,//////,
+ +###################,/////,
+ ########+   +########////
+                     ////,  PokemonShowdown.com
+ ########+   +########///
+ +###################+//
+  +#################+
+   +###############+
+      +#########+///////,
+                ///////,
+
+Viewing source? We're open source! Check us out on GitHub!
+https://github.com/smogon/pokemon-showdown
+https://github.com/smogon/pokemon-showdown-client (you are here)
+
+Also visit us in the Dev chatroom:
+https://psim.us/dev
+
+-->
+<meta charset="UTF-8" /><meta http-equiv="Content-Security-Policy" content="form-action 'self'; base-uri 'self'">
+<meta id="viewport" name="viewport" content="width=device-width" />
+<title>Pokémon Showdown · Orbit</title><link rel="stylesheet" href="orbit-client.css?v=1"><script src="orbit-navigation.js?v=1"></script>
+<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+<link rel="shortcut icon" href="favicon.ico" id="dynamic-favicon" />
+<link rel="icon" sizes="256x256" href="favicon-256.png" />
+<link rel="stylesheet" href="style/battle.css?46e0d8bc" />
+<link rel="stylesheet" href="style/oldclient.css?22999aa1" />
+<link rel="stylesheet" href="style/sim-types.css?c180bfef" />
+<link rel="stylesheet" href="style/utilichart.css?a427c1ed" />
+<link rel="stylesheet" href="style/font-awesome.css?932f42c7" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+
+
+
+
+
+
+
+<div id="header" class="header">
+	<img class="logo" src="pokemonshowdownbeta.png" srcset="pokemonshowdownbeta@2x.png 2x" alt="Pok&eacute;mon Showdown! (beta)" width="146" height="44" /><div class="maintabbarbottom"></div>
+</div>
+<div class="ps-room scrollable" id="mainmenu"><div class="mainmenuwrapper">
+	<div class="leftmenu">
+		<div class="mainmenu">
+			<div id="loading-message" class="mainmessage">Initializing... <noscript>FAILED<br /><br />Pok&eacute;mon Showdown requires JavaScript.</noscript></div>
+		</div>
+	</div>
+	<div class="rightmenu">
+	</div>
+	
+</div></div>
+<script>
+	var LM = document.getElementById('loading-message');
+	LM.innerHTML += ' DONE<br />Loading libraries...';
+</script>
+<script nomodule src="js/lib/ps-polyfill.js"></script>
+<script src="config/config.js?4ddc8d66"></script><script src="orbit-config.js?v=1"></script>
+<script src="js/lib/jquery-2.2.4.min.js"></script>
+<script src="js/lib/jquery-cookie.js"></script>
+<script src="js/lib/autoresize.jquery.min.js?6d0545f7"></script>
+<script src="js/battle-sound.js?e28c0551"></script>
+<script src="js/lib/html-css-sanitizer-minified.js?803e34bd"></script>
+<script src="js/lib/lodash.core.js?e9be4c2d"></script>
+<script src="js/lib/backbone.js?8a8d8296"></script>
+<script src="js/lib/d3.v3.min.js"></script>
+
+<script>
+	LM.innerHTML += ' DONE<br />Loading data...';
+</script>
+
+<script src="js/battledata.js?2e37c408"></script>
+<script src="js/oldclient/storage.js?f9fb11f3"></script>
+<script src="data/pokedex-mini.js?25805097"></script>
+<script src="data/typechart.js?17da8369"></script>
+<script src="js/battle.js?a74c04d7"></script>
+<script src="js/lib/sockjs-1.4.0-nwjsfix.min.js"></script>
+<script src="js/lib/color-thief.min.js"></script>
+
+<script>
+	LM.innerHTML += ' DONE<br />Loading client...';
+</script>
+
+<script src="data/commands.js?27b32762"></script>
+<script src="js/oldclient/client.js?c32d7faa"></script>
+<script src="js/oldclient/client-topbar.js?61366799"></script>
+<script src="js/oldclient/client-mainmenu.js?ced1a44b"></script>
+<script src="js/oldclient/client-teambuilder.js?aa56d908"></script>
+<script src="js/oldclient/client-ladder.js?80613a11"></script>
+<script src="js/oldclient/client-chat.js?86f8139f"></script>
+<script src="js/oldclient/client-chat-tournament.js?5c0dd77a"></script>
+<script src="js/battle-tooltips.js?7c23d241"></script>
+<script src="js/oldclient/client-battle.js?24d65a45"></script>
+<script src="js/oldclient/client-rooms.js?91fa3d32"></script>
+<script src="data/graphics.js?f94c4a95"></script>
+
+<script src="orbit-init.js?v=1"></script>
+
+<script src="data/pokedex.js?ef6ce703"></script>
+<script src="data/moves.js?6fa8bd95"></script>
+<script src="data/items.js?3b339a44"></script>
+<script src="data/abilities.js?f53680f4"></script>
+
+<script src="data/search-index.js?d3d34e46"></script>
+<script src="https://play.pokemonshowdown.com/data/teambuilder-tables.js?cd3b8a5a"></script>
+<script src="js/battle-dex-search.js?8493832b"></script>
+<script src="js/oldclient/search.js?449774ce"></script>
+
+<script src="data/aliases.js?0254ebbc" async></script>
+

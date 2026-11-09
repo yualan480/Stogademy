@@ -1,3 +1,4 @@
+import {showdownGuestAuth} from './showdown-auth.js';
 import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
 import http from 'node:http';
@@ -19,11 +20,12 @@ const game=new Dimensions(store);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
+  if(url.pathname==='/pokemon-showdown/action'){const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>8192){res.writeHead(413);return res.end();}parts.push(part);}const request=new Request('http://'+req.headers.host+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(parts)}:{})});const result=await showdownGuestAuth(request);res.writeHead(result.status,Object.fromEntries(result.headers));return res.end(await result.text());}
   if(url.pathname==='/orbitcraft/health'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({ok:true,players:game.players.size,world:'public',release:RELEASE,pvp:true,size:SIZE,height:HEIGHT,minY:MIN_Y,chunkHeight:CHUNK_HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev}));}
   let path;try{path=decodeURIComponent(url.pathname);}catch{res.writeHead(400);return res.end();}
   if(path==='/orbitcraft/vendor/three.module.js')path='/orbitcraft/node_modules/three/build/three.module.js';
   else if(path==='/orbitcraft/vendor/three.core.js')path='/orbitcraft/node_modules/three/build/three.core.js';
-  else if(path.split('/').some(p=>p.startsWith('.')||['node_modules','server','test','data','cloudflare'].includes(p))){res.writeHead(404);return res.end();}
+  else if(!/^\/games\/pokemon-showdown\/data\/[a-z0-9/_-]+\.js$/.test(path)&&path.split('/').some(p=>p.startsWith('.')||['node_modules','server','test','data','cloudflare'].includes(p))){res.writeHead(404);return res.end();}
   let file=resolve(root,'.'+path);
   if(!file.startsWith(root+'/')){res.writeHead(403);return res.end();}
   try{if((await stat(file)).isDirectory())file=resolve(file,'index.html');const body=await readFile(file);res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','X-Content-Type-Options':'nosniff'});res.end(body);}catch{res.writeHead(404);res.end('Not found');}
