@@ -254,6 +254,24 @@ export function createAtmosphere(scene) {
   };
 }
 
+// Extrude the actual inventory pixels, preserving transparent cutouts and textured edges.
+export function itemSpriteGeometry(id,texture,size=1){
+ const tile=tileFor(id,0),image=texture.image,canvas=image.getContext?image:document.createElement('canvas');
+ if(canvas!==image){canvas.width=image.width;canvas.height=image.height;canvas.getContext('2d').drawImage(image,0,0);}
+ const pixels=canvas.getContext('2d').getImageData(tile*16,0,16,16).data,positions=[],normals=[],uvs=[],depth=size/16;
+ const opaque=(x,y)=>x>=0&&x<16&&y>=0&&y<16&&pixels[(y*16+x)*4+3]>=128;
+ function quad(points,n,x,y){const u=(tile*16+x+.5)/(TILE_COUNT*16),v=1-(y+.5)/16;for(const i of [0,1,2,0,2,3]){positions.push(...points[i]);normals.push(...n);uvs.push(u,v);}}
+ for(let y=0;y<16;y++)for(let x=0;x<16;x++)if(opaque(x,y)){
+  const a=(x/16-.5)*size,b=((x+1)/16-.5)*size,c=(.5-y/16)*size,d=(.5-(y+1)/16)*size,z=depth/2;
+  quad([[a,d,z],[b,d,z],[b,c,z],[a,c,z]],[0,0,1],x,y);quad([[b,d,-z],[a,d,-z],[a,c,-z],[b,c,-z]],[0,0,-1],x,y);
+  if(!opaque(x-1,y))quad([[a,d,-z],[a,d,z],[a,c,z],[a,c,-z]],[-1,0,0],x,y);
+  if(!opaque(x+1,y))quad([[b,d,z],[b,d,-z],[b,c,-z],[b,c,z]],[1,0,0],x,y);
+  if(!opaque(x,y-1))quad([[a,c,z],[b,c,z],[b,c,-z],[a,c,-z]],[0,1,0],x,y);
+  if(!opaque(x,y+1))quad([[a,d,-z],[b,d,-z],[b,d,z],[a,d,z]],[0,-1,0],x,y);
+ }
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.parameters={width:size,height:size,depth};geometry.userData.extrudedSprite=true;geometry.computeBoundingSphere();return geometry;
+}
+
 export function createHeldBlock(camera, texture, {left=false}={}) {
   const group = new THREE.Group();group.name=left?'first-person-offhand':'first-person-mainhand';if(left)group.scale.x=-1; camera.add(group);
   const handMaterial = new THREE.MeshLambertMaterial({ color: 0xac7f69, depthTest: false, fog: false });
@@ -269,12 +287,12 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
   return {
     select(id, count) {
       group.userData.itemId=count>0?id:0;
-      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20?new THREE.PlaneGeometry(ITEMS[id]?.tool?1.05:.3,ITEMS[id]?.tool?1.05:.3):new THREE.BoxGeometry(.24,.24,.24);material.side=THREE.DoubleSide;}
+      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20?itemSpriteGeometry(id,texture,ITEMS[id]?.tool?1.05:.78):new THREE.BoxGeometry(.34,.34,.34);material.side=THREE.DoubleSide;}
       const tool=!!ITEMS[id]?.tool;hand.visible=sleeve.visible=!tool||count<=0;
-      block.position.set(tool?.72:.43,tool?-.34:-.35,tool?-.85:-.76);block.rotation.set(tool?0:.12,tool?-.18:-.5,tool?-.08:-.1);block.userData.toolPose=tool;
+      const sprite=id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20;block.position.set(tool?.72:sprite?.62:.5,tool?-.34:sprite?-.4:-.42,tool?-.85:sprite?-.85:-.78);block.rotation.set(sprite?0:.2,sprite?-.45:-.6,sprite?-.08:-.1);block.userData.toolPose=tool;
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
-      if(isStair(id)||id===38)return;
+      if(isStair(id)||id===38||block.geometry.userData.extrudedSprite)return;
       const uv = block.geometry.attributes.uv;
       for (let face = 0; face < (id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20?1:6); face++) {
         const tile = tileFor(id, face === 2 ? 1 : face === 3 ? -1 : 0,face===4?1:face===5?-1:0);
@@ -286,10 +304,10 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
     swing() { swingAt = performance.now(); },
     update(now, moving, visible, eating=false) {
       group.visible = visible;
-      const swing = Math.sin(Math.min(1, (now - swingAt) / 220) * Math.PI);
+      const progress=Math.max(0,Math.min(1,(now-swingAt)/320)),swing=Math.sin(progress*Math.PI),arc=Math.sin(Math.sqrt(progress)*Math.PI),lift=Math.sin(Math.sqrt(progress)*Math.PI*2);
       const narrow=Math.min(1,camera.aspect/1.25),scale=Math.max(.6,narrow);hand.scale.setScalar(scale);sleeve.scale.setScalar(scale);block.scale.setScalar(scale);
-      group.position.set((moving ? Math.sin(now * .009) * .012 : 0)+(left?1:-1)*.43*(1-narrow), (moving ? Math.abs(Math.cos(now * .009)) * .018 : 0) - swing * .08, -swing * .1);
-      group.rotation.set(-swing*.22,0,0);group.userData.eating=!!eating;if(eating){const bite=Math.sin(now*.028);group.position.set(-.24+.015*bite,.22+.035*Math.abs(bite),.15);group.rotation.set(-.12,0,.12+.035*bite);}
+      group.position.set((left?-1:1)*((moving?Math.sin(now*.009)*.012:0)-.43*(1-narrow)-arc*.32),(moving?Math.abs(Math.cos(now*.009))*.018:0)+lift*.16,-swing*.18);
+      group.rotation.set(-swing*1.05,arc*.35,-arc*.42);group.userData.eating=!!eating;if(eating){const bite=Math.sin(now*.028);group.position.set(-.24+.015*bite,.22+.035*Math.abs(bite),.15);group.rotation.set(-.12,0,.12+.035*bite);}
     }
   };
 }

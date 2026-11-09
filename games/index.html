@@ -2298,6 +2298,7 @@
           <div class="cart-grip"></div><div class="cart-body"><div class="label" aria-hidden="true"></div>
             <h3>Wordle</h3><span class="badge">Daily puzzle · New</span>
             <p>One five-letter word. Six guesses. Follow the colors, solve the daily puzzle, or sharpen your skills in practice.</p>
+            <p class="card-best">Best solve: <b data-best="wordle-best">-</b></p>
             <a class="btn play-btn" href="wordle.html"><span aria-hidden="true">&#9654;</span> Play</a>
           </div><div class="cart-pins"></div>
         </article>
@@ -2790,7 +2791,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="leaderboard.js?v=20261109-slither"></script>
+  <script src="leaderboard.js?v=20261109-wordle"></script>
   <script src="recorder.js"></script>
   <script src="site-config.js?v=20261109-alphabetical"></script>
   <script src="voice.js"></script>
@@ -3028,7 +3029,7 @@
         document.querySelectorAll('[data-best]').forEach(el => {
           let n = 0;
           try { n = parseInt(localStorage.getItem(el.dataset.best), 10) || 0; } catch (e) { n = 0; }
-          el.textContent = n > 0 ? n.toLocaleString() : '-';
+          el.textContent = n > 0 ? (el.dataset.best==='wordle-best' ? Leaderboard.formatScore('wordle',n) : n.toLocaleString()) : '-';
         });
       }
       showBests();
@@ -3419,7 +3420,7 @@
             li.append(rowAv);
             part('nm', r.name);
             if (li.className === 'me' && window.Prizes) Prizes.addBadge(li.lastChild);
-            part('sc', String(r.score));
+            part('sc', Leaderboard.formatScore(gameId(card),r.score));
             list.append(li);
           });
         }).catch(() => msg('Could not load scores. Try again later.'));
@@ -4283,7 +4284,7 @@
       if (playerName) authSettled.then(() => Leaderboard.claimName(playerName)).catch(() => {});
       /* ---- profile stats: click the picture on the console to see them, written beside it ---- */
       const statsPop = document.getElementById('statsPop');
-      const SP_GAMES = [['slither', 'Slither'], ['blockblast', 'Block Blast'], ['tetris', 'Tetris'], ['game2048', '2048'], ['snake', 'Snake'], ['pacman', 'Pac-Man'], ['breakout', 'Block Breaker'], ['minesweeper', 'Minesweeper'], ['sudoku', 'Sudoku'], ['flappy', 'Flappy Bird'], ['dino', 'Dino Run'], ['slope', 'Slope'], ['geodash', 'Geometry Dash'], ['girder', 'Girder Gorilla']];
+      const SP_GAMES = [['wordle', 'Wordle'], ['slither', 'Slither'], ['blockblast', 'Block Blast'], ['tetris', 'Tetris'], ['game2048', '2048'], ['snake', 'Snake'], ['pacman', 'Pac-Man'], ['breakout', 'Block Breaker'], ['minesweeper', 'Minesweeper'], ['sudoku', 'Sudoku'], ['flappy', 'Flappy Bird'], ['dino', 'Dino Run'], ['slope', 'Slope'], ['geodash', 'Geometry Dash'], ['girder', 'Girder Gorilla']];
       let statsRun = 0;
       const spEl = (tag, cls, text, parent) => {
         const e = document.createElement(tag);
@@ -5220,7 +5221,7 @@
       const MAX_ROWS = 80, COOLDOWN = 1500, OPEN_EVERY = 2500, CLOSED_EVERY = 20000, ALERT_EVERY = 6000, SYNC_EVERY = 8000;
       const QUICK = ['\uD83D\uDC4D', '\u2764\uFE0F', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDD25', '\uD83C\uDFAE'];
       const EMOJI = ('\uD83D\uDE00 \uD83D\uDE03 \uD83D\uDE04 \uD83D\uDE01 \uD83D\uDE06 \uD83D\uDE05 \uD83D\uDE02 \uD83E\uDD23 \uD83D\uDE0A \uD83D\uDE07 \uD83D\uDE42 \uD83D\uDE09 \uD83D\uDE0D \uD83E\uDD29 \uD83D\uDE18 \uD83D\uDE0B \uD83D\uDE1C \uD83E\uDD2A \uD83D\uDE0E \uD83E\uDD13 \uD83E\uDD73 \uD83D\uDE0F \uD83D\uDE12 \uD83D\uDE1E \uD83D\uDE22 \uD83D\uDE2D \uD83D\uDE24 \uD83D\uDE20 \uD83E\uDD2F \uD83D\uDE31 \uD83E\uDD14 \uD83D\uDE34 \uD83E\uDD71 \uD83D\uDE2C \uD83D\uDE44 \uD83D\uDC4D \uD83D\uDC4E \uD83D\uDC4F \uD83D\uDE4C \uD83D\uDCAA \uD83D\uDE4F \uD83E\uDD1D \u270C\uFE0F \uD83E\uDD1E \uD83D\uDC4B \u2764\uFE0F \uD83D\uDC99 \uD83D\uDC9C \uD83D\uDC94 \uD83D\uDD25 \u2B50 \u2728 \uD83D\uDCAF \uD83C\uDF89 \uD83C\uDFC6 \uD83E\uDD47 \uD83C\uDFAE \uD83D\uDD79\uFE0F \uD83D\uDC7E \uD83C\uDFB2 \uD83E\uDDE9 \uD83D\uDCA3 \uD83D\uDC80 \uD83D\uDC51 \uD83C\uDF55 \uD83C\uDF54 \uD83C\uDF6A \uD83C\uDF69 \uD83D\uDC31 \uD83D\uDC36 \uD83D\uDE80').split(' ');
-      const GNAME = { slither: 'Slither', sudoku: 'Sudoku', blockblast: 'Block Blast', tetris: 'Tetris', game2048: '2048', snake: 'Snake', pacman: 'Pac-Man', breakout: 'Block Breaker', minesweeper: 'Minesweeper', flappy: 'Flappy Bird', dino: 'Dino Run', blockout: 'Blockout', slope: 'Slope', geodash: 'Geometry Dash', girder: 'Girder Gorilla', getaway: 'Getaway Shootout', battleship: 'Battleship', chess: 'Chess' };
+      const GNAME = { wordle: 'Wordle', slither: 'Slither', sudoku: 'Sudoku', blockblast: 'Block Blast', tetris: 'Tetris', game2048: '2048', snake: 'Snake', pacman: 'Pac-Man', breakout: 'Block Breaker', minesweeper: 'Minesweeper', flappy: 'Flappy Bird', dino: 'Dino Run', blockout: 'Blockout', slope: 'Slope', geodash: 'Geometry Dash', girder: 'Girder Gorilla', getaway: 'Getaway Shootout', battleship: 'Battleship', chess: 'Chess' };
       const gname = id => GNAME[id] || id;
 
       const $ = id => document.getElementById(id);

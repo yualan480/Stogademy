@@ -96,8 +96,7 @@ rotates slowly. It is not immediately added to inventory. After a 0.75-second
 pickup delay, walking within about 1.35 blocks horizontally collects it when
 there is space. The server decides pickup and allows exactly one collector.
 Full inventories leave items on the ground. Drops persist when players leave
-and across server restarts, with no automatic despawn timer. A cap of 2,048
-uncollected items pauses further mining until players collect some of them.
+and across server restarts, with no automatic despawn timer. Mining remains available regardless of the number of uncollected items.
 
 Block removal, drop creation and mining statistics commit together. Pickup
 atomically removes the drop and saves the collector's inventory. Falling item

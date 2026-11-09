@@ -4,7 +4,8 @@ import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
 // The lower-world extension preserves saved edit coordinates and existing surface geometry.
-export const JUMP_DURATION_SECONDS=.75,JUMP_GRAVITY=64/3,JUMP_VELOCITY=8;
+export const TICKS_PER_SECOND=20,GRAVITY_PER_TICK=.08;
+export const JUMP_GRAVITY=GRAVITY_PER_TICK*TICKS_PER_SECOND**2,JUMP_VELOCITY=Math.sqrt(2*JUMP_GRAVITY*1.5),JUMP_DURATION_SECONDS=2*JUMP_VELOCITY/JUMP_GRAVITY;
 export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 320, CHUNK = 16, SEA = 13;
 export const MIN_Y=-64,CHUNK_HEIGHT=HEIGHT-MIN_Y;
 export const BLOCKS = {

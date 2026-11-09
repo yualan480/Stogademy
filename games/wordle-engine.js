@@ -3,3 +3,6 @@ export function evaluate(guess,answer){const result=Array(5).fill('absent'),rema
 export function dayKey(now=new Date()){return `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')}`;}
 export function dailyAnswer(day){let hash=2166136261;for(const c of day){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}return ANSWERS[(hash>>>0)%ANSWERS.length];}
 export function validState(value,answer,allowed){return value&&Array.isArray(value.guesses)&&value.guesses.length<=6&&value.guesses.every((w,i,a)=>typeof w==='string'&&/^[A-Z]{5}$/.test(w)&&allowed.has(w)&&!a.slice(0,i).includes(answer));}
+
+// Higher scores rank first: each fewer guess always outweighs any time difference.
+export function wordleScore(rows,seconds){if(!Number.isInteger(rows)||rows<1||rows>6||!Number.isFinite(seconds)||seconds<0)return 0;return (7-rows)*1000000+999999-Math.min(999999,Math.max(1,Math.ceil(seconds)));}

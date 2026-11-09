@@ -5,7 +5,7 @@
   'use strict';
   var BASE = 'https://ysopxengerkvbwhrdnwq.supabase.co/rest/v1/scores';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlzb3B4ZW5nZXJrdmJ3aHJkbndxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM5MDIsImV4cCI6MjEwNzMyOTkwMn0.7jOqjsJ2yAsRVThEuIyK6KI6D3cgs5SrxHg79nXlDBM';
-  var GAMES = ['blockblast', 'tetris', 'game2048', 'snake', 'pacman', 'breakout', 'minesweeper', 'flappy', 'dino', 'blockout', 'slope', 'geodash', 'girder', 'sudoku', 'slither'];
+  var GAMES = ['blockblast', 'tetris', 'game2048', 'snake', 'pacman', 'breakout', 'minesweeper', 'flappy', 'dino', 'blockout', 'slope', 'geodash', 'girder', 'sudoku', 'slither', 'wordle'];
   var MAX_SCORE = 10000000;
   // Capture bests before a game updates its own storage at the end of a round.
   var guideBests = {};
@@ -176,6 +176,7 @@
   }
 
   /* ---------- scores ---------- */
+  function formatScore(game,score){if(game!=='wordle')return String(score);var rows=7-Math.floor(score/1000000),seconds=999999-score%1000000;return rows+'/6 · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
   function headers(extra) {
     var h = { apikey: KEY, Authorization: 'Bearer ' + KEY };
     for (var k in extra) h[k] = extra[k];
@@ -344,7 +345,7 @@
         text(t, 'span', 'rk', '#' + (idx + 1));
         var box = document.createElement('div');
         text(box, 'span', '', 'Rank ' + (idx + 1) + ' of ' + total);
-        text(box, 'small', '', 'Your best here: ' + row.score + (score > 0 && score >= row.score ? ' (new best!)' : ''));
+        text(box, 'small', '', 'Your best here: ' + formatScore(game,row.score) + (score > 0 && score >= row.score ? ' (new best!)' : ''));
         t.appendChild(box);
       });
     }).catch(function () {
@@ -458,7 +459,7 @@
   var TS_KEY = 'sync-ts';          // when each synced key last changed on this device
   var LINK_KEY = 'sync-account';   // which account this device last synced with
   var PROVIDERS = [{ id: 'google', name: 'Google' }];
-  var SYNC_RE = /^(site-theme|sfx-muted|streak|coin-wallet|(blockblast|tetris|game2048|snake|pacman|breakout|minesweeper|flappy|dino|blockout|slope|geodash|girder|sudoku|slither)-(best|sfx|music|vibrate|autohold|diff|save))$/;
+  var SYNC_RE = /^(site-theme|sfx-muted|streak|coin-wallet|(blockblast|tetris|game2048|snake|pacman|breakout|minesweeper|flappy|dino|blockout|slope|geodash|girder|sudoku|slither|wordle)-(best|sfx|music|vibrate|autohold|diff|save))$/;
   var MAX_VALUE = 100000;          // longest value (in characters) that is synced
 
   var origSet = Storage.prototype.setItem, origRemove = Storage.prototype.removeItem;
@@ -850,7 +851,7 @@
     clearTimeout(coinToastTimer);
     coinToastTimer = setTimeout(function () { if (coinToastEl) coinToastEl.classList.remove('on'); }, 3800);
   }
-  var GAME_NAMES = { slither: 'Slither', game2048: '2048', blockblast: 'Block Blast', breakout: 'Block Breaker', dino: 'Dino Run', flappy: 'Flappy Bird', geodash: 'Geometry Dash', minesweeper: 'Minesweeper', pacman: 'Pac-Man', slope: 'Slope', snake: 'Snake', tetris: 'Tetris', girder: 'Girder Gorilla', sudoku: 'Sudoku' };
+  var GAME_NAMES = { wordle: 'Wordle', slither: 'Slither', game2048: '2048', blockblast: 'Block Blast', breakout: 'Block Breaker', dino: 'Dino Run', flappy: 'Flappy Bird', geodash: 'Geometry Dash', minesweeper: 'Minesweeper', pacman: 'Pac-Man', slope: 'Slope', snake: 'Snake', tetris: 'Tetris', girder: 'Girder Gorilla', sudoku: 'Sudoku' };
   // called for every finished round (Leaderboard.submit); never throws into a game
   function coinRound(game, score) {
     score = Math.floor(Number(score));
@@ -898,7 +899,7 @@
     // the public Supabase address + anon key, shared with Battleship's online matchmaking (Realtime)
     config: { url: HOST, key: KEY },
     getAccount: getAccount, freshToken: freshToken, signOut: signOut, signIn: signIn, finishSignIn: finishSignIn, providers: PROVIDERS, sync: sync,
-    getStreak: getStreak, markPlayed: markPlayed, submit: submit, save: save, track: track, mvp: mvp, top: top, syncAvatar: syncAvatar, isCleanName: isCleanName, getName: getName, games: GAMES,
+    formatScore: formatScore, getStreak: getStreak, markPlayed: markPlayed, submit: submit, save: save, track: track, mvp: mvp, top: top, syncAvatar: syncAvatar, isCleanName: isCleanName, getName: getName, games: GAMES,
     avatars: AVATAR_IDS.map(function (id) { return { id: id, name: SPRITES[id].name }; }),
     coins: coins, getAvatar: getAvatar, setAvatar: setAvatar, isValidAvatar: isValidAvatar, avatarEl: avatarEl, avatarName: avatarName,
     imageToAvatar: imageToAvatar, fileToAvatar: fileToAvatar
