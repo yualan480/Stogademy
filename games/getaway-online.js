@@ -206,7 +206,7 @@
 
   // menu
   pMenu.appendChild(txt('h2', '', 'GETAWAY SHOOTOUT'));
-  pMenu.appendChild(txt('p', '', 'Play it online against another player. You each control one seat with one button.'));
+  pMenu.appendChild(txt('p', '', 'Play it online against another player. You each control one character with your own three keys.'));
   var col = txt('div', 'col', '');
   col.appendChild(btn('Find an opponent', '', function () { quickPlay(); }));
   col.appendChild(btn('Create a room (share a code)', 'alt', function () { makeRoom(); }));
@@ -285,7 +285,7 @@
     if (!ready) lSub.textContent = roomPublic ? 'Waiting for an opponent to join...' : 'Tell your friend this code. Waiting for them to join...';
     else lSub.textContent = isHost ? (roomPublic ? 'Opponent found! Starting...' : 'Your friend is here.') : 'The host starts the match.';
     startBtn.hidden = !(isHost && ready && !roomPublic);
-    lFine.textContent = 'The first player in the room is the host: the game runs on their computer and is streamed to the other player. The host should use Chrome, Edge or Firefox on a computer and keep this tab in front. Click the two-player mode in the game, then press W, \u2191 or Space (or the big button on a phone) to control your own player.';
+    lFine.textContent = 'The first player in the room is the host: the game runs on their computer and is streamed to the other player. The host should use Chrome, Edge or Firefox on a computer and keep this tab in front. Click the two-player mode in the game, then use your assigned keys (or the buttons on a phone). The other player’s keys are disabled.';
     if (isHost && roomPublic && ready && !autoT) { autoT = setTimeout(function () { autoT = 0; if (phase === 'lobby' && isHost && members().length >= 2) hostStart(); }, 3000); }
   }
 
@@ -578,14 +578,17 @@
   }
   function seatKeyEvent(e) {
     if (phase !== 'play' || !mode || e.__gwNet) return;
-    var hit = CODE_TO_SEAT[e.code];
-    if (!hit || hit.seat !== mySeat) return;   // only react to MY seat's own 3 keys
+    var hit = CODE_TO_SEAT[e.code] || CODE_TO_SEAT['Key'+String(e.key||'').toUpperCase()];
+    if (!hit) return;
+    // Stop BOTH seats' native events before Unity receives them. Only the assigned
+    // seat is replayed locally (host) or sent to the host (guest).
     e.preventDefault(); e.stopImmediatePropagation();
-    if (e.repeat) return;
+    if (hit.seat !== mySeat || e.type === 'keypress' || e.repeat) return;
     myInput(hit.i, e.type === 'keydown');
   }
   window.addEventListener('keydown', seatKeyEvent, true);
   window.addEventListener('keyup', seatKeyEvent, true);
+  window.addEventListener('keypress', seatKeyEvent, true);
 
   // GUEST: clicks and taps on the video go to the host's game (the picture may be letterboxed, so map carefully)
   function vidPos(e) {
