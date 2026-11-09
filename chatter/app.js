@@ -1094,8 +1094,8 @@ function subscribe() {
     .subscribe(async st => { if (st === 'SUBSCRIBED') { trackStatus(); S.presLive = false; setTimeout(() => { S.presLive = true; }, 3000); } });
   ['keydown', 'pointerdown'].forEach(ev => addEventListener(ev, () => { const was = Date.now() - S.lastActive > 3e5; S.lastActive = Date.now(); if (was) trackStatus(); }, { passive: true }));
   setInterval(() => { if (S.me && Date.now() - S.lastActive > 3e5) trackStatus(); }, 6e4);
-  /* last online: stamp the time now, every 2 minutes while the tab is open, and again when it is hidden or closed */
-  if (!window.__seenTimer) { touchSeen(); window.__seenTimer = setInterval(() => { if (Date.now() - S.lastActive < 6e5) touchSeen(); }, 12e4); addEventListener('pagehide', () => { if (S.me && S.me.status !== 'invisible') sb.rpc('touch_last_seen').then(() => {}, () => {}); }); document.addEventListener('visibilitychange', () => { if (document.hidden && S.me && S.me.status !== 'invisible') sb.rpc('touch_last_seen').then(() => {}, () => {}); else touchSeen(); }); }
+  /* last online: stamp the time now, every minute while the tab is active, and again when it is hidden or closed */
+  if (!window.__seenTimer) { touchSeen(); window.__seenTimer = setInterval(() => { if (Date.now() - S.lastActive < 6e5) touchSeen(); }, 6e4); addEventListener('pagehide', () => { if (S.me && S.me.status !== 'invisible') sb.rpc('touch_last_seen').then(() => {}, () => {}); }); document.addEventListener('visibilitychange', () => { if (document.hidden && S.me && S.me.status !== 'invisible') sb.rpc('touch_last_seen').then(() => {}, () => {}); else touchSeen(); }); }
   if (!window.__acc) window.__acc = setInterval(verifyAccess, 45000);
   /* time on Orbit: +5 Orbits for every minute the tab is visible (the server pays at most one minute per minute) */
   S.orbits = parseInt(localStorage.getItem('orbit-balance'), 10) || 0; paintOrbits(); loadOrbits(); SHOP.load().then(() => { renderSide(); renderMembers(); O.refreshFloaters?.(); });
@@ -1473,11 +1473,32 @@ function groupModal(cid) {
       });
     });
 }
+function renderProfileLastSeen(node, p, unavailable = false) {
+  if (!node?.isConnected) return;
+  node.replaceChildren();
+  if (p.status === 'invisible') { node.textContent = 'Last online: Hidden'; return; }
+  if (statusOf(p) !== 'offline') { node.textContent = 'Last online: Online now'; return; }
+  const stamp = SEEN.get(p.id), date = stamp && new Date(stamp);
+  if (!date || !Number.isFinite(date.getTime())) { node.textContent = 'Last online: ' + (unavailable ? 'Unavailable' : 'Not recorded yet'); return; }
+  const time = document.createElement('time'); time.dateTime = date.toISOString();
+  time.textContent = seenAgo(stamp); time.title = date.toLocaleString();
+  node.append('Last online: ', time);
+}
+async function refreshProfileLastSeen(node, uid) {
+  const p = prof(uid); renderProfileLastSeen(node, p);
+  if (p.status === 'invisible' || statusOf(p) !== 'offline') return;
+  try {
+    const { data, error } = await sb.from('profile_seen').select('last_seen').eq('user_id', uid).maybeSingle();
+    if (error) { renderProfileLastSeen(node, prof(uid), true); return; }
+    if (data?.last_seen) SEEN.set(uid, data.last_seen); else SEEN.delete(uid);
+    renderProfileLastSeen(node, prof(uid));
+  } catch { renderProfileLastSeen(node, prof(uid), true); }
+}
 function profileModal(uid) {
   const p = prof(uid), isMe = uid === S.me.id, fr = S.friends.includes(uid), out = S.outgoing.some(r => r.receiver_id === uid), inc = S.incoming.some(r => r.sender_id === uid);
   const mem = S.members.find(m => m.user_id === uid), t = tmoUntil(mem);
-  modal(p.display_name, `<div style="display:flex;gap:12px;align-items:center">${av(p)}<div><b>@${esc(p.username)}</b><br><small class="muted">${esc(stText[statusOf(p)] || statusOf(p))}${lastSeenText(p) ? ' · ' + esc(lastSeenText(p)) : ''}${p.custom_status ? ' · ' + esc(p.custom_status) : ''}</small></div></div><p>${esc(p.bio) || '<span class="muted">No bio yet.</span>'}</p>${crOf(uid).length ? `<div class="rpills" aria-label="Classes">${crOf(uid).map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('')}</div>` : isMe ? '<p class="muted">No classes picked yet.</p>' : ''}${mem && mem.role !== 'member' ? `<p class="muted">Role: ${roleBadge(uid)}</p>` : ''}${t ? `<p class="muted">Timed out until ${esc(t.toLocaleString())}</p>` : ''}`,
-    [{ label: 'Close', cls: 'ghost' }, ...(isMe ? [{ label: 'Edit roles', fn: () => { navTo('roles'); } }] : [{ label: 'Message', fn: () => { startDm(uid); } }, ...(fr || out || inc ? [] : [{ label: 'Add friend', cls: 'ghost', fn: () => sendFriendRequest(p.username) }]), ...modButtons(uid)])], bg => SHOP.decorateProfile?.(bg, uid));
+  modal(p.display_name, `<div style="display:flex;gap:12px;align-items:center">${av(p)}<div><b>@${esc(p.username)}</b><br><small class="muted">${esc(stText[statusOf(p)] || statusOf(p))}${p.custom_status ? ' · ' + esc(p.custom_status) : ''}</small></div></div><p data-profile-bio>${esc(p.bio) || '<span class="muted">No bio yet.</span>'}</p><p data-profile-last-online class="muted" style="margin-top:-6px;font-size:12px" aria-live="polite"></p>${crOf(uid).length ? `<div class="rpills" aria-label="Classes">${crOf(uid).map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('')}</div>` : isMe ? '<p class="muted">No classes picked yet.</p>' : ''}${mem && mem.role !== 'member' ? `<p class="muted">Role: ${roleBadge(uid)}</p>` : ''}${t ? `<p class="muted">Timed out until ${esc(t.toLocaleString())}</p>` : ''}`,
+    [{ label: 'Close', cls: 'ghost' }, ...(isMe ? [{ label: 'Edit roles', fn: () => { navTo('roles'); } }] : [{ label: 'Message', fn: () => { startDm(uid); } }, ...(fr || out || inc ? [] : [{ label: 'Add friend', cls: 'ghost', fn: () => sendFriendRequest(p.username) }]), ...modButtons(uid)])], bg => { SHOP.decorateProfile?.(bg, uid); refreshProfileLastSeen(bg.querySelector('[data-profile-last-online]'), uid); });
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
