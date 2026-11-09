@@ -2505,7 +2505,7 @@
           <div class="cab-base" aria-hidden="true"></div>
         </div>
       </div>
-      <p class="fine">Two players on one keyboard. More games are on the way.</p>
+      <p class="fine">Two players on one keyboard. Use the arrows to choose Getaway Shootout or Rooftop Snipers.</p>
     </section>
 
     <section class="section suggest" id="suggest">
@@ -5036,8 +5036,10 @@
 
       // add a game here and it shows up on the machine (the arrows pick between them)
       const GAMES = [
-        { title: 'Getaway Shootout', src: 'getaway.html?embed=1', line: 'Two players, one keyboard', poster: true }
+        { title: 'Getaway Shootout', src: 'getaway.html?embed=1', line: 'Two players, one keyboard', poster: true },
+        { title: 'Rooftop Snipers', src: 'rooftop-snipers.html?embed=1', line: 'Local or online · W / E and I / O', poster: true, image: 'rooftop-snipers/img/preview.png' }
       ];
+      const defaultPoster=posterEl.querySelector('img').getAttribute('src');
       let cur = 0, state = 'idle', frame = null;
 
       const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -5080,7 +5082,7 @@
         plateEl.textContent = g.title;
         lineEl.textContent = g.line || '';
         bootName.textContent = g.title;
-        posterEl.hidden = !g.poster;
+        posterEl.hidden = !g.poster;posterEl.querySelector('img').src=g.image||defaultPoster;
         const idle = state === 'idle';
         prevBtn.disabled = nextBtn.disabled = GAMES.length < 2 || !idle;
         coinBtn.disabled = !idle;
@@ -5221,7 +5223,7 @@
       const MAX_ROWS = 80, COOLDOWN = 1500, OPEN_EVERY = 2500, CLOSED_EVERY = 20000, ALERT_EVERY = 6000, SYNC_EVERY = 8000;
       const QUICK = ['\uD83D\uDC4D', '\u2764\uFE0F', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDD25', '\uD83C\uDFAE'];
       const EMOJI = ('\uD83D\uDE00 \uD83D\uDE03 \uD83D\uDE04 \uD83D\uDE01 \uD83D\uDE06 \uD83D\uDE05 \uD83D\uDE02 \uD83E\uDD23 \uD83D\uDE0A \uD83D\uDE07 \uD83D\uDE42 \uD83D\uDE09 \uD83D\uDE0D \uD83E\uDD29 \uD83D\uDE18 \uD83D\uDE0B \uD83D\uDE1C \uD83E\uDD2A \uD83D\uDE0E \uD83E\uDD13 \uD83E\uDD73 \uD83D\uDE0F \uD83D\uDE12 \uD83D\uDE1E \uD83D\uDE22 \uD83D\uDE2D \uD83D\uDE24 \uD83D\uDE20 \uD83E\uDD2F \uD83D\uDE31 \uD83E\uDD14 \uD83D\uDE34 \uD83E\uDD71 \uD83D\uDE2C \uD83D\uDE44 \uD83D\uDC4D \uD83D\uDC4E \uD83D\uDC4F \uD83D\uDE4C \uD83D\uDCAA \uD83D\uDE4F \uD83E\uDD1D \u270C\uFE0F \uD83E\uDD1E \uD83D\uDC4B \u2764\uFE0F \uD83D\uDC99 \uD83D\uDC9C \uD83D\uDC94 \uD83D\uDD25 \u2B50 \u2728 \uD83D\uDCAF \uD83C\uDF89 \uD83C\uDFC6 \uD83E\uDD47 \uD83C\uDFAE \uD83D\uDD79\uFE0F \uD83D\uDC7E \uD83C\uDFB2 \uD83E\uDDE9 \uD83D\uDCA3 \uD83D\uDC80 \uD83D\uDC51 \uD83C\uDF55 \uD83C\uDF54 \uD83C\uDF6A \uD83C\uDF69 \uD83D\uDC31 \uD83D\uDC36 \uD83D\uDE80').split(' ');
-      const GNAME = { wordle: 'Wordle', slither: 'Slither', sudoku: 'Sudoku', blockblast: 'Block Blast', tetris: 'Tetris', game2048: '2048', snake: 'Snake', pacman: 'Pac-Man', breakout: 'Block Breaker', minesweeper: 'Minesweeper', flappy: 'Flappy Bird', dino: 'Dino Run', blockout: 'Blockout', slope: 'Slope', geodash: 'Geometry Dash', girder: 'Girder Gorilla', getaway: 'Getaway Shootout', battleship: 'Battleship', chess: 'Chess' };
+      const GNAME = { 'rooftop-snipers': 'Rooftop Snipers', wordle: 'Wordle', slither: 'Slither', sudoku: 'Sudoku', blockblast: 'Block Blast', tetris: 'Tetris', game2048: '2048', snake: 'Snake', pacman: 'Pac-Man', breakout: 'Block Breaker', minesweeper: 'Minesweeper', flappy: 'Flappy Bird', dino: 'Dino Run', blockout: 'Blockout', slope: 'Slope', geodash: 'Geometry Dash', girder: 'Girder Gorilla', getaway: 'Getaway Shootout', battleship: 'Battleship', chess: 'Chess' };
       const gname = id => GNAME[id] || id;
 
       const $ = id => document.getElementById(id);

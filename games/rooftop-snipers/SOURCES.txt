@@ -1,0 +1,4 @@
+Rooftop Snipers game package from https://github.com/SoBloxsy/rooftop-snipers
+Upstream commit: 44aad84ec9c5f70ffb6179ed7f4fa91eb5c824bd
+Repository license preserved in LICENSE.txt. Original game by Michael Eichler / New Eich Games.
+Orbit supplies the surrounding launcher and loading interface.

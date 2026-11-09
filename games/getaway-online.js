@@ -10,7 +10,7 @@
      3. The GUEST sees that video instead of their own copy of the game. Their button presses and clicks are sent
         back over a WebRTC data channel, and the host's browser presses them as Player 2's key / mouse.
      So there is one authoritative game (the host's), and both players are in it. The guest sees some lag.
-   Load it on getaway.html after leaderboard.js. */
+   Load after leaderboard.js; use data-game="rooftop-snipers" for the two-key game. */
 (function () {
   'use strict';
 
@@ -36,24 +36,29 @@
   var SB = (window.Leaderboard && window.Leaderboard.config) || null;
   if (!SB || !window.WebSocket || !document.body) return;   // no matchmaking server: the game stays local only
 
-  /* ---- the keys this build listens for: THREE buttons per player. Change these two arrays if your build differs. ---- */
+  var GAME_KIND=document.currentScript&&document.currentScript.getAttribute('data-game')==='rooftop-snipers'?'rooftop-snipers':'getaway';
+  var GAME_TITLE=GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=GAME_KIND==='rooftop-snipers'?2:3;
+  var CONTROL_INDICES=Array.from({length:CONTROL_COUNT},function(_,i){return i;});
+
+  /* ---- Seat controls: three keys for Getaway, two for Rooftop Snipers. ---- */
   var SEAT_KEYS = [
     [ { key: 'w', code: 'KeyW', kc: 87 }, { key: 'e', code: 'KeyE', kc: 69 }, { key: 'r', code: 'KeyR', kc: 82 } ],   // Player 1: W / E / R
     [ { key: 'i', code: 'KeyI', kc: 73 }, { key: 'o', code: 'KeyO', kc: 79 }, { key: 'p', code: 'KeyP', kc: 80 } ]    // Player 2: I / O / P
   ];
-  var SEAT_LABEL = ['W / E / R', 'I / O / P'];
+  SEAT_KEYS=SEAT_KEYS.map(function(keys){return keys.slice(0,CONTROL_COUNT);});
+  var SEAT_LABEL=SEAT_KEYS.map(function(keys){return keys.map(function(k){return k.key.toUpperCase();}).join(' / ');});
   // build a lookup from a pressed key's code to {seat, i} so we can tell which of the 6 keys was pressed
   var CODE_TO_SEAT = {};
   SEAT_KEYS.forEach(function (keys, seat) { keys.forEach(function (k, i) { CODE_TO_SEAT[k.code] = { seat: seat, i: i }; }); });
 
   var CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  var ROOM_PREFIX = 'getaway-';
+  var ROOM_PREFIX = GAME_KIND+'-';
   var rnd = function (n) { return Math.floor(Math.random() * n); };
   var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
   var myId = Math.random().toString(36).slice(2, 10);
   var myName = function () { var n = ''; try { n = window.Leaderboard && window.Leaderboard.getName(); } catch (e) { n = ''; } return String(n || 'Player').slice(0, 20); };
   var myAvatar = function () { try { return window.Leaderboard ? window.Leaderboard.getAvatar() : ''; } catch (e) { return ''; } };
-  var gameCanvas = function () { return document.querySelector('#game canvas'); };
+  var gameCanvas = function () { return document.querySelector('#game canvas,#gameContainer canvas'); };
 
   /* ================= realtime: a tiny client for Supabase Realtime (Phoenix channels) ================= */
   function Chan(rt, name, key) { this.rt = rt; this.topic = 'realtime:' + name; this.key = key; this.h = {}; this.presence = {}; this.joined = false; this.onPresence = null; this.onClose = null; this.presenceReady = false; this.waiters = new Set(); }
@@ -138,8 +143,8 @@
   var mode = '';                 // during a match: 'host' (runs + streams the game) or 'guest' (watches + sends buttons)
   var mySeat = 0;                // 0 = Player 1 (host), 1 = Player 2 (guest)
   var rttNow = 0, linked = false;
-  var heldMine = [false, false, false];                       // my own 3 keys, held or not
-  var seatHeld = [[false, false, false], [false, false, false]];   // each seat's 3 keys, as pressed IN THE GAME
+  var heldMine = CONTROL_INDICES.map(function(){return false;});                       // my assigned keys, held or not
+  var seatHeld = SEAT_KEYS.map(function(keys){return keys.map(function(){return false;});});   // each seat's assigned keys, as pressed IN THE GAME
   var mouseHeld = false;
   var oppInfo = null;
 
@@ -185,7 +190,7 @@
   var ov = txt('div', '', ''); ov.id = 'gwOv'; ov.hidden = true;
   var hud = txt('div', '', ''); hud.id = 'gwHud'; hud.hidden = true;
   var tap = document.createElement('div'); tap.id = 'gwTapRow'; tap.hidden = true;
-  var tapBtns = [0, 1, 2].map(function (i) { var b = document.createElement('button'); b.type = 'button'; tap.appendChild(b); return b; });
+  var tapBtns = CONTROL_INDICES.map(function (i) { var b = document.createElement('button'); b.type = 'button'; tap.appendChild(b); return b; });
   var toastEl = txt('div', '', ''); toastEl.id = 'gwToast'; toastEl.setAttribute('role', 'status');
   var vid = document.createElement('video'); vid.id = 'gwVid'; vid.hidden = true; vid.muted = true; vid.autoplay = true; vid.playsInline = true; vid.setAttribute('playsinline', '');
   document.body.appendChild(vid);
@@ -205,8 +210,8 @@
   function closeOverlay() { ov.hidden = true; }
 
   // menu
-  pMenu.appendChild(txt('h2', '', 'GETAWAY SHOOTOUT'));
-  pMenu.appendChild(txt('p', '', 'Play it online against another player. You each control one character with your own three keys.'));
+  pMenu.appendChild(txt('h2', '', GAME_TITLE.toUpperCase()));
+  pMenu.appendChild(txt('p', '', 'Play it online against another player. You each control one character with your assigned keys.'));
   var col = txt('div', 'col', '');
   col.appendChild(btn('Find an opponent', '', function () { quickPlay(); }));
   col.appendChild(btn('Create a room (share a code)', 'alt', function () { makeRoom(); }));
@@ -321,9 +326,9 @@
     else { mouseHeld = false; send('mouseup', 0); send('click', 0); }
   }
   function releaseAll() {
-    [0, 1].forEach(function (s) { [0, 1, 2].forEach(function (i) { if (seatHeld[s][i]) fireKey(s, i, false); }); });
+    [0, 1].forEach(function (s) { CONTROL_INDICES.forEach(function (i) { if (seatHeld[s][i]) fireKey(s, i, false); }); });
     if (mouseHeld) mouseHeld = false;
-    heldMine = [false, false, false];
+    heldMine = CONTROL_INDICES.map(function(){return false;});
   }
 
   /* ================= the stream: the host runs the game, the guest watches it and sends buttons ================= */
@@ -343,6 +348,23 @@
   var vSender = null, directStream = null, monT = 0, blackN = 0, prevFrames = 0, fpsNow = 0, zeroN = 0, warnedBlack = false, usedDirect = false, hostHidSent = null;
   var sampCv = null, sampCtx = null;
 
+  var STREAM_PROFILES = [
+    {width:640,height:360,fps:30,bitrate:850000},
+    {width:960,height:540,fps:60,bitrate:2000000},
+    {width:1280,height:720,fps:60,bitrate:3500000}
+  ];
+  var streamProfile=1,healthyTicks=0,congestedTicks=0,mirrorFrameAt=-Infinity,manualFrameTrack=null;
+  function streamSize(width,height,profile){var scale=Math.min(1,profile.width/width,profile.height/height);return {width:Math.max(2,Math.floor(width*scale/2)*2),height:Math.max(2,Math.floor(height*scale/2)*2)};}
+  function adaptStream(stats){
+    var profile=STREAM_PROFILES[streamProfile],congested=stats.reason==='cpu'||stats.reason==='bandwidth'||stats.rtt>.25||(stats.bandwidth>0&&stats.bandwidth<profile.bitrate*.8);
+    congestedTicks=congested?congestedTicks+1:0;
+    var next=STREAM_PROFILES[streamProfile+1];
+    healthyTicks=!congested&&next&&stats.bandwidth>next.bitrate*1.4&&stats.rtt<.15&&stats.fps>=profile.fps*.8?healthyTicks+1:0;
+    if(congestedTicks>=3&&streamProfile>0){streamProfile--;congestedTicks=healthyTicks=0;return true;}
+    if(healthyTicks>=12&&next){streamProfile++;congestedTicks=healthyTicks=0;return true;}
+    return false;
+  }
+
   // WebGL canvases (this Unity build included) often hand captureStream() a blank/black
   // frame, because the browser is free to clear the drawing buffer right after each frame
   // unless the game keeps it around. Instead of capturing the WebGL canvas directly, we
@@ -351,21 +373,23 @@
   var mirrorCv = null, mirrorCtx = null, mirrorRAF = 0;
   function startMirror(src) {
     mirrorCv = document.createElement('canvas');
-    mirrorCv.width = src.width || 960; mirrorCv.height = src.height || 540;
-    mirrorCtx = mirrorCv.getContext('2d', { alpha: false });
-    (function draw() {
+    mirrorCtx = mirrorCv.getContext('2d', { alpha: false, desynchronized:true });
+    mirrorFrameAt=-Infinity;
+    (function draw(now) {
       if (!mirrorCv) return;
-      if (src.width && src.height && (mirrorCv.width !== src.width || mirrorCv.height !== src.height)) {
-        mirrorCv.width = src.width; mirrorCv.height = src.height;
+      var profile=STREAM_PROFILES[streamProfile],size=streamSize(src.width||960,src.height||540,profile);
+      if(mirrorCv.width!==size.width||mirrorCv.height!==size.height){mirrorCv.width=size.width;mirrorCv.height=size.height;}
+      if(now-mirrorFrameAt>=1000/profile.fps-.5){
+        mirrorFrameAt=Number.isFinite(mirrorFrameAt)?now-(now-mirrorFrameAt)%(1000/profile.fps):now;
+        try {mirrorCtx.drawImage(src,0,0,size.width,size.height);if(manualFrameTrack)manualFrameTrack.requestFrame();}catch(e){/* retry next frame */}
       }
-      try { mirrorCtx.drawImage(src, 0, 0, mirrorCv.width, mirrorCv.height); } catch (e) { /* a transient GL error; just try again next frame */ }
-      mirrorRAF = requestAnimationFrame(draw);
-    })();
+      mirrorRAF=requestAnimationFrame(draw);
+    })(performance.now());
     return mirrorCv;
   }
   function stopMirror() {
     if (mirrorRAF) cancelAnimationFrame(mirrorRAF);
-    mirrorRAF = 0; mirrorCv = null; mirrorCtx = null;
+    mirrorRAF=0;mirrorCv=null;mirrorCtx=null;manualFrameTrack=null;
   }
 
   // is this canvas / video all black? (looks at a tiny 32x18 copy)
@@ -384,22 +408,24 @@
     if (usedDirect || !cv || !vSender || !cv.captureStream) return;
     usedDirect = true;
     try {
-      directStream = cv.captureStream(60);
+      directStream = cv.captureStream(STREAM_PROFILES[streamProfile].fps);
       var tr = directStream.getVideoTracks()[0];
-      if (tr) { try { tr.contentHint = 'motion'; } catch (e) { /* ignore */ } vSender.replaceTrack(tr); toast('Picture was black, switched capture method...', 4000); }
+      if (tr) { try { tr.contentHint = 'motion'; } catch (e) { /* ignore */ } vSender.replaceTrack(tr).then(function(){tuneSender(vSender);}).catch(function(){}); toast('Picture was black, switched capture method...', 4000); }
     } catch (e) { /* ignore */ }
   }
   function monitorTick() {
     if (phase !== 'play' || !pc) return;
     // frames per second actually going over the link
-    pc.getStats().then(function (rep) {
-      var frames = 0;
+    var connection=pc;connection.getStats().then(function (rep) {
+      if(phase!=='play'||pc!==connection)return;
+      var frames=0,network={reason:'',rtt:0,bandwidth:0,fps:0};
       rep.forEach(function (r) {
+        if(r.type==='candidate-pair'&&r.state==='succeeded'&&(r.nominated||r.selected)){network.rtt=r.currentRoundTripTime||0;network.bandwidth=r.availableOutgoingBitrate||0;}
         if (r.kind !== 'video' && r.mediaType !== 'video') return;
-        if (mode === 'host' && r.type === 'outbound-rtp') frames = r.framesSent || frames;
+        if (mode === 'host' && r.type === 'outbound-rtp'){frames=r.framesSent||frames;network.reason=r.qualityLimitationReason||'';}
         if (mode === 'guest' && r.type === 'inbound-rtp') frames = r.framesDecoded || frames;
       });
-      fpsNow = Math.max(0, frames - prevFrames); prevFrames = frames;
+      fpsNow = Math.max(0, frames - prevFrames); prevFrames = frames;network.fps=fpsNow;if(mode==='host'&&adaptStream(network)&&vSender)tuneSender(vSender);
       zeroN = (linked && fpsNow === 0) ? zeroN + 1 : 0;
       if (mode === 'guest' && zeroN === 6) toast('No picture is arriving from the host. Ask them to keep the game tab in front (not minimised or in the background).', 7000);
       renderHud();
@@ -421,20 +447,43 @@
 
   var dcOpen = function () { return !!dc && dc.readyState === 'open'; };
   var oppId = function () { return oppInfo ? oppInfo.id : ''; };
+  var fastDC=null,controlTimer=0,inputSeq=0,lastRemoteSeq=-1,lastRemoteAt=0,lastControlSent=0;
+  function sendControlState(){
+    if(mode!=='guest'||phase!=='play')return;
+    var message=JSON.stringify({t:'s',seq:++inputSeq,held:heldMine.map(function(v){return v?1:0;})});
+    var channel=fastDC&&fastDC.readyState==='open'?fastDC:dcOpen()?dc:null;
+    if(channel&&channel.bufferedAmount<4096){try{channel.send(message);lastControlSent=Date.now();return;}catch(e){/* use realtime */}}
+    sendRoom('gin',JSON.parse(message));lastControlSent=Date.now();
+  }
+  function startControlTicker(){
+    clearInterval(controlTimer);
+    controlTimer=setInterval(function(){
+      if(phase!=='play')return;
+      var now=Date.now();
+      if(mode==='guest'){var interval=fastDC&&fastDC.readyState==='open'?50:dcOpen()?100:250;if(now-lastControlSent>=interval)sendControlState();}
+      else if(lastRemoteAt&&now-lastRemoteAt>600){for(var i=0;i<CONTROL_COUNT;i++)fireKey(1,i,false);lastRemoteAt=0;}
+    },50);
+  }
   // guest -> host: over the data channel, or (until it opens) over the matchmaking connection
   function sendInput(msg) {
+    if(msg.t==='k'){sendControlState();return;}
     if (dcOpen()) { try { dc.send(JSON.stringify(msg)); return; } catch (e) { /* fall through */ } }
     sendRoom('gin', msg);
   }
   // host: apply what the guest sent
   function onRemoteMsg(p) {
     if (mode !== 'host' || phase !== 'play' || !p) return;
-    if (p.t === 'k' && Number.isInteger(p.i) && p.i >= 0 && p.i <= 2) fireKey(1, p.i, p.d === 1);
+    if(p.t==='s'){
+      if(!Number.isSafeInteger(p.seq)||p.seq<0||p.seq<=lastRemoteSeq||!Array.isArray(p.held)||p.held.length!==CONTROL_COUNT||!p.held.every(function(v){return v===0||v===1;}))return;
+      lastRemoteSeq=p.seq;lastRemoteAt=Date.now();for(var i=0;i<CONTROL_COUNT;i++)fireKey(1,i,p.held[i]===1);return;
+    }
+    if (p.t === 'k' && Number.isInteger(p.i) && p.i >= 0 && p.i < CONTROL_COUNT) fireKey(1, p.i, p.d === 1);
     else if (p.t === 'm') fireMouse(p.k === 'd' ? 'd' : 'u', +p.x, +p.y);
     else if (p.t === 'p' && dcOpen()) { try { dc.send(JSON.stringify({ t: 'o', s: p.s })); } catch (e) { /* ignore */ } }
   }
 
   function closePC() {
+    clearInterval(controlTimer);controlTimer=0;if(fastDC){try{fastDC.close();}catch(e){}fastDC=null;}
     clearInterval(monT); monT = 0; blackN = 0; prevFrames = 0; fpsNow = 0; zeroN = 0; warnedBlack = false; usedDirect = false; hostHidSent = null; vSender = null;
     if (directStream) { directStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* ignore */ } }); directStream = null; }
     clearInterval(pingT); pingT = 0; clearTimeout(linkT); linkT = 0; clearTimeout(discT); discT = 0;
@@ -472,6 +521,8 @@
   }
   function wireDC(ch) {
     ch.onopen = function () {
+      startControlTicker();if(mode==='guest')sendControlState();
+      if (ch.label==='controls') {renderHud();return;}
       if (mode === 'guest') { clearInterval(pingT); pingT = setInterval(function () { sendInput({ t: 'p', s: Date.now() }); }, 2000); }
       renderHud();
     };
@@ -484,10 +535,14 @@
   }
   function tuneSender(s) {
     try {
-      var p = s.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}];
-      p.encodings[0].maxBitrate = 6000000; p.degradationPreference = 'maintain-framerate';
-      s.setParameters(p);
-    } catch (e) { /* ignore */ }
+      var p=s.getParameters(),profile=STREAM_PROFILES[streamProfile];
+      if(!p.encodings||!p.encodings.length)p.encodings=[{}];
+      p.encodings[0].maxBitrate=profile.bitrate;p.encodings[0].maxFramerate=profile.fps;
+      p.encodings[0].priority='high';p.encodings[0].networkPriority='high';
+      var cv=gameCanvas();p.encodings[0].scaleResolutionDownBy=usedDirect&&cv?Math.max(1,cv.width/profile.width,cv.height/profile.height):1;
+      p.degradationPreference='maintain-framerate';
+      return Promise.resolve(s.setParameters(p)).catch(function(){});
+    }catch(e){return Promise.resolve();}
   }
 
   // HOST: capture the game canvas and offer it to the guest
@@ -498,15 +553,18 @@
       var conn = newPC();   // resets any old connection/mirror first
       var mcv = startMirror(cv);
       if (!mcv.captureStream) throw new Error('canvas captureStream unsupported');
-      outStream = mcv.captureStream(60);
-      var track = outStream.getVideoTracks()[0];
+      outStream=mcv.captureStream(0);
+      var track=outStream.getVideoTracks()[0];
+      if(track&&typeof track.requestFrame==='function')manualFrameTrack=track;
+      else{outStream.getTracks().forEach(function(t){t.stop();});outStream=mcv.captureStream(60);track=outStream.getVideoTracks()[0];}
       if (!track) throw new Error('no video track');
       try { track.contentHint = 'motion'; } catch (e) { /* ignore */ }
       var sender = conn.addTrack(track, outStream); vSender = sender; startMonitor();
       dc = conn.createDataChannel('in', { ordered: true }); wireDC(dc);
+      fastDC=conn.createDataChannel('controls',{ordered:false,maxRetransmits:0});wireDC(fastDC);startControlTicker();
       var offer = await conn.createOffer();
       await conn.setLocalDescription(offer);
-      tuneSender(sender);
+      await tuneSender(sender);
       await gatherDone(conn, 4000);
       if (conn !== pc) return;
       var ld = conn.localDescription || offer;
@@ -537,7 +595,7 @@
     if (!p || p.to !== myId || phase !== 'play') return;
     try {
       if (p.k === 'offer' && mode === 'guest') {
-        var conn = newPC(); startMonitor();
+        var conn = newPC(); startMonitor();startControlTicker();
         pendingIce = earlyIce.concat(pendingIce); earlyIce = [];   // candidates that beat the offer here
         conn.ontrack = function (e) {
           vid.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
@@ -549,7 +607,7 @@
           try { e.receiver.playoutDelayHint = 0; } catch (x) { /* ignore */ }
           try { e.receiver.jitterBufferTarget = 0; } catch (x) { /* ignore */ }
         };
-        conn.ondatachannel = function (e) { dc = e.channel; wireDC(dc); };
+        conn.ondatachannel = function(e){if(e.channel.label==='controls')fastDC=e.channel;else dc=e.channel;wireDC(e.channel);};
         await conn.setRemoteDescription(p.d);
         await flushIce(conn);
         var ans = await conn.createAnswer();
@@ -610,15 +668,15 @@
   });
   vid.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-  window.addEventListener('blur', function () { [0, 1, 2].forEach(function (i) { if (heldMine[i]) myInput(i, false); }); });
+  window.addEventListener('blur', function () { CONTROL_INDICES.forEach(function (i) { if (heldMine[i]) myInput(i, false); }); });
 
-  // the 3 buttons for touch screens, one per key of my seat
+  // touch controls, one button per assigned key
   tapBtns.forEach(function (b, i) {
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); b.className = 'on'; try { b.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } myInput(i, true); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, function () { b.className = ''; myInput(i, false); }); });
   });
   function updateTapLabels() {
-    var letters = mode === 'host' ? ['W', 'E', 'R'] : ['I', 'O', 'P'];
+    var letters=SEAT_KEYS[mySeat].map(function(k){return k.key.toUpperCase();});
     tapBtns.forEach(function (b, i) { b.textContent = letters[i]; });
   }
 
@@ -626,15 +684,16 @@
   function renderHud() {
     hud.textContent = '';
     var opp = oppInfo ? oppInfo.name : 'opponent';
-    if (mode === 'host') hud.appendChild(txt('span', 'me', 'You: Player 1 \u00b7 W/E/R (you run the game)'));
-    else hud.appendChild(txt('span', 'me', 'You: Player 2 \u00b7 I/O/P'));
+    if (mode === 'host') hud.appendChild(txt('span', 'me', 'You: Player 1 \u00b7 '+SEAT_LABEL[0]+' (you run the game)'));
+    else hud.appendChild(txt('span', 'me', 'You: Player 2 \u00b7 '+SEAT_LABEL[1]));
     hud.appendChild(txt('span', '', mode === 'host' ? 'vs ' + opp : 'host: ' + opp));
     hud.appendChild(txt('span', 'png', (linked ? ((rttNow ? rttNow + ' ms' : 'live') + ' \u00b7 ' + fpsNow + ' fps' + (mode === 'guest' ? (vid.videoWidth ? ' \u00b7 ' + vid.videoWidth + 'x' + vid.videoHeight : ' \u00b7 no picture yet') : '')) : ('link: ' + (pc ? pc.iceConnectionState : 'waiting')))));
     var lv = txt('button', '', 'Leave'); lv.type = 'button'; lv.addEventListener('click', function () { endOnline(''); });
     hud.appendChild(lv);
   }
   function enterPlay(seat) {
-    clearTimeout(autoT); autoT = 0;
+    clearTimeout(autoT); autoT = 0;streamProfile=1;healthyTicks=congestedTicks=0;
+    inputSeq=0;lastRemoteSeq=-1;lastRemoteAt=lastControlSent=0;
     mySeat = seat; mode = seat === 0 ? 'host' : 'guest'; rttNow = 0; linked = false; earlyIce = [];
     var all = members(); oppInfo = all.filter(function (m) { return m.id !== myId; })[0] || null;
     releaseAll();
@@ -646,15 +705,16 @@
     clearTimeout(linkT);
     linkT = setTimeout(function () { linkT = 0; if (phase === 'play' && !linked) endOnline('Could not connect to the other player\u2019s game. Try again; your network may block peer-to-peer video.'); }, 20000);
     if (mode === 'host') {
-      toast('Match on! You run the game and stream it to your opponent. You are Player 1: W/E/R. Keep this tab in front.', 8000);
+      toast('Match on! You run the game and stream it to your opponent. You are Player 1: '+SEAT_LABEL[0]+'. Keep this tab in front.', 8000);
       startHostStream();
     } else {
-      toast('Connecting to the host\u2019s game... You are Player 2: I/O/P.', 6000);
+      startControlTicker();toast('Connecting to the host\u2019s game... You are Player 2: '+SEAT_LABEL[1]+'.', 6000);
     }
   }
   function hostStart() {
     if (!isHost || members().length < 2 || phase !== 'lobby') return;
     clearTimeout(autoT); autoT = 0;
+    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
     sendRoom('start', {});
     enterPlay(0);
   }
@@ -772,5 +832,6 @@
   renderBtn();
 
   // small hook so the page (or a test) can see the state
-  window.GetawayOnline = { state: function () { return { phase: phase, mode: mode, seat: mySeat, host: isHost, linked: linked, rtt: rttNow }; }, leave: function () { endOnline(''); } };
+  window.GetawayOnline = { state: function () { return { game:GAME_KIND,controls:CONTROL_COUNT,phase: phase, mode: mode, seat: mySeat, host: isHost, linked: linked, rtt: rttNow }; }, leave: function () { endOnline(''); } };
+  if(GAME_KIND==='rooftop-snipers')window.RooftopOnline=window.GetawayOnline;
 })();
