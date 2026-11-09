@@ -588,3 +588,28 @@ A browser check confirms delayed audio initialization, a running context and
 real tone/noise output during movement/jumping, muted gameplay without new
 effects, persisted volume/mute settings and no JavaScript errors. The real
 browser single-block ledge landing check also passes.
+
+### Nether dimension and streaming performance
+
+A 4-wide, 5-high hollow obsidian frame lights with flint and steel (one iron
+ingot and one flint). Stand in the portal for four seconds in Survival, or enter
+immediately in Creative. Linked exits use 1:8 horizontal coordinates and a safe
+platform. Exit the arrival portal before traveling back. Inventory and equipment
+follow the player. Nether edits, dropped items, containers and portal links use
+separate additive SQLite tables/metadata; existing Overworld data is retained.
+Water converts source lava to obsidian; flowing lava makes cobblestone. Obsidian
+requires a diamond or netherite pickaxe. Ancient debris generates only in the
+Nether. This adds the dimension and portal/resource mechanics; it does not add
+Nether mobs or fortresses.
+
+Chunk generation skips naturally empty sky while applying saved edits up to
+Y319. The client waits for real streamed terrain rather than generating an unused
+preview. Block, crop and furnace changes rebuild only affected vertical sections,
+including seams, and retain unrelated section geometry and lights. Pending mesh
+work merges repeated updates so unfinished sections are not discarded.
+
+The Games Supabase project has separate pending Slither/Wordle setup SQL in
+`games/pending-game-updates.sql`. Those statements require a Supabase admin SQL
+connection. Orbitcraft's private SQLite tables are created automatically by the
+Node/Cloudflare store on first use; no Supabase migration is needed for Nether,
+Boxing Random or House of Hazards.

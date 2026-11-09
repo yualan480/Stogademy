@@ -1,0 +1,4 @@
+House of Hazards package: https://github.com/asgwrd/HouseOfHazards
+Upstream commit: 457030f19800f69f321e7f897690a7f5e4f41775
+Original game and runtime attributions retained. Orbit adds the surrounding launcher.
+The upstream redirect and analytics are omitted.

@@ -1,7 +1,7 @@
 export { OrbitIntelligence } from './intelligence.js';
 import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
-import { Game } from '../server/game.js';
+import { Dimensions } from '../server/dimensions.js';
 import { authenticate } from '../server/auth.js';
 import { welcome,sender,receive } from '../server/protocol.js';
 import { cloudStore } from './store.js';
@@ -17,7 +17,7 @@ export default {
  }
 };
 export class OrbitcraftWorld {
- constructor(ctx,env){this.ctx=ctx;this.env=env;this.store=cloudStore(ctx.storage);this.game=new Game(this.store);this.connections=new Set();this.timer=null;this.lastSave=0;}
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.store=cloudStore(ctx.storage);this.game=new Dimensions(this.store);this.connections=new Set();this.timer=null;this.lastSave=0;}
  async fetch(request){
   const url=new URL(request.url);
   if(url.pathname==='/orbitcraft/health')return Response.json({ok:true,players:this.game.players.size,world:'public',release:RELEASE,difficulty:'easy',pvp:true,size:SIZE,height:HEIGHT,minY:MIN_Y,chunkHeight:CHUNK_HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev:false});

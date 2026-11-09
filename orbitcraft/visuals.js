@@ -1,3 +1,4 @@
+import {NETHER_BLOCKS} from './nether.js';
 import {DEEP_TEXTURES} from './deep-textures.js';
 import {furnaceFront} from './furnaces.js';
 import {SKIN_COLORS} from './skins.js';
@@ -14,7 +15,7 @@ export const TEXTURE_TILES = Object.freeze([
   'grass_top','dirt','stone','sand','oak_bark','oak_leaves','snow',
   'water','bedrock','oak_planks','grass_side','oak_end','snowy_grass_side',
   'grass_plant','poppy','poppy_variant','cobblestone','gravel','coal_ore','iron_ore','diamond_ore',
-  'gold_ore','ancient_debris','crafting_top','crafting_side','furnace_top','furnace_side','bed','farmland','wheat','chest_top','chest_side','furnace_wall','crafting_tools','torch','chest_wall',...itemIds.map(id=>'item_'+id),'furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top'
+  'gold_ore','ancient_debris','crafting_top','crafting_side','furnace_top','furnace_side','bed','farmland','wheat','chest_top','chest_side','furnace_wall','crafting_tools','torch','chest_wall',...itemIds.map(id=>'item_'+id),'furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top',...new Set(Object.values(NETHER_BLOCKS))
 ]);
 export const TILE_COUNT = TEXTURE_TILES.length;
 const random = (x, y, seed) => {
@@ -23,6 +24,7 @@ const random = (x, y, seed) => {
   return ((n ^ n >>> 16) >>> 0) / 4294967295;
 };
 export function tileFor(id, normalY, normalZ=0,normalX=0,furnace=null) {
+  if(NETHER_BLOCKS[id])return TEXTURE_TILES.indexOf(NETHER_BLOCKS[id]);
   if(DEEP_TEXTURES[id])return TEXTURE_TILES.indexOf(id===39&&normalY?'deepslate_top':DEEP_TEXTURES[id]);
   if(isStair(id)||id===38)return 9;
   if(id>=100)return itemTiles.get(id)??1;
@@ -189,7 +191,7 @@ export async function createTextures() {
     const [source,blocks,manifest]=await Promise.all([load('./assets/reference/items.png'),load('./assets/reference/blocks.png'),fetch(new URL('./assets/reference/manifest.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Texture manifest unavailable');return r.json();})]);
     for(const id of Object.keys(manifest.items).map(Number)){const tile=itemTiles.get(id);if(tile==null)continue;context.clearRect(tile*16,0,16,16);context.drawImage(source,id*16,0,16,16,tile*16,0,16,16);}
     for(const tile of Object.keys(manifest.blocks).map(Number)){context.clearRect(tile*16,0,16,16);context.drawImage(blocks,tile*16,0,16,16,tile*16,0,16,16);}
-    const extraNames=['furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top'];const extraImages=await Promise.all(extraNames.map(name=>load('./assets/reference/'+name+'.png')));for(let i=0;i<extraNames.length;i++){const tile=TEXTURE_TILES.indexOf(extraNames[i]);context.clearRect(tile*16,0,16,16);context.drawImage(extraImages[i],0,0,16,16,tile*16,0,16,16);}
+    const extraNames=['furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top',...new Set(Object.values(NETHER_BLOCKS))];const extraImages=await Promise.all(extraNames.map(name=>load('./assets/reference/'+name+'.png')));for(let i=0;i<extraNames.length;i++){const tile=TEXTURE_TILES.indexOf(extraNames[i]);context.clearRect(tile*16,0,16,16);context.drawImage(extraImages[i],0,0,16,16,tile*16,0,16,16);}
     atlas.dataset.reference='minecraft-java-1.21.4';
   } catch(error) {console.warn('Item reference artwork unavailable; using built-in textures.',error);}
   const texture = new THREE.CanvasTexture(atlas);
@@ -247,7 +249,8 @@ export function createAtmosphere(scene) {
     clouds.add(cloud);
   }
   scene.add(clouds);
-  return (now, camera,worldTime=6000) => {
+  return (now, camera,worldTime=6000,dimension='overworld') => {
+    sky.visible=clouds.visible=dimension!=='nether';
     const angle=(worldTime%24000)/24000*Math.PI*2;sunlight.position.set(Math.cos(angle)*90,Math.sin(angle)*90,-35);sunlight.lookAt(0,0,0);moon.position.copy(sunlight.position).multiplyScalar(-1);moon.lookAt(0,0,0);
     sky.position.copy(camera.position);
     clouds.position.x = Math.sin(now * .000012) * 5;

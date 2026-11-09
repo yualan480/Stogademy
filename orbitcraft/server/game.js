@@ -1,3 +1,4 @@
+import {generateChunk} from '../chunk-generation.js';
 import {furnaceFacing,furnaceView} from '../furnaces.js';
 import {publicSign} from './signs.js';
 import {stepRiding} from './boats.js';
@@ -10,19 +11,20 @@ import { isBlock,ITEMS } from '../items.js';
 import { CHUNK, HEIGHT,MIN_Y,CHUNK_HEIGHT, SIZE, SLOTS, inside, resourceBlock, terrain, chunkIndex, solid, collides, overlaps, step, raycast, MINING_MS, PICKUP_DELAY_MS } from '../world.js';
 const key=(x,y,z)=>`${x},${y},${z}`;
 export class Game {
-  constructor(store,{now=()=>Date.now()}={}) {this.now=now;this.drops=new Map(store.drops().map(d=>[d.id,d]));this.dirtyDrops=new Set();this.dropMoves=new Map();this.frames=0;this.store=store;this.players=new Map();this.edits=new Map(store.changes().map(b=>[key(b.x,b.y,b.z),b.block]));this.chunks=new Map();this.survival=new Survival(this);}
+  constructor(store,{now=()=>Date.now(),dimension='overworld'}={}) {this.dimension=dimension;this.now=now;this.drops=new Map(store.drops().map(d=>[d.id,d]));this.dirtyDrops=new Set();this.dropMoves=new Map();this.frames=0;this.store=store;this.players=new Map();this.edits=new Map(store.changes().map(b=>[key(b.x,b.y,b.z),b.block]));this.chunks=new Map();this.chunkEdits=new Map();for(const [k,block]of this.edits){const [x,y,z]=k.split(',').map(Number);this.indexEdit({x,y,z},block);}this.survival=new Survival(this);}
   get=(x,y,z)=>{
     if(!inside(x,y,z))return 0;
     const cx=Math.floor(x/CHUNK),cz=Math.floor(z/CHUNK),c=this.chunks.get(`${cx},${cz}`);
-    return c?c[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:this.edits.get(key(x,y,z))??resourceBlock(x,y,z);
+    return c?c[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:this.edits.get(key(x,y,z))??resourceBlock(x,y,z,this.dimension);
   };
+  indexEdit(a,block){const k=chunkKey(Math.floor(a.x/CHUNK),Math.floor(a.z/CHUNK));let edits=this.chunkEdits.get(k);if(!edits)this.chunkEdits.set(k,edits=new Map());edits.set(key(a.x,a.y,a.z),{x:a.x,y:a.y,z:a.z,block});}
   chunk(cx,cz) {
     const k=`${cx},${cz}`;if(this.chunks.has(k)){const data=this.chunks.get(k);this.chunks.delete(k);this.chunks.set(k,data);return data;}
-    const c=new Uint8Array(CHUNK*CHUNK*CHUNK_HEIGHT);
-    for(let y=MIN_Y;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)c[chunkIndex(x,y,z)]=this.edits.get(key(cx*CHUNK+x,y,cz*CHUNK+z))??resourceBlock(cx*CHUNK+x,y,cz*CHUNK+z);
-    this.chunks.set(k,c);this.survival?.water.seedChunk(cx,cz,c);while(this.chunks.size>MAX_CACHED_CHUNKS)this.chunks.delete(this.chunks.keys().next().value);return c;
+    const c=generateChunk(cx,cz,this.dimension,this.chunkEdits.get(k)?.values());
+    this.chunks.set(k,c);this.survival?.water.seedChunk(cx,cz,c);this.survival?.lava?.seedChunk(cx,cz,c);while(this.chunks.size>MAX_CACHED_CHUNKS)this.chunks.delete(this.chunks.keys().next().value);return c;
   }
   spawn() {
+    if(this.dimension==='nether'){for(let y=80;y>=30;y--)for(let x=-8;x<=8;x++)for(let z=-8;z<=8;z++){const p={x:x+.5,y:y+.01,z:z+.5};if(solid(this.get(x,y-1,z))&&!collides(p,this.get))return p;}return {x:.5,y:60.01,z:.5};}
     for(let r=0;r<25;r++)for(let x=-r;x<=r;x++)for(let z=-r;z<=r;z++) {
       if([...this.players.values()].some(p=>Math.hypot(p.x-x-.5,p.z-z-.5)<2))continue;
       const h=terrain(x,z).height;if(h<15||!solid(this.get(x,h,z)))continue;
@@ -34,12 +36,12 @@ export class Game {
   }
   join(identity,send) {
     if(this.players.has(identity.id))throw new Error('This account is already playing. Close the other tab first.');
-    const saved=this.store.loadPlayer(identity.id),p={...this.spawn(),yaw:0,pitch:0,inventory:{2:24,3:8,5:8},mined:0,placed:0,...saved,...identity,vy:0,input:{},send,lastEdit:0,lastChat:0,seq:0,mining:null,mineError:null,pendingChunks:new Map(),sentChunks:new Set(),viewDistance:3,streaming:false};
+    const saved=this.store.loadPlayer(identity.id),p={dimension:this.dimension,...this.spawn(),yaw:0,pitch:0,inventory:{2:24,3:8,5:8},mined:0,placed:0,...saved,...identity,vy:0,input:{},send,lastEdit:0,lastChat:0,seq:0,mining:null,mineError:null,pendingChunks:new Map(),sentChunks:new Set(),viewDistance:3,streaming:false};
     if(collides(p,this.get)||[...this.players.values()].some(other=>Math.hypot(p.x-other.x,p.z-other.z)<.75))Object.assign(p,this.spawn());
-    this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
+    p.dimension=this.dimension;this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
   }
   leave(p) {if(this.players.get(p.id)!==p)return;if(p.survival.boat&&this.survival.world.boats[p.survival.boat])this.survival.world.boats[p.survival.boat].rider=null;p.survival.boat=null;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();this.pruneChunks();}
-  public(p){return {id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,crouching:!!p.crouching,skin:p.survival?.skin||'steve',held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,mining:!!p.input?.mine,eating:!!p.eating,bowDrawing:p.bowDrawAt!=null,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
+  public(p){return {dimension:this.dimension,id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,crouching:!!p.crouching,skin:p.survival?.skin||'steve',held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,mining:!!p.input?.mine,eating:!!p.eating,bowDrawing:p.bowDrawAt!=null,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
   inventory(p){p.send({type:'inventory',inventory:p.inventory,mined:p.mined,placed:p.placed,slots:stacks(p),hotbar:p.hotbar});}
   broadcast(message){for(const p of this.players.values())p.send(message);}
   publicDrop(d){return {id:d.id,block:d.block,count:d.count,x:d.x,y:d.y,z:d.z,created:d.created};}
@@ -55,8 +57,8 @@ export class Game {
   }
   flushDrops(){this.store.saveSurvival(this.survival.world);const items=[...this.dirtyDrops].map(id=>this.drops.get(id)).filter(Boolean);this.store.saveDrops(items);this.dirtyDrops.clear();}
   applyBlock(a,type){
-    const old=this.get(a.x,a.y,a.z);this.edits.set(key(a.x,a.y,a.z),type);
-    const c=this.chunks.get(`${Math.floor(a.x/CHUNK)},${Math.floor(a.z/CHUNK)}`);if(c)c[chunkIndex((a.x%CHUNK+CHUNK)%CHUNK,a.y,(a.z%CHUNK+CHUNK)%CHUNK)]=type;this.survival?.water.changed(a,type,old);
+    const old=this.get(a.x,a.y,a.z);this.edits.set(key(a.x,a.y,a.z),type);this.indexEdit(a,type);
+    const c=this.chunks.get(`${Math.floor(a.x/CHUNK)},${Math.floor(a.z/CHUNK)}`);if(c)c[chunkIndex((a.x%CHUNK+CHUNK)%CHUNK,a.y,(a.z%CHUNK+CHUNK)%CHUNK)]=type;this.survival?.water.changed(a,type,old);this.survival?.lava?.changed(a,type,old);
   }
   mine(p,now){
     if(!p.input.mine||now-(p.lastInput??-Infinity)>350){p.mining=null;p.mineError=null;return;}
@@ -65,7 +67,7 @@ export class Game {
     if(!hit){p.mining=null;p.mineError=null;return;}
     const duration=hit.block===9?0:this.survival.duration(p,hit.block),target=key(hit.x,hit.y,hit.z);
     if(!duration){
-      p.mining=null;if(p.mineError!==target){p.send({type:'error',message:'Bedrock cannot be broken.'});p.mineError=target;}return;
+      p.mining=null;if(p.mineError!==target){p.send({type:'error',message:hit.block===53?'Obsidian requires a diamond or netherite pickaxe.':[62,63].includes(hit.block)?'Break the obsidian frame to remove this portal.':'Bedrock cannot be broken.'});p.mineError=target;}return;
     }
     p.mineError=null;
     if(!p.mining||p.mining.key!==target||p.mining.block!==hit.block){p.mining={key:target,x:hit.x,y:hit.y,z:hit.z,block:hit.block,elapsed:0,updated:now,duration};return;}
@@ -107,7 +109,8 @@ export class Game {
     this.moveDrops(dt,now);this.survival.tick(dt);
     const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,inputElapsed:p.inputElapsed||0,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
     const locators=state.filter(q=>(q.health??20)>0).map(({id,name,x,y,z})=>({id,name,x,y,z}));
-    for(const p of this.players.values()){p.send({type:'state',time:now,online:this.players.size,locators,roster:[...this.players.values()].map(q=>({id:q.id,name:q.name})),players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
+    const online=(this.server?.players||this.players).size,roster=[...(this.server?.players||this.players).values()].map(q=>({id:q.id,name:q.name}));
+    for(const p of this.players.values()){p.send({type:'state',time:now,online,locators,roster,players:state.filter(q=>q.id===p.id||this.visibleTo(p,q))});if(this.frames%20===0)p.send({type:'drops-view',drops:this.publicDrops(p)});}
     if(this.frames%20===0)this.pruneChunks();
     // One full-height column per tick, nearest first and round-robin between players.
     const active=[...this.players.values()];for(let i=0;i<active.length;i++){

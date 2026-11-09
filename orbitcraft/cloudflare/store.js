@@ -1,7 +1,8 @@
+import {dimensionSQL} from '../server/dimension-store.js';
 import { SEED,VERSION } from '../world.js';
 // Durable Object SQLite is private to the single public-world instance.
-export function cloudStore(storage){
- const sql=storage.sql;
+export function cloudStore(storage,dimension='overworld'){
+ const sql={exec:(query,...args)=>storage.sql.exec(dimensionSQL(query,dimension),...args)};
  sql.exec('CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL)');
  sql.exec('CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY,name TEXT NOT NULL,state TEXT NOT NULL,updated_at INTEGER NOT NULL)');
  sql.exec('CREATE TABLE IF NOT EXISTS blocks(x INTEGER,y INTEGER,z INTEGER,block INTEGER NOT NULL,PRIMARY KEY(x,y,z))');
@@ -11,8 +12,8 @@ export function cloudStore(storage){
  const old=sql.exec("SELECT value FROM metadata WHERE key='world'").toArray()[0];
  if(old && old.value!==version)throw new Error('World generation mismatch: migrate database first.');
  sql.exec("INSERT OR IGNORE INTO metadata VALUES ('world',?)",version);
- const savePlayer=p=>sql.exec('INSERT INTO players VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,state=excluded.state,updated_at=excluded.updated_at',p.id,p.name,JSON.stringify({x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined,placed:p.placed,survival:p.survival,hotbar:p.hotbar}),Date.now());
- return {savePlayer,
+ const savePlayer=p=>sql.exec('INSERT INTO players VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,state=excluded.state,updated_at=excluded.updated_at',p.id,p.name,JSON.stringify({dimension:p.dimension||'overworld',x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined,placed:p.placed,survival:p.survival,hotbar:p.hotbar}),Date.now());
+ return {savePlayer,scope:dimension=>cloudStore(storage,dimension),
  loadSurvival:()=>{const r=sql.exec("SELECT value FROM metadata WHERE key='survival'").toArray()[0];return r?JSON.parse(r.value):null;},
  saveSurvival:state=>sql.exec("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify(state)),
  commit:(p,{blocks=[],drops=[],survival,players=[]})=>storage.transactionSync(()=>{for(const a of blocks)sql.exec('INSERT INTO blocks VALUES (?,?,?,?) ON CONFLICT(x,y,z) DO UPDATE SET block=excluded.block',a.x,a.y,a.z,a.block);for(const d of drops)sql.exec('INSERT INTO drops VALUES (?,?)',d.id,JSON.stringify(d));if(p)savePlayer(p);for(const other of players)if(other!==p)savePlayer(other);if(survival)sql.exec("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify(survival));}),

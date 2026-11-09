@@ -1,10 +1,11 @@
+import {dimensionSQL} from './dimension-store.js';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { SEED, VERSION } from '../world.js';
-export function openStore(path) {
+export function openStore(path,{dimension='overworld'}={}) {
   mkdirSync(dirname(path),{recursive:true});
-  const db=new DatabaseSync(path);
+  const raw=new DatabaseSync(path),db=dimension==='overworld'?raw:{exec:sql=>raw.exec(dimensionSQL(sql,dimension)),prepare:sql=>raw.prepare(dimensionSQL(sql,dimension)),close:()=>raw.close()};
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
     CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY, name TEXT NOT NULL, state TEXT NOT NULL, updated_at INTEGER NOT NULL);
@@ -17,8 +18,8 @@ export function openStore(path) {
   db.prepare('INSERT OR IGNORE INTO metadata VALUES (?,?)').run('world',version);
   const save=db.prepare('INSERT INTO players VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,state=excluded.state,updated_at=excluded.updated_at');
   const block=db.prepare('INSERT INTO blocks VALUES (?,?,?,?) ON CONFLICT(x,y,z) DO UPDATE SET block=excluded.block');
-  const savePlayer=p=>save.run(p.id,p.name,JSON.stringify({x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined||0,placed:p.placed||0,survival:p.survival,hotbar:p.hotbar}),Date.now());
-  return {db,savePlayer,
+  const savePlayer=p=>save.run(p.id,p.name,JSON.stringify({dimension:p.dimension||'overworld',x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,inventory:p.inventory,mined:p.mined||0,placed:p.placed||0,survival:p.survival,hotbar:p.hotbar}),Date.now());
+  return {db,savePlayer,scope:dimension=>openStore(path,{dimension}),
     loadSurvival:()=>{const r=db.prepare("SELECT value FROM metadata WHERE key='survival'").get();return r?JSON.parse(r.value):null;},
     saveSurvival:state=>db.prepare("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(state)),
     commit(p,{blocks=[],drops=[],survival,players=[]}){db.exec('BEGIN IMMEDIATE');try{for(const a of blocks)block.run(a.x,a.y,a.z,a.block);for(const d of drops)db.prepare('INSERT INTO drops VALUES (?,?)').run(d.id,JSON.stringify(d));if(p)savePlayer(p);for(const other of players)if(other!==p)savePlayer(other);if(survival)db.prepare("INSERT INTO metadata VALUES ('survival',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(survival));db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}},

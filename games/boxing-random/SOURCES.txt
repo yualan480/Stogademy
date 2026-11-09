@@ -1,0 +1,5 @@
+Boxing Random package: https://github.com/Unblocked-Games-786/Boxing-Random
+Upstream commit: a9e728fe961aa9b8b8cd1e5c37a9c490e2afe19a
+Original runtime attribution retained. Orbit adds the launcher and online matchmaking.
+The external analytics and service-worker registration are omitted.
+The local GameDistribution SDK adapter is reused from Orbit’s Basket Random integration.

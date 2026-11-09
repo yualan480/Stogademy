@@ -1,3 +1,4 @@
+import {netherBlock,overworldLava} from './nether.js';
 import {lowerBlock,deepCave,deepOre,deepHash} from './underground.js';
 import {isTorch,isPlant,inShape,isStair,blockBoxes} from './shapes.js';
 import { ITEMS } from './items.js';
@@ -17,7 +18,7 @@ export const BLOCKS = {
 };
 for(const [id,item] of Object.entries(ITEMS))if(item.block)BLOCKS[id]={name:item.name,color:'#8e8071'};
 export const SLOTS = [2,3,5,10,4,1,6,7];
-export const solid = b => b !== 0 && b !== 8 && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b)&&b!==50&&b!==52;
+export const solid = b => b !== 0 && b !== 8 && b!==54 && b!==62 && b!==63 && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b)&&b!==50&&b!==52;
 export const inside = (x,y,z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z) && x >= -SIZE/2 && x < SIZE/2 && z >= -SIZE/2 && z < SIZE/2 && y >= MIN_Y && y < HEIGHT;
 export function hash(x,y=0,z=0) { let h = Math.imul(x ^ SEED, 374761393) ^ Math.imul(y,668265263) ^ Math.imul(z,2147483647); h = Math.imul(h ^ h>>>13,1274126177); return ((h ^ h>>>16)>>>0)/4294967295; }
 const mix=(a,b,t)=>a+(b-a)*t, smooth=t=>t*t*(3-2*t);
@@ -99,16 +100,16 @@ export function raycast(p,get,reach=6) {
   for(let t=0;t<=reach;t+=.035) {
     const a={x:Math.floor(eye.x+d.x*t),y:Math.floor(eye.y+d.y*t),z:Math.floor(eye.z+d.z*t)};
     const b=get(a.x,a.y,a.z);
-    if(b&&b!==8&&inShape(b,eye.x+d.x*t-a.x,eye.y+d.y*t-a.y,eye.z+d.z*t-a.z)){const place=previous&&previous.x===a.x&&previous.y===a.y&&previous.z===a.z?{...a,y:a.y+1}:previous;return {...a,block:b,place};}
+    if(b&&b!==8&&b!==54&&b!==62&&b!==63&&inShape(b,eye.x+d.x*t-a.x,eye.y+d.y*t-a.y,eye.z+d.z*t-a.z)){const place=previous&&previous.x===a.x&&previous.y===a.y&&previous.z===a.z?{...a,y:a.y+1}:previous;return {...a,block:b,place};}
     previous=a;
   }
   return null;
 }
 
 // Hand-mining times in milliseconds. Bedrock has no break duration.
-export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000,39:3900,40:3900,41:3500,42:4500,43:4500,44:5000,45:5000,46:5000,47:6500,48:4500,49:2000,50:1000,51:300,52:1000});
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000,39:3900,40:3900,41:3500,42:4500,43:4500,44:5000,45:5000,46:5000,47:6500,48:4500,49:2000,50:1000,51:300,52:1000,53:75000,54:0,55:1600,56:700,57:1000,58:3000,59:3000,60:3000,61:2600,62:0,63:0});
 export const PICKUP_DELAY_MS = 750;
 
 // Resources only overlay natural stone; stored edits always take precedence.
 export function plantAt(x,z){let n=Math.imul(x+203*71,374761393)^Math.imul(z+203*13,668265263);n=Math.imul(n^n>>>13,1274126177);const value=((n^n>>>16)>>>0)/4294967295;return value>.985?(value>.993?33:32):value>.82?31:0;}
-export function resourceBlock(x,y,z){const b=baseBlock(x,y,z);if(b===0&&y===terrain(x,z).height+1&&baseBlock(x,y-1,z)===1)return plantAt(x,z);if(b===39)return deepOre(x,y,z);if(b!==3)return b;const h=hash(x,y,z);if(y<7&&h>.993)return 17;if(y<12&&h>.98)return 15;if(y<20&&h>.965)return 16;if(y<30&&h>.92)return 14;if(h>.84)return 13;if(h<.025)return 12;if(y>=0&&y<40&&deepHash(x,y+991,z)>.94)return 41;return b;}
+export function resourceBlock(x,y,z,dimension='overworld'){if(!inside(x,y,z))return 0;if(dimension==='nether')return inside(x,y,z)?netherBlock(x,y,z):0;const b=baseBlock(x,y,z);if(b===0&&overworldLava(x,y,z))return 54;if(b===0&&y===terrain(x,z).height+1&&baseBlock(x,y-1,z)===1)return plantAt(x,z);if(b===39)return deepOre(x,y,z);if(b!==3)return b;const h=hash(x,y,z);if(y<12&&h>.98)return 15;if(y<20&&h>.965)return 16;if(y<30&&h>.92)return 14;if(h>.84)return 13;if(h<.025)return 12;if(y>=0&&y<40&&deepHash(x,y+991,z)>.94)return 41;return b;}

@@ -80,7 +80,10 @@
     "181": "entity/shield_base_nopattern.png (plate model)",
     "240": "items/raw_copper.png",
     "241": "items/copper_ingot.png",
-    "242": "items/redstone.png"
+    "242": "items/redstone.png",
+    "243": "items/flint_and_steel.png",
+    "244": "items/lava_bucket.png",
+    "245": "items/quartz.png"
   },
   "blocks": {
     "0": "blocks/grass_block_top.png",

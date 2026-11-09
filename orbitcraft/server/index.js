@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici';
 import { openStore } from './db.js';
-import { Game } from './game.js';
+import { Dimensions } from './dimensions.js';
 import { authenticate } from './auth.js';
 import { welcome,sender,receive } from './protocol.js';
 if(process.env.HTTPS_PROXY) setGlobalDispatcher(new EnvHttpProxyAgent());
@@ -15,7 +15,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||8787),dev=process.env.ORBITCRAFT_DEV==='1';
 if(dev && host!=='127.0.0.1' && host!=='localhost')throw new Error('Development guest mode must bind to localhost.');
 const store=openStore(process.env.ORBITCRAFT_DB||resolve(root,'orbitcraft/data/world.sqlite'));
-const game=new Game(store);
+const game=new Dimensions(store);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');

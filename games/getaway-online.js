@@ -37,9 +37,9 @@
   if (!SB || !window.WebSocket || !document.body) return;   // no matchmaking server: the game stays local only
 
   var requestedGame=document.currentScript&&document.currentScript.getAttribute('data-game');
-  var GAME_KIND=['rooftop-snipers','basket-random','soccer-random'].indexOf(requestedGame)>=0?requestedGame:'getaway';
-  var IS_RANDOM=GAME_KIND==='basket-random'||GAME_KIND==='soccer-random';
-  var GAME_TITLE=GAME_KIND==='soccer-random'?'Soccer Random':GAME_KIND==='basket-random'?'Basket Random':GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=IS_RANDOM?1:GAME_KIND==='rooftop-snipers'?2:3;
+  var GAME_KIND=['rooftop-snipers','basket-random','soccer-random','boxing-random'].indexOf(requestedGame)>=0?requestedGame:'getaway';
+  var IS_RANDOM=GAME_KIND.endsWith('-random');
+  var GAME_TITLE=GAME_KIND==='boxing-random'?'Boxing Random':GAME_KIND==='soccer-random'?'Soccer Random':GAME_KIND==='basket-random'?'Basket Random':GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=IS_RANDOM?1:GAME_KIND==='rooftop-snipers'?2:3;
   var CONTROL_INDICES=Array.from({length:CONTROL_COUNT},function(_,i){return i;});
 
   /* ---- Seat controls: three keys for Getaway, two for Rooftop Snipers. ---- */
@@ -717,7 +717,7 @@
   function hostStart() {
     if (!isHost || members().length < 2 || phase !== 'lobby') return;
     clearTimeout(autoT); autoT = 0;
-    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)||(GAME_KIND==='basket-random'&&!window.basketReady)||(GAME_KIND==='soccer-random'&&!window.soccerReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
+    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)||(GAME_KIND==='basket-random'&&!window.basketReady)||(GAME_KIND==='soccer-random'&&!window.soccerReady)||(GAME_KIND==='boxing-random'&&!window.boxingReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
     sendRoom('start', {});
     enterPlay(0);
   }
@@ -839,4 +839,5 @@
   if(GAME_KIND==='rooftop-snipers')window.RooftopOnline=window.GetawayOnline;
   if(GAME_KIND==='basket-random')window.BasketOnline=window.GetawayOnline;
   if(GAME_KIND==='soccer-random')window.SoccerOnline=window.GetawayOnline;
+  if(GAME_KIND==='boxing-random')window.BoxingOnline=window.GetawayOnline;
 })();
