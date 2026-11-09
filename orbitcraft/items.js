@@ -1,9 +1,10 @@
+import {RECIPE_ADDITIONS} from './recipe-additions.js';
 // Shared item definitions and recipes. The server validates every transaction.
 export const PUNCH_DAMAGE=1; // Half a heart before armor or shields.
 export const ITEMS={};
 const add=(id,name,extra={})=>ITEMS[id]={id,name,...extra};
-for(const [id,name] of [[11,'Cobblestone'],[12,'Gravel'],[13,'Coal ore'],[14,'Iron ore'],[15,'Diamond ore'],[16,'Gold ore'],[17,'Ancient debris'],[18,'Crafting table'],[19,'Furnace'],[20,'Bed'],[21,'Farmland'],[22,'Wheat crop'],[23,'Chest'],[24,'Blast furnace'],[25,'Torch'],[26,'Bed head'],[27,'Wall torch'],[28,'Wall torch'],[29,'Wall torch'],[30,'Wall torch'],[31,'Grass'],[32,'Poppy'],[33,'Daisy'],[34,'Oak stairs'],[35,'Oak stairs'],[36,'Oak stairs'],[37,'Oak stairs'],[38,'Oak sign']])add(id,name,{block:true});
-for(const [id,name] of [[100,'Stick'],[101,'Coal'],[102,'Raw iron'],[103,'Iron ingot'],[104,'Raw gold'],[105,'Gold ingot'],[106,'Diamond'],[107,'Netherite scrap'],[108,'Netherite ingot'],[109,'Raw meat'],[110,'Cooked meat'],[111,'Wheat'],[112,'Bread'],[113,'Seeds'],[114,'Raw fish'],[115,'Cooked fish'],[116,'Wool'],[117,'Apple'],[118,'Rotten flesh'],[119,'Bone'],[180,'Fishing rod'],[181,'Shield'],[230,'Gunpowder'],[231,'String'],[232,'Oak boat'],[233,'Bucket'],[234,'Water bucket'],[235,'Bow'],[236,'Arrow'],[237,'Feather'],[238,'Flint'],[239,'Ender pearl']])add(id,name);
+for(const [id,name] of [[11,'Cobblestone'],[12,'Gravel'],[13,'Coal ore'],[14,'Iron ore'],[15,'Diamond ore'],[16,'Gold ore'],[17,'Ancient debris'],[18,'Crafting table'],[19,'Furnace'],[20,'Bed'],[21,'Farmland'],[22,'Wheat crop'],[23,'Chest'],[24,'Blast furnace'],[25,'Torch'],[26,'Bed head'],[27,'Wall torch'],[28,'Wall torch'],[29,'Wall torch'],[30,'Wall torch'],[31,'Grass'],[32,'Poppy'],[33,'Daisy'],[34,'Oak stairs'],[35,'Oak stairs'],[36,'Oak stairs'],[37,'Oak stairs'],[38,'Oak sign'],[39,'Deepslate'],[40,'Cobbled deepslate'],[41,'Copper ore'],[42,'Deepslate coal ore'],[43,'Deepslate copper ore'],[44,'Deepslate iron ore'],[45,'Deepslate gold ore'],[46,'Deepslate redstone ore'],[47,'Deepslate diamond ore'],[48,'Redstone ore'],[49,'Dripstone block'],[50,'Pointed dripstone'],[51,'Moss block'],[52,'Pointed dripstone']])add(id,name,{block:true});
+for(const [id,name] of [[100,'Stick'],[101,'Coal'],[102,'Raw iron'],[103,'Iron ingot'],[104,'Raw gold'],[105,'Gold ingot'],[106,'Diamond'],[107,'Netherite scrap'],[108,'Netherite ingot'],[109,'Raw meat'],[110,'Cooked meat'],[111,'Wheat'],[112,'Bread'],[113,'Seeds'],[114,'Raw fish'],[115,'Cooked fish'],[116,'Wool'],[117,'Apple'],[118,'Rotten flesh'],[119,'Bone'],[180,'Fishing rod'],[181,'Shield'],[230,'Gunpowder'],[231,'String'],[232,'Oak boat'],[233,'Bucket'],[234,'Water bucket'],[235,'Bow'],[236,'Arrow'],[237,'Feather'],[238,'Flint'],[239,'Ender pearl'],[240,'Raw copper'],[241,'Copper ingot'],[242,'Redstone dust']])add(id,name);
 for(const [id,food] of [[109,3],[110,8],[112,5],[114,2],[115,6],[117,4],[118,2]])ITEMS[id].food=food;
 export const TIERS=[{name:'Wooden',base:120,material:10,tier:0,speed:2,uses:59},{name:'Stone',base:130,material:11,tier:1,speed:4,uses:131},{name:'Iron',base:140,material:103,tier:2,speed:6,uses:250},{name:'Gold',base:150,material:105,tier:0,speed:12,uses:32},{name:'Diamond',base:160,material:106,tier:3,speed:8,uses:1561},{name:'Netherite',base:170,material:108,tier:4,speed:9,uses:2031}];
 const tools=['pickaxe','axe','sword','shovel','hoe'];
@@ -29,10 +30,11 @@ for(const t of TIERS)for(let i=0;i<5;i++){
 }
 recipe('netherite','Netherite ingot',{107:4,105:4},108,1,'table');
 for(const [id,item] of Object.entries(ITEMS))if(item.slot&&Number(id)!==181){const i=['helmet','chestplate','leggings','boots'].indexOf(item.slot),n=[5,8,7,4][i];recipe('armor'+id,item.name,Number(id)>=210&&Number(id)<214?{[200+i]:1,108:1}:{[item.material]:n},Number(id),1,'table');}
-export const SMELTING={11:3,102:103,104:105,17:107,109:110,114:115};
+RECIPES.push(...RECIPE_ADDITIONS);
+export const SMELTING={240:241,40:39,11:3,102:103,104:105,17:107,109:110,114:115};
 export const FUEL={101:8,5:2,10:1,100:.5};
 export const itemName=id=>ITEMS[id]?.name||({1:'Grass block',2:'Dirt',3:'Stone',4:'Sand',5:'Oak log',6:'Oak leaves',7:'Snow',8:'Water',9:'Bedrock',10:'Oak planks'})[id]||'Item';
-export const isBlock=id=>id>0&&id<=38;
+export const isBlock=id=>id>0&&id<=52;
 export const defaultHotbar=[2,3,5,10,4,1,6,7,0];
 
 // Durable equipment occupies one inventory slot per item.

@@ -1,0 +1,2 @@
+import {dungeonAt,deepHash} from '../underground.js';
+export function seedDungeonChest(s,a){const key=`${a.x},${a.y},${a.z}`;if(s.world.chests[key]||s.g.edits.has(key)||s.g.get(a.x,a.y,a.z)!==23||!dungeonAt(a.x,a.y,a.z))return;s.world.chests[key]={112:2+Math.floor(deepHash(a.x,45,a.z)*3),103:1+Math.floor(deepHash(a.x,46,a.z)*3),231:2+Math.floor(deepHash(a.x,47,a.z)*4),236:3+Math.floor(deepHash(a.x,48,a.z)*5)};if(deepHash(a.x,49,a.z)>.85)s.world.chests[key][106]=1;}

@@ -1,3 +1,4 @@
+import {seedDungeonChest} from './dungeons.js';
 import {furnaceXP} from './experience.js';
 import {stacks,setLayout} from '../inventory.js';
 import {ITEMS,SMELTING,FUEL,stackLimit} from '../items.js';
@@ -10,7 +11,7 @@ export function startFurnace(s,key){const f=s.world.furnaces[key];if(!f||f.job||
 export function containerMessage(s,p,m){
  if(!['container-open','container-close','container-click','container-craft'].includes(m.type))return false;
  if(m.type==='container-close'){s.atomic(p,tx=>returnContainer(p,tx));return true;}
- if(m.type==='container-open'){const kind=m.kind;if(!['hand','table','furnace','chest'].includes(kind))return true;context(s,p,kind);s.atomic(p,tx=>{returnContainer(p,tx);p.survival.container={kind,size:kind==='table'?3:2,grid:Array(kind==='chest'?0:kind==='table'?9:4).fill(null),cursor:null};});return true;}
+ if(m.type==='container-open'){const kind=m.kind;if(!['hand','table','furnace','chest'].includes(kind))return true;context(s,p,kind);s.atomic(p,tx=>{returnContainer(p,tx);if(kind==='chest')seedDungeonChest(s,context(s,p,kind));p.survival.container={kind,size:kind==='table'?3:2,grid:Array(kind==='chest'?0:kind==='table'?9:4).fill(null),cursor:null};});return true;}
  const c=p.survival.container;if(!c)return true;const a=context(s,p,c.kind);
  s.atomic(p,()=>{
   if(m.type==='container-craft'){if(c.kind==='furnace'||c.kind==='chest')return;const r=matchGrid(c.grid,c.size);if(!r)return;if(c.cursor&&(c.cursor.id!==r.out||c.cursor.count+r.count>stackLimit(r.out)))return;if(ITEMS[r.out]?.durability&&(p.inventory[r.out]>0||c.cursor?.id===r.out))throw Error('You already have this tool or armor.');for(let i=0;i<c.grid.length;i++)if(c.grid[i]&&!--c.grid[i].count)c.grid[i]=null;c.cursor={id:r.out,count:(c.cursor?.count||0)+r.count};if(ITEMS[r.out]?.durability)p.survival.durability[r.out]=ITEMS[r.out].durability;return;}

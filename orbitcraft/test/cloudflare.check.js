@@ -1,3 +1,4 @@
+import {MIN_Y} from '../world.js';
 import { Miniflare } from 'miniflare';
 import { build } from 'esbuild';
 import {fileURLToPath} from 'node:url';
@@ -25,7 +26,7 @@ try{
  const mineInput={type:'input',mine:true,yaw:0,pitch:-.9};a.send(mineInput);const held=setInterval(()=>a.send(mineInput),100);let drop;
  try{await b.wait('state',m=>m.players.some(p=>p.name==='Cloud Alice'&&p.mining?.progress>0));await b.wait('block',m=>m.block===0);drop=(await b.wait('drop')).drop;assert.equal((await a.wait('inventory',m=>m.mined===1)).inventory[2],23);}finally{clearInterval(held);a.send({type:'input',yaw:0,pitch:-.9});}
  for(const ws of sockets)ws.close();sockets=[];await sleep(150);await mf.dispose();mf=make();const c=await connect(mf,'alice-token');sockets.push(c.ws);const saved=await c.wait('welcome');assert.equal(saved.inventory[2],23);assert.equal(saved.inventory[18],1);assert.equal(saved.survival.slots.length,36);assert.ok(saved.survival.saturation>=0);assert.equal(saved.placed,1);assert.equal(saved.mined,1);assert.ok(saved.drops.some(d=>d.id===drop.id));assert.equal(saved.history[0].text,'Cloudflare multiplayer works');
- c.send({type:'chunks',chunks:[[Math.floor(edit.x/16),Math.floor(edit.z/16)]]});const chunk=await c.wait('chunk');const index=edit.y*256+((edit.z%16+16)%16)*16+((edit.x%16+16)%16);assert.equal(Buffer.from(chunk.data,'base64')[index],0);
+ c.send({type:'chunks',chunks:[[Math.floor(edit.x/16),Math.floor(edit.z/16)]]});const chunk=await c.wait('chunk');const index=(edit.y-MIN_Y)*256+((edit.z%16+16)%16)*16+((edit.x%16+16)%16);assert.equal(Buffer.from(chunk.data,'base64')[index],0);
  const moving=setInterval(()=>c.send({type:'input',forward:true,jump:true,yaw:0,pitch:-.9}),100);await sleep(350);clearInterval(moving);c.send({type:'input',yaw:0,pitch:-.9});await c.wait('pickup',m=>m.id===drop.id);assert.equal((await c.wait('inventory',m=>m.inventory[2]===24)).inventory[2],24);
  assert.equal((await mf.dispatchFetch('https://study.test/orbitcraft/socket',{headers:{Upgrade:'websocket',Origin:'https://evil.test'}})).status,403);
  console.log('PASS: actual Cloudflare workerd runtime: real WebSockets, verified identity mapping, timed mining, shared drops and pickup, block edits, inventory, chat, SQLite persistence after Durable Object restart, origin rejection.');

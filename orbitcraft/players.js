@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {validSkin} from './skins.js';
 // Modern 64×64 player skin layout, including the outer clothing layer.
-function skinBox(w,h,d,u,v,pw,ph,pd){const geometry=new THREE.BoxGeometry(w,h,d),rects=[[u,v+pd,pd,ph],[u+pd+pw,v+pd,pd,ph],[u+pd,v,pw,pd],[u+pd+pw,v,pw,pd],[u+2*pd+pw,v+pd,pw,ph],[u+pd,v+pd,pw,ph]],uv=geometry.attributes.uv;for(let face=0;face<6;face++){const [x,y,a,b]=rects[face];for(let i=0;i<4;i++)uv.setXY(face*4+i,(x+(i%2)*a)/64,1-(y+(i<2?0:b))/64);}return geometry;}
+export function skinBox(w,h,d,u,v,pw,ph,pd,textureHeight=64){const geometry=new THREE.BoxGeometry(w,h,d),rects=[[u,v+pd,pd,ph],[u+pd+pw,v+pd,pd,ph],[u+pd,v,pw,pd],[u+pd+pw,v,pw,pd],[u+2*pd+pw,v+pd,pw,ph],[u+pd,v+pd,pw,ph]],uv=geometry.attributes.uv;for(let face=0;face<6;face++){const [x,y,a,b]=rects[face];for(let i=0;i<4;i++)uv.setXY(face*4+i,(x+(i%2)*a)/64,1-(y+(i<2?0:b))/textureHeight);}return geometry;}
 export function createPlayerModel(id,skin='steve'){
  const group=new THREE.Group(),head=new THREE.Group();head.position.y=1.35;group.add(head);const material=new THREE.MeshLambertMaterial({alphaTest:.1,transparent:false}),overlay=new THREE.MeshLambertMaterial({alphaTest:.1,transparent:true});material.userData.owned=overlay.userData.owned=true;
  function part(parent,w,h,d,x,y,z,base,outer,pixels){for(const [layer,coords]of [base,outer].entries()){const mesh=new THREE.Mesh(skinBox(w*(layer?1.045:1),h*(layer?1.025:1),d*(layer?1.045:1),...coords,...pixels),layer?overlay:material);mesh.position.set(x,y,z);parent.add(mesh);}}

@@ -1,12 +1,13 @@
+import {furnaceFacing,furnaceView} from '../furnaces.js';
 import {publicSign} from './signs.js';
 import {stepRiding} from './boats.js';
-import {isTorch,isPlant,isStair} from '../shapes.js';
-import {chunkOf,chunkKey,inRange,renderDistance,SIMULATION_DISTANCE,MAX_CACHED_CHUNKS} from '../chunks.js';
+import {isTorch,isPlant,isStair,isSpike} from '../shapes.js';
+import {encodeChunk,chunkOf,chunkKey,inRange,renderDistance,SIMULATION_DISTANCE,MAX_CACHED_CHUNKS} from '../chunks.js';
 import {placeBed} from './beds.js';
 import { stacks } from '../inventory.js';
 import { Survival } from './survival.js';
 import { isBlock,ITEMS } from '../items.js';
-import { CHUNK, HEIGHT, SIZE, SLOTS, inside, resourceBlock, terrain, chunkIndex, solid, collides, overlaps, step, raycast, MINING_MS, PICKUP_DELAY_MS } from '../world.js';
+import { CHUNK, HEIGHT,MIN_Y,CHUNK_HEIGHT, SIZE, SLOTS, inside, resourceBlock, terrain, chunkIndex, solid, collides, overlaps, step, raycast, MINING_MS, PICKUP_DELAY_MS } from '../world.js';
 const key=(x,y,z)=>`${x},${y},${z}`;
 export class Game {
   constructor(store,{now=()=>Date.now()}={}) {this.now=now;this.drops=new Map(store.drops().map(d=>[d.id,d]));this.dirtyDrops=new Set();this.dropMoves=new Map();this.frames=0;this.store=store;this.players=new Map();this.edits=new Map(store.changes().map(b=>[key(b.x,b.y,b.z),b.block]));this.chunks=new Map();this.survival=new Survival(this);}
@@ -17,8 +18,8 @@ export class Game {
   };
   chunk(cx,cz) {
     const k=`${cx},${cz}`;if(this.chunks.has(k)){const data=this.chunks.get(k);this.chunks.delete(k);this.chunks.set(k,data);return data;}
-    const c=new Uint8Array(CHUNK*CHUNK*HEIGHT);
-    for(let y=0;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)c[chunkIndex(x,y,z)]=this.edits.get(key(cx*CHUNK+x,y,cz*CHUNK+z))??resourceBlock(cx*CHUNK+x,y,cz*CHUNK+z);
+    const c=new Uint8Array(CHUNK*CHUNK*CHUNK_HEIGHT);
+    for(let y=MIN_Y;y<HEIGHT;y++)for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++)c[chunkIndex(x,y,z)]=this.edits.get(key(cx*CHUNK+x,y,cz*CHUNK+z))??resourceBlock(cx*CHUNK+x,y,cz*CHUNK+z);
     this.chunks.set(k,c);this.survival?.water.seedChunk(cx,cz,c);while(this.chunks.size>MAX_CACHED_CHUNKS)this.chunks.delete(this.chunks.keys().next().value);return c;
   }
   spawn() {
@@ -102,7 +103,7 @@ export class Game {
   }
   tick(dt=.05){
     dt=Math.min(.1,Math.max(0,dt));const now=this.now();
-    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;if(!stepRiding(this.survival,p,dt,(x,y,z)=>this.movementBlock(p,x,y,z))){for(let remaining=dt;remaining>0;remaining-=1/120)step(p,p.input,Math.min(remaining,1/120),(x,y,z)=>this.movementBlock(p,x,y,z));}p.inputElapsed=(p.inputElapsed||0)+dt;if(!Number.isFinite(p.y)||p.y<1)Object.assign(p,this.spawn());this.mine(p,now);}
+    for(const p of this.players.values()){if(p.survival.health<=0||p.survival.sleeping)continue;if(!stepRiding(this.survival,p,dt,(x,y,z)=>this.movementBlock(p,x,y,z))){for(let remaining=dt;remaining>0;remaining-=1/120)step(p,p.input,Math.min(remaining,1/120),(x,y,z)=>this.movementBlock(p,x,y,z));}p.inputElapsed=(p.inputElapsed||0)+dt;if(!Number.isFinite(p.y)||p.y<MIN_Y+1)Object.assign(p,this.spawn());this.mine(p,now);}
     this.moveDrops(dt,now);this.survival.tick(dt);
     const state=[...this.players.values()].map(p=>({...this.public(p),vy:p.vy,seq:p.seq,inputElapsed:p.inputElapsed||0,mining:p.mining?{x:p.mining.x,y:p.mining.y,z:p.mining.z,block:p.mining.block,progress:Math.min(.999,p.mining.elapsed/p.mining.duration)}:null}));
     const locators=state.filter(q=>(q.health??20)>0).map(({id,name,x,y,z})=>({id,name,x,y,z}));
@@ -113,7 +114,7 @@ export class Game {
       const index=((this.chunkCursor||0)+i)%active.length,p=active[index],center=chunkOf(p.x,p.z);
       const candidates=[...p.pendingChunks].filter(([, [x,z]])=>Math.abs(x-center.x)<=p.viewDistance&&Math.abs(z-center.z)<=p.viewDistance).sort((a,b)=>(a[1][0]-center.x)**2+(a[1][1]-center.z)**2-((b[1][0]-center.x)**2+(b[1][1]-center.z)**2));
       if(!candidates.length){p.pendingChunks.clear();continue;}const [key,[x,z]]=candidates[0];p.pendingChunks.delete(key);p.sentChunks.add(key);
-      p.send({type:'chunk',x,z,signs:Object.values(this.survival.world.signs||{}).filter(s=>Math.floor(s.x/CHUNK)===x&&Math.floor(s.z/CHUNK)===z).map(publicSign),beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:btoa(String.fromCharCode(...this.chunk(x,z)))});this.chunkCursor=index+1;break;
+      p.send({type:'chunk',x,z,furnaces:Object.entries(this.survival.world.furnaces).map(([key,f])=>furnaceView(key,f)).filter(f=>Math.floor(f.x/CHUNK)===x&&Math.floor(f.z/CHUNK)===z),signs:Object.values(this.survival.world.signs||{}).filter(s=>Math.floor(s.x/CHUNK)===x&&Math.floor(s.z/CHUNK)===z).map(publicSign),beds:Object.values(this.survival.world.beds||{}).filter(b=>[b.foot,b.head].some(a=>Math.floor(a.x/CHUNK)===x&&Math.floor(a.z/CHUNK)===z)),data:encodeChunk(this.chunk(x,z))});this.chunkCursor=index+1;break;
     }
 
   }
@@ -147,14 +148,15 @@ export class Game {
     const offhand=m.hand==='offhand',held=p.hotbar?.[p.selected],source=p.survival.offhand;
     let id=offhand?source?.id:m.block;const spend=id;
     if(offhand&&p.inventory[held]>0&&!(ITEMS[held]?.tool||held===180))throw Error('Hold a tool in your right hand to build with the off-hand.');
-    if(!isBlock(id)||[8,9,21,22,26,27,28,29,30].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
+    if(!isBlock(id)||[8,9,21,22,26,27,28,29,30,52].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
     const a=hit.place;
-    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||isTorch(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===38)throw Error('Cannot place here.');
+    if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||isTorch(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===38||isSpike(this.get(a.x,a.y,a.z)))throw Error('Cannot place here.');
     if(isStair(id))id=34+((Math.round(p.yaw/(Math.PI/2))%4+4)%4);
+    if(id===50){if(a.y<hit.y)id=52;else if(a.y<=hit.y)throw Error('Place pointed dripstone on a floor or ceiling.');}
     if(id===38&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Place the sign on solid ground.');
     if(id===20){placeBed(this.survival,p,a,offhand);return;}
     if(id===25){if(this.get(a.x,a.y,a.z)!==0||!solid(hit.block))throw Error('Attach the torch to a solid surface.');const dx=a.x-hit.x,dz=a.z-hit.z;if(a.y>hit.y)id=25;else if(dx===1)id=27;else if(dx===-1)id=28;else if(dz===1)id=29;else if(dz===-1)id=30;else throw Error('Cannot attach a torch underneath a block.');}if(isPlant(id)&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Plants need solid ground.');
     if(!isTorch(id)&&!isPlant(id)&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');
-    this.survival.atomic(p,tx=>{if(offhand){if(!--source.count)p.survival.offhand=null;}else p.inventory[spend]--;p.placed++;tx.block(a,id);});
+    this.survival.atomic(p,tx=>{if(offhand){if(!--source.count)p.survival.offhand=null;}else p.inventory[spend]--;p.placed++;if([19,24].includes(id)){const facing=furnaceFacing(p.yaw);this.survival.world.furnaces[key(a.x,a.y,a.z)]={output:{},fuel:0,facing};tx.block({...a,furnace:{facing,lit:false}},id);}else tx.block(a,id);});
   }
 }

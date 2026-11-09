@@ -1,0 +1,2 @@
+// Reference recipes using items already supported in Orbitcraft.
+export const RECIPE_ADDITIONS=[{"id":"reference_white_wool_0","name":"White Wool","ingredients":{"231":4},"out":116,"count":1,"station":"hand","pattern":[231,231,231,231]},{"id":"reference_furnace_deepslate","name":"Furnace (cobbled deepslate)","ingredients":{"40":8},"out":19,"count":1,"station":"table","pattern":[40,40,40,40,0,40,40,40,40]},{"id":"reference_dripstone","name":"Dripstone block","ingredients":{"50":4},"out":49,"count":1,"station":"hand","pattern":[50,50,50,50]}];

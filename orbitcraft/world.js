@@ -1,9 +1,12 @@
+import {lowerBlock,deepCave,deepOre,deepHash} from './underground.js';
 import {isTorch,isPlant,inShape,isStair,blockBoxes} from './shapes.js';
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
+// The lower-world extension preserves saved edit coordinates and existing surface geometry.
 export const JUMP_DURATION_SECONDS=.75,JUMP_GRAVITY=64/3,JUMP_VELOCITY=8;
 export const VERSION = 1, SEED = 481203, SIZE = 1024, HEIGHT = 320, CHUNK = 16, SEA = 13;
+export const MIN_Y=-64,CHUNK_HEIGHT=HEIGHT-MIN_Y;
 export const BLOCKS = {
   1: { name: 'Grass', color: '#70a745' }, 2: { name: 'Dirt', color: '#926342' },
   3: { name: 'Stone', color: '#9298a0' }, 4: { name: 'Sand', color: '#e7ce8c' },
@@ -13,8 +16,8 @@ export const BLOCKS = {
 };
 for(const [id,item] of Object.entries(ITEMS))if(item.block)BLOCKS[id]={name:item.name,color:'#8e8071'};
 export const SLOTS = [2,3,5,10,4,1,6,7];
-export const solid = b => b !== 0 && b !== 8 && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b);
-export const inside = (x,y,z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z) && x >= -SIZE/2 && x < SIZE/2 && z >= -SIZE/2 && z < SIZE/2 && y >= 0 && y < HEIGHT;
+export const solid = b => b !== 0 && b !== 8 && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b)&&b!==50&&b!==52;
+export const inside = (x,y,z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z) && x >= -SIZE/2 && x < SIZE/2 && z >= -SIZE/2 && z < SIZE/2 && y >= MIN_Y && y < HEIGHT;
 export function hash(x,y=0,z=0) { let h = Math.imul(x ^ SEED, 374761393) ^ Math.imul(y,668265263) ^ Math.imul(z,2147483647); h = Math.imul(h ^ h>>>13,1274126177); return ((h ^ h>>>16)>>>0)/4294967295; }
 const mix=(a,b,t)=>a+(b-a)*t, smooth=t=>t*t*(3-2*t);
 function noise(x,z,scale) { x/=scale;z/=scale;const a=Math.floor(x),b=Math.floor(z),u=smooth(x-a),v=smooth(z-b);return mix(mix(hash(a,0,b),hash(a+1,0,b),u),mix(hash(a,0,b+1),hash(a+1,0,b+1),u),v); }
@@ -29,7 +32,8 @@ export function terrain(x,z) {
 const treeAt=(x,z)=> { const t=terrain(x,z);return t.biome==='Forest' && t.height>SEA+1 && hash(x,81,z)>.978 ? t.height : -100; };
 export function baseBlock(x,y,z) {
   if (!inside(x,y,z)) return 0;
-  if (y===0) return 9;
+  if(y<0)return lowerBlock(x,y,z);
+  if(y<=3&&deepCave(x,y,z))return 0;
   if (y>54) return 0; // Original terrain and trees end here; higher space is buildable air.
   const {height:h,biome}=terrain(x,z);
   if(y<=h) {
@@ -49,12 +53,12 @@ export function baseBlock(x,y,z) {
   }
   return 0;
 }
-export const chunkIndex=(x,y,z)=>y*CHUNK*CHUNK+z*CHUNK+x;
+export const chunkIndex=(x,y,z)=>(y-MIN_Y)*CHUNK*CHUNK+z*CHUNK+x;
 export const playerHeight=p=>p.crouching?1.5:1.8;
 export const eyeHeight=p=>p.crouching?1.27:1.62;
 export function overlaps(x,y,z,p) { return x+1>p.x-.3 && x<p.x+.3 && y+1>p.y && y<p.y+playerHeight(p) && z+1>p.z-.3 && z<p.z+.3; }
 export function collides(p,get) {
-  if(p.x< -SIZE/2+.3 || p.x>SIZE/2-.3 || p.z< -SIZE/2+.3 || p.z>SIZE/2-.3 || p.y<1 || p.y>HEIGHT+32) return true;
+  if(p.x< -SIZE/2+.3 || p.x>SIZE/2-.3 || p.z< -SIZE/2+.3 || p.z>SIZE/2-.3 || p.y<MIN_Y+1 || p.y>HEIGHT+32) return true;
   for(let x=Math.floor(p.x-.3);x<=Math.floor(p.x+.3);x++) for(let y=Math.floor(p.y);y<=Math.floor(p.y+playerHeight(p)-.001);y++) for(let z=Math.floor(p.z-.3);z<=Math.floor(p.z+.3);z++) {const id=get(x,y,z),height=id===20||id===26?.6:id===23?.875:1;if(isStair(id)){for(const [a,b,c,d,e,f]of blockBoxes(id))if(p.x+.3>x+a&&p.x-.3<x+d&&p.z+.3>z+c&&p.z-.3<z+f&&p.y<y+e&&p.y+playerHeight(p)-.001>y+b)return true;continue;}if(solid(id)&&p.y<y+height&&p.y+playerHeight(p)-.001>y)return true;}
   return false;
 }
@@ -101,9 +105,9 @@ export function raycast(p,get,reach=6) {
 }
 
 // Hand-mining times in milliseconds. Bedrock has no break duration.
-export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000});
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000,39:3900,40:3900,41:3500,42:4500,43:4500,44:5000,45:5000,46:5000,47:6500,48:4500,49:2000,50:1000,51:300,52:1000});
 export const PICKUP_DELAY_MS = 750;
 
 // Resources only overlay natural stone; stored edits always take precedence.
 export function plantAt(x,z){let n=Math.imul(x+203*71,374761393)^Math.imul(z+203*13,668265263);n=Math.imul(n^n>>>13,1274126177);const value=((n^n>>>16)>>>0)/4294967295;return value>.985?(value>.993?33:32):value>.82?31:0;}
-export function resourceBlock(x,y,z){const b=baseBlock(x,y,z);if(b===0&&y===terrain(x,z).height+1&&baseBlock(x,y-1,z)===1)return plantAt(x,z);if(b!==3)return b;const h=hash(x,y,z);if(y<7&&h>.993)return 17;if(y<12&&h>.98)return 15;if(y<20&&h>.965)return 16;if(y<30&&h>.92)return 14;if(h>.84)return 13;if(h<.025)return 12;return b;}
+export function resourceBlock(x,y,z){const b=baseBlock(x,y,z);if(b===0&&y===terrain(x,z).height+1&&baseBlock(x,y-1,z)===1)return plantAt(x,z);if(b===39)return deepOre(x,y,z);if(b!==3)return b;const h=hash(x,y,z);if(y<7&&h>.993)return 17;if(y<12&&h>.98)return 15;if(y<20&&h>.965)return 16;if(y<30&&h>.92)return 14;if(h>.84)return 13;if(h<.025)return 12;if(y>=0&&y<40&&deepHash(x,y+991,z)>.94)return 41;return b;}

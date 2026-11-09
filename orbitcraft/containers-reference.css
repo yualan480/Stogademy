@@ -1,0 +1,70 @@
+@font-face{font-family:InventoryPixel;src:url('./assets/containers/inventory-pixel.ttf') format('truetype');font-display:swap}
+#inventory{box-sizing:content-box!important;--craft-cell:18px!important;width:176px!important;height:166px!important;max-width:none!important;max-height:none!important;padding:0!important;border:0!important;border-radius:0!important;overflow:visible!important;box-shadow:none!important;background:transparent url('./assets/containers/inventory.png') 0 0/176px 166px no-repeat!important;color:#404040;font:8px/1 InventoryPixel,OrbitPixel,monospace!important;image-rendering:pixelated;outline:0}
+#inventory[data-station="table"]{background-image:url('./assets/containers/crafting_table.png')!important}
+#inventory[data-station="furnace"]{background-image:url('./assets/containers/furnace.png')!important}
+#inventory[data-furnace-type="blast"]{background-image:url('./assets/containers/blast_furnace.png')!important}
+#inventory[data-station="chest"]{height:168px!important;background-image:url('./assets/containers/chest.png')!important;background-size:176px 168px!important}
+#inventory .inventory-upper{position:absolute!important;inset:0!important;display:block!important;width:176px!important;height:166px!important;min-height:0!important;max-height:none!important;padding:0!important;margin:0!important}
+#inventory #equipment{position:absolute!important;display:flex;left:7px!important;top:7px!important;gap:0!important;margin:0!important;z-index:2}
+#inventory #equipment button{flex:none;width:18px!important;height:18px!important;min-height:0!important;padding:1px!important;border:0!important;background-color:transparent!important;background-size:16px 16px!important;background-position:center!important;background-repeat:no-repeat!important}
+#inventory .character-panel{position:absolute!important;left:26px!important;top:8px!important;width:50px!important;height:70px!important;display:block;background:transparent!important;margin:0!important;padding:0!important}
+#inventory #character-preview{display:block!important;width:50px!important;height:70px!important;max-height:none!important;object-fit:contain}
+#inventory #offhand-button{position:absolute!important;left:76px!important;top:61px!important;width:18px!important;height:18px!important;padding:1px!important;margin:0!important;z-index:2}
+#inventory #survival-crafting{position:absolute!important;inset:0!important;width:176px!important;height:166px!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;pointer-events:none}
+#inventory button,#inventory select{pointer-events:auto}
+#inventory[data-station] #station-name{position:absolute!important;left:97px!important;top:6px!important;margin:0!important;padding:0!important;text-align:left!important;font:8px/1 InventoryPixel,monospace!important;font-weight:normal!important;color:#404040!important}
+#inventory[data-station="table"] #station-name{left:28px!important;top:6px!important}
+#inventory[data-station="furnace"] #station-name{left:0!important;top:6px!important;width:176px!important;text-align:center!important}
+#inventory .survival-recipe{display:contents!important;margin:0!important;padding:0!important}
+#inventory .survival-recipe>span{display:none!important}
+#inventory #recipe-pattern{position:absolute!important;left:97px!important;top:17px!important;display:grid!important;grid-template-columns:repeat(2,18px)!important;gap:0!important;margin:0!important;padding:0!important}
+#inventory[data-station="table"] #recipe-pattern{left:29px!important;top:16px!important;grid-template-columns:repeat(3,18px)!important}
+#inventory[data-station="furnace"] #recipe-pattern,#inventory[data-station="furnace"] #recipe-output{display:none!important}
+#inventory .ingredient,#inventory #recipe-output,#inventory #offhand-button,#inventory #furnace-output{box-sizing:border-box!important;position:relative;width:18px!important;height:18px!important;min-width:0!important;min-height:0!important;padding:1px!important;border:0!important;border-radius:0!important;background-color:transparent!important;background-position:center!important;background-size:16px 16px!important;background-repeat:no-repeat!important;box-shadow:none!important;font:8px/1 InventoryPixel,monospace!important;text-shadow:1px 1px #3f3f3f!important;color:#fff!important;text-align:right!important;image-rendering:pixelated}
+#inventory #recipe-output{position:absolute!important;left:153px!important;top:27px!important}
+#inventory[data-station="table"] #recipe-output{left:119px!important;top:30px!important;width:26px!important;height:26px!important;padding:5px!important}
+#inventory #inventory-grid,#inventory #inventory-hotbar,#inventory #chest-items{position:absolute!important;left:7px!important;top:83px!important;display:grid!important;grid-template-columns:repeat(9,18px)!important;grid-auto-rows:18px!important;width:162px!important;height:54px!important;gap:0!important;margin:0!important;padding:0!important;max-height:none!important;overflow:visible!important}
+#inventory #inventory-hotbar{top:141px!important;height:18px!important}
+#inventory #inventory-grid button,#inventory #inventory-hotbar button{box-sizing:border-box!important;position:relative!important;flex:none!important;width:18px!important;height:18px!important;min-width:0!important;min-height:0!important;aspect-ratio:auto!important;padding:1px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+#inventory #inventory-hotbar button:before{display:none!important}
+#inventory .swatch{display:block!important;width:16px!important;height:16px!important;margin:0!important;filter:none!important;background-size:16px 16px!important}
+#inventory .amount{position:absolute!important;right:0!important;bottom:0!important;z-index:4;font:8px/1 InventoryPixel,monospace!important;text-shadow:1px 1px #3f3f3f!important;color:#fff!important}
+#inventory button kbd{display:none!important}
+#inventory button[data-slot-area]:hover,#inventory #equipment button:hover,#inventory #recipe-output:not(:disabled):hover{background-color:#ffffff65!important}
+#inventory .inventory-label{display:none;position:absolute!important;left:8px!important;top:72px!important;margin:0!important;padding:0!important;font:8px/1 InventoryPixel,monospace!important;color:#404040!important}
+#inventory[data-station="table"] .inventory-label,#inventory[data-station="furnace"] .inventory-label,#inventory[data-station="chest"] .inventory-label{display:block}
+#inventory #recipe-book{position:absolute!important;left:104px!important;top:61px!important;width:20px!important;height:18px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent url('./assets/containers/recipe_book_button.png') center/20px 18px no-repeat!important}
+#inventory #recipe-book:hover{background-image:url('./assets/containers/recipe_book_button_highlighted.png')!important}
+#inventory[data-station="table"] #recipe-book{left:5px!important;top:34px!important}
+#inventory[data-station="furnace"] #recipe-book{left:20px!important;top:34px!important}
+#inventory #recipe-list:not([hidden]),#inventory #recipe-needs:not([hidden]){position:absolute!important;left:4px!important;top:170px!important;z-index:100;width:168px!important;max-width:none!important;background:#c6c6c6!important;border:1px solid #555;font:8px InventoryPixel,monospace!important;padding:3px!important}
+#inventory #recipe-needs:not([hidden]){top:189px!important}
+#inventory .inventory-help,#inventory .save-note{display:none!important}
+#inventory #chest-controls{position:static!important;padding:0!important;margin:0!important}
+#inventory[data-station="chest"] #chest-controls:before{position:absolute!important;left:8px!important;top:6px!important;margin:0!important;font:8px/1 InventoryPixel,monospace!important;color:#404040!important}
+#inventory #chest-items{top:17px!important}
+#inventory[data-station="chest"] #inventory-grid{top:85px!important}
+#inventory[data-station="chest"] #inventory-hotbar{top:143px!important}
+#inventory[data-station="chest"] .inventory-label{top:74px!important}
+#inventory[data-station="table"] #equipment,#inventory[data-station="table"] .character-panel,#inventory[data-station="table"] #offhand-button,#inventory[data-station="furnace"] #equipment,#inventory[data-station="furnace"] .character-panel,#inventory[data-station="furnace"] #offhand-button,#inventory[data-station="chest"] .inventory-upper{display:none!important}
+#inventory #furnace-controls{position:static!important;margin:0!important;padding:0!important}
+#inventory .furnace-layout{position:static!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important}
+#inventory #furnace-input,#inventory #furnace-fuel,#inventory #furnace-output{position:absolute!important;left:55px!important;top:16px!important}
+#inventory #furnace-fuel{top:52px!important}
+#inventory #furnace-output{left:111px!important;top:30px!important;width:26px!important;height:26px!important;padding:5px!important}
+#inventory .furnace-arrow{position:absolute!important;left:79px!important;top:34px!important;width:24px!important;height:16px!important;background:none!important;clip-path:none!important;overflow:hidden}
+#inventory .furnace-arrow:after{height:16px!important;width:var(--smelt-progress,0%)!important;background:transparent url('./assets/containers/container_furnace_burn_progress.png') left top/24px 16px no-repeat!important}
+#inventory .furnace-flame{position:absolute!important;left:56px!important;top:36px!important;width:14px!important;height:14px!important;background:none!important;filter:none!important}
+#inventory .burning .furnace-flame{background:transparent url('./assets/containers/container_furnace_lit_progress.png') bottom/14px 14px no-repeat!important}
+#inventory .durability-strip{left:2px!important;bottom:2px!important;width:13px!important;height:2px!important;border:0!important}
+#inventory .durability-strip:after{height:1px!important}
+#inventory .drag-preview-item{inset:1px!important;background-size:16px 16px!important;font:8px/1 InventoryPixel,monospace!important;text-shadow:1px 1px #333!important}
+#inventory #carried-item{width:16px!important;height:16px!important;padding:0!important;font:8px/1 InventoryPixel,monospace!important;text-shadow:1px 1px #333!important;background-size:16px 16px!important}
+#inventory .dialog-head{left:auto!important;right:4px!important;top:3px!important;z-index:6;opacity:0}
+#inventory .dialog-head:hover,#inventory .dialog-head:focus-within{opacity:1}
+#inventory .dialog-head button{width:9px!important;height:9px!important;padding:0!important;border:0!important;font:8px InventoryPixel,monospace!important;color:#404040;background:transparent}
+@media(pointer:coarse){#inventory .dialog-head{opacity:1}#inventory .dialog-head button{width:12px!important;height:12px!important}}
+#recipe-reference{width:min(700px,94vw);height:min(620px,88vh);box-sizing:border-box;padding:18px;background:#c6c6c6;color:#333;border:3px outset #eee;border-radius:0;font:12px/1.4 InventoryPixel,OrbitPixel,monospace}#recipe-reference h2{font-size:18px;margin:0 0 10px}#recipe-reference input,#recipe-reference select{font:12px InventoryPixel,monospace;padding:7px;border:2px inset #eee;background:#888;color:white;border-radius:0}#recipe-reference input{width:48%;margin-right:2%}#recipe-reference select{width:48%}.recipe-library-layout{display:grid;grid-template-columns:38% 1fr;gap:14px;height:calc(100% - 135px);min-height:180px}.recipe-library-list{overflow:auto;background:#888;border:2px inset #eee}.recipe-library-list button{display:block;width:100%;padding:7px;border:0;border-bottom:1px solid #666;border-radius:0;background:none;color:white;text-align:left;font:11px/1.3 InventoryPixel,monospace}.recipe-library-list button:hover{background:#aaa}.recipe-library-detail{overflow:auto;padding:4px}.recipe-library-detail h3{margin:0 0 12px;font-size:14px}.recipe-library-pattern{display:flex;align-items:center;gap:9px}.recipe-library-grid{display:grid;grid-template-columns:repeat(3,46px)}.recipe-library-slot{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:46px;height:46px;padding:2px;border:2px inset #eee;background:#888 center/38px 38px no-repeat;color:#fff;text-align:center;font:8px/1.15 InventoryPixel,monospace;overflow-wrap:anywhere;image-rendering:pixelated}.recipe-library-slot span{position:absolute;bottom:0;right:0;text-shadow:1px 1px #333;font-size:12px}.recipe-available{color:#24562b}.recipe-unavailable{color:#6e4b1e}.recipe-variants{display:flex;align-items:center;justify-content:center;gap:10px}#recipe-reference button{font-family:InventoryPixel,monospace}#recipe-reference>button{padding:8px;border:2px outset #eee;border-radius:0;background:#888;color:white;margin-top:10px}@media(max-width:540px){.recipe-library-layout{grid-template-columns:34% 1fr;gap:7px}.recipe-library-grid{grid-template-columns:repeat(3,30px)}.recipe-library-slot{width:30px;height:30px;background-size:26px 26px;font-size:6px}.recipe-library-pattern{gap:4px}#recipe-reference input,#recipe-reference select{width:100%;margin:0 0 5px}.recipe-library-layout{height:calc(100% - 178px)}}
+#inventory .ingredient,#inventory #recipe-output,#inventory #offhand-button,#inventory #furnace-output{display:flex;align-items:flex-end;justify-content:flex-end}
+#inventory #carried-item:not([hidden]),#inventory .drag-preview-item{display:flex;align-items:flex-end;justify-content:flex-end}
+@media(pointer:coarse){#inventory .dialog-head button{width:18px!important;height:18px!important}}

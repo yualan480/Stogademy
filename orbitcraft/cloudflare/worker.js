@@ -1,5 +1,5 @@
 export { OrbitIntelligence } from './intelligence.js';
-import {SIZE,HEIGHT,CHUNK} from '../world.js';
+import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
 import { Game } from '../server/game.js';
 import { authenticate } from '../server/auth.js';
@@ -20,7 +20,7 @@ export class OrbitcraftWorld {
  constructor(ctx,env){this.ctx=ctx;this.env=env;this.store=cloudStore(ctx.storage);this.game=new Game(this.store);this.connections=new Set();this.timer=null;this.lastSave=0;}
  async fetch(request){
   const url=new URL(request.url);
-  if(url.pathname==='/orbitcraft/health')return Response.json({ok:true,players:this.game.players.size,world:'public',release:RELEASE,difficulty:'easy',pvp:true,size:SIZE,height:HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev:false});
+  if(url.pathname==='/orbitcraft/health')return Response.json({ok:true,players:this.game.players.size,world:'public',release:RELEASE,difficulty:'easy',pvp:true,size:SIZE,height:HEIGHT,minY:MIN_Y,chunkHeight:CHUNK_HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev:false});
   if(request.headers.get('Upgrade')?.toLowerCase()!=='websocket')return new Response('WebSocket required',{status:426});
   if(request.headers.get('Origin')!==url.origin)return new Response('Origin denied',{status:403});
   if(this.connections.size>=48)return new Response('World full. Try again soon.',{status:503});

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from '../server/db.js';
 import { Game } from '../server/game.js';
-import { baseBlock,resourceBlock, terrain, HEIGHT, CHUNK, SIZE, chunkIndex, raycast,collides,step,MINING_MS,PICKUP_DELAY_MS } from '../world.js';
+import { baseBlock,resourceBlock, terrain, HEIGHT,MIN_Y, CHUNK, SIZE, chunkIndex, raycast,collides,step,MINING_MS,PICKUP_DELAY_MS } from '../world.js';
 function fixture(t){const dir=mkdtempSync(join(tmpdir(),'orbitcraft-'));const path=join(dir,'world.sqlite');let store=openStore(path),now=10000;const options={now:()=>now},game=new Game(store,options);t.after(()=>{try{store.close();}catch{}rmSync(dir,{recursive:true,force:true});});return {game,store,path,advance(ms,refresh=true){for(let left=ms;left>0;left-=50){now+=Math.min(50,left);if(refresh)for(const p of game.players.values())game.handle(p,{type:'input',...p.input,yaw:p.yaw,pitch:p.pitch});game.tick(Math.min(50,left)/1000);}},reopen(){store.close();store=openStore(path);return new Game(store,options);}};}
 function player(g,id='one'){const out=[];const p=g.join({id,name:id},m=>out.push(m));p.out=out;return p;}
 function begin(g,p){g.handle(p,{type:'input',yaw:p.yaw,pitch:p.pitch,mine:true});}
@@ -31,7 +31,7 @@ test('server rejects inventory spoofing, placement without resources, duplicate 
  const f=fixture(t),{game:g}=f,p=player(g);assert.throws(()=>player(g),/already playing/);
  aim(p,p.x,p.y-1,p.z-3);p.inventory[2]=0;assert.throws(()=>g.handle(p,{type:'place',block:2}),/Collect/);assert.equal(p.placed,0);
  p.lastEdit=0;g.handle(p,{type:'inventory',inventory:{2:9999}});assert.equal(p.inventory[2],0);
- for(let y=1;y<=4;y++)g.edits.set(`10,${y},10`,0);p.x=10.5;p.z=10.5;p.y=1.01;aim(p,10.5,.5,10.5);assert.throws(()=>g.handle(p,{type:'break'}),/Hold/);begin(g,p);f.advance(1500);assert.equal(g.get(10,0,10),9);assert.ok(p.out.some(m=>m.type==='error'&&m.message.includes('Bedrock')));
+ for(let y=MIN_Y+1;y<=MIN_Y+4;y++)g.edits.set(`10,${y},10`,0);p.x=10.5;p.z=10.5;p.y=MIN_Y+1.01;aim(p,10.5,MIN_Y+.5,10.5);assert.throws(()=>g.handle(p,{type:'break'}),/Hold/);begin(g,p);f.advance(1500);assert.equal(g.get(10,MIN_Y,10),9);assert.ok(p.out.some(m=>m.type==='error'&&m.message.includes('Bedrock')));
 });
 test('resource crafting saves and chat uses server identity',t=>{const {game:g,store}=fixture(t),p=player(g);const old=p.inventory[5];g.handle(p,{type:'craft'});assert.equal(p.inventory[5],old-1);assert.equal(p.inventory[10],4);assert.equal(store.loadPlayer(p.id).inventory[10],4);g.handle(p,{type:'chat',text:'Hello world',name:'Imposter'});assert.equal(store.history()[0].name,'one');assert.equal(store.history()[0].text,'Hello world');});
 test('block placement cannot trap another connected player',t=>{const {game:g}=fixture(t),p=player(g),other=player(g,'two');aim(p,p.x,p.y-1,p.z-3);const hit=raycast(p,g.get);assert.ok(hit?.place);Object.assign(other,{x:hit.place.x+.5,y:hit.place.y,z:hit.place.z+.5});assert.throws(()=>g.handle(p,{type:'place',block:2}),/player/);assert.equal(p.placed,0);});

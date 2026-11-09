@@ -1,4 +1,4 @@
-import {eyeHeight} from '../world.js';
+import {eyeHeight,MIN_Y} from '../world.js';
 import {solid,collides} from '../world.js';
 import {returnContainer} from './containers.js';
 export const pearlLoot=(roll=Math.random())=>roll<.5?[[239,1]]:[];
@@ -10,5 +10,5 @@ export function safePearlLanding(s,p,point,a){const n=Math.hypot(a.vx,a.vz)||1;f
 export function tickPearls(s,dt){for(const [id,a]of s.pearls||[]){let hit=false,previous={x:a.x,y:a.y,z:a.z};const steps=Math.max(1,Math.ceil(Math.hypot(a.vx,a.vy,a.vz)*dt/.12)),d=dt/steps;
  for(let i=0;i<steps;i++){previous={x:a.x,y:a.y,z:a.z};a.x+=a.vx*d;a.y+=a.vy*d-6*d*d;a.z+=a.vz*d;a.vy-=12*d;if(solid(s.g.get(Math.floor(a.x),Math.floor(a.y),Math.floor(a.z)))){hit=true;break;}}
  a.age+=dt;if(hit){const p=s.g.players.get(a.owner);if(p&&p.survival.health>0){const destination=safePearlLanding(s,p,previous,a);if(destination){s.atomic(p,tx=>{if(p.survival.boat&&s.world.boats[p.survival.boat])s.world.boats[p.survival.boat].rider=null;p.survival.boat=null;p.survival.sleeping=false;p.survival.bedPose=null;Object.assign(p,destination,{vy:0,fallTop:destination.y,input:{},mining:null,eating:null,sleepAt:null});returnContainer(p,tx);delete p.bowDrawAt;});p.pendingChunks.clear();p.sentChunks.clear();p.send({type:'teleport',position:destination});}else p.send({type:'error',message:'No safe space where that ender pearl landed.'});}}
- if(hit||a.age>8||a.y<0){s.pearls.delete(id);s.g.broadcastNear({type:'pearl-remove',id},a);}}
+ if(hit||a.age>8||a.y<MIN_Y){s.pearls.delete(id);s.g.broadcastNear({type:'pearl-remove',id},a);}}
 }

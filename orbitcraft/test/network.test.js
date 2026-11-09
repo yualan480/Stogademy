@@ -1,3 +1,4 @@
+import {MIN_Y} from '../world.js';
 import test from 'node:test';import assert from 'node:assert/strict';import { spawn } from 'node:child_process';import { mkdtempSync,rmSync } from 'node:fs';import { tmpdir } from 'node:os';import { join } from 'node:path';import WebSocket from 'ws';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function start(db,port,dev=true){const child=spawn(process.execPath,['server/index.js'],{cwd:new URL('..',import.meta.url),env:{...process.env,PORT:String(port),ORBITCRAFT_DB:db,ORBITCRAFT_DEV:dev?'1':'0'},stdio:['ignore','pipe','pipe']});let output='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>output+=b);for(let i=0;i<100;i++){if(output.includes('listening'))return child;if(child.exitCode!==null)throw new Error(output);await sleep(50);}child.kill();throw new Error(output||'Server startup timed out');}
@@ -18,7 +19,7 @@ test('two real WebSocket clients share movement, chat, edits, inventory, disconn
  server=await start(db,port);const c=await connect(port,'dev-Alice');clients.push(c);const saved=await c.wait('welcome');assert.equal(saved.placed,1);assert.equal(saved.mined,1);assert.equal(saved.inventory[2],23);assert.ok(saved.drops.some(d=>d.id===dropped.id));assert.equal(saved.history[0].text,'Hello Bob!');
  const walking=setInterval(()=>c.send({type:'input',forward:true,jump:true,yaw:0,pitch:-.9}),100);await sleep(350);clearInterval(walking);c.send({type:'input',yaw:0,pitch:-.9});
  assert.equal((await c.wait('pickup',m=>m.id===dropped.id)).player,'dev-Alice');assert.equal((await c.wait('inventory',m=>m.inventory[2]===24)).inventory[2],24);
- c.send({type:'chunks',chunks:[[Math.floor(edit.x/16),Math.floor(edit.z/16)]]});const chunk=await c.wait('chunk');const bytes=Buffer.from(chunk.data,'base64'),index=edit.y*256+((edit.z%16+16)%16)*16+((edit.x%16+16)%16);assert.equal(bytes[index],0);
+ c.send({type:'chunks',chunks:[[Math.floor(edit.x/16),Math.floor(edit.z/16)]]});const chunk=await c.wait('chunk');const bytes=Buffer.from(chunk.data,'base64'),index=(edit.y-MIN_Y)*256+((edit.z%16+16)%16)*16+((edit.x%16+16)%16);assert.equal(bytes[index],0);
  c.ws.close();await sleep(100);await stop(server);server=null;server=await start(db,port);const d=await connect(port,'dev-Alice');clients.push(d);const collected=await d.wait('welcome');assert.equal(collected.inventory[2],24);assert.ok(!collected.drops.some(item=>item.id===dropped.id));
  assert.equal((await fetch(`http://127.0.0.1:${port}/orbitcraft/data/world.sqlite`)).status,404);
 });

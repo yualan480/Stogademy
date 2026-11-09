@@ -1,4 +1,4 @@
-import {SIZE,HEIGHT,CHUNK} from '../world.js';
+import {SIZE,HEIGHT,MIN_Y,CHUNK_HEIGHT,CHUNK} from '../world.js';
 import { RELEASE } from '../release.js';
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -19,7 +19,7 @@ const game=new Game(store);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
-  if(url.pathname==='/orbitcraft/health'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({ok:true,players:game.players.size,world:'public',release:RELEASE,pvp:true,size:SIZE,height:HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev}));}
+  if(url.pathname==='/orbitcraft/health'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({ok:true,players:game.players.size,world:'public',release:RELEASE,pvp:true,size:SIZE,height:HEIGHT,minY:MIN_Y,chunkHeight:CHUNK_HEIGHT,chunkSize:CHUNK,simulationDistance:2,dev}));}
   let path;try{path=decodeURIComponent(url.pathname);}catch{res.writeHead(400);return res.end();}
   if(path==='/orbitcraft/vendor/three.module.js')path='/orbitcraft/node_modules/three/build/three.module.js';
   else if(path==='/orbitcraft/vendor/three.core.js')path='/orbitcraft/node_modules/three/build/three.core.js';

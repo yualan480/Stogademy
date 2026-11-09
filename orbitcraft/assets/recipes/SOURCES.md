@@ -1,0 +1,1 @@
+Minecraft Java Edition 1.21.4 crafting recipes and item names from PrismarineJS/minecraft-data. Recipe reference: https://minecraft.wiki/w/Crafting . All 1,557 source recipe variants are included; unsupported items remain reference-only.

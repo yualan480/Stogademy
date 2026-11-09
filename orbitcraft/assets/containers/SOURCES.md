@@ -1,0 +1,1 @@
+Container backgrounds and ASCII glyph artwork from Minecraft Java Edition 1.21.4, mirrored by PrismarineJS/minecraft-assets. Artwork belongs to Mojang/Microsoft. The chest image combines the standard three-row chest and player inventory sections; the font preserves the source bitmap glyph pixels. Reference: https://minecraft.wiki/w/Inventory .

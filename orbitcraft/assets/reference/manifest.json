@@ -77,7 +77,10 @@
     "222": "items/golden_leggings.png",
     "223": "items/golden_boots.png",
     "116": "blocks/white_wool.png",
-    "181": "entity/shield_base_nopattern.png (plate model)"
+    "181": "entity/shield_base_nopattern.png (plate model)",
+    "240": "items/raw_copper.png",
+    "241": "items/copper_ingot.png",
+    "242": "items/redstone.png"
   },
   "blocks": {
     "0": "blocks/grass_block_top.png",
