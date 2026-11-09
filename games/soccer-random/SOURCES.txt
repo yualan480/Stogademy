@@ -1,0 +1,4 @@
+Soccer Random package: https://github.com/Unblocked-Games-786/Soccer-Random
+Upstream commit: 0308dde3602363269715217ce2538982a3342196
+Original runtime attributions retained. Orbit supplies the surrounding launcher and online matchmaking.
+The upstream external popup override, analytics and service-worker registration are omitted; the runtime base URL points to local assets.
