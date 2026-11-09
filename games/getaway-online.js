@@ -49,7 +49,6 @@
   var CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   var ROOM_PREFIX = 'getaway-';
   var rnd = function (n) { return Math.floor(Math.random() * n); };
-  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
   var myId = Math.random().toString(36).slice(2, 10);
   var myName = function () { var n = ''; try { n = window.Leaderboard && window.Leaderboard.getName(); } catch (e) { n = ''; } return String(n || 'Player').slice(0, 20); };
@@ -57,32 +56,42 @@
   var gameCanvas = function () { return document.querySelector('#game canvas'); };
 
   /* ================= realtime: a tiny client for Supabase Realtime (Phoenix channels) ================= */
-  function Chan(rt, name, key) { this.rt = rt; this.topic = 'realtime:' + name; this.key = key; this.h = {}; this.presence = {}; this.joined = false; this.onPresence = null; this.onClose = null; }
+  function Chan(rt, name, key) { this.rt = rt; this.topic = 'realtime:' + name; this.key = key; this.h = {}; this.presence = {}; this.joined = false; this.onPresence = null; this.onClose = null; this.presenceReady = false; this.waiters = new Set(); }
   Chan.prototype.on = function (ev, fn) { this.h[ev] = fn; return this; };
   Chan.prototype.join = function () {
     var self = this;
     return new Promise(function (res, rej) {
       var ref = self.rt.ref(); self.joinRef = ref; self._res = res; self._rej = rej;
       self.rt.send({ topic: self.topic, event: 'phx_join', ref: ref, join_ref: ref,
-        payload: { config: { broadcast: { ack: false, self: false }, presence: { key: self.key }, postgres_changes: [], private: false }, access_token: SB.key } });
-      setTimeout(function () { if (!self.joined) rej(new Error('join timeout')); }, 8000);
+        payload: { config: { broadcast: { ack: false, self: false }, presence: { key: self.key, enabled: true }, postgres_changes: [], private: false }, access_token: SB.key } });
+      self.joinTimer = setTimeout(function () { if (!self.joined) rej(new Error('join timeout')); }, 10000);
     });
   };
+  Chan.prototype.waitPresence = function (test) {
+    var self=this;
+    if(self.presenceReady && test())return Promise.resolve();
+    return new Promise(function(resolve,reject){
+      var timer,waiter={check:function(){if(self.presenceReady && test()){clearTimeout(timer);self.waiters.delete(waiter);resolve();}},cancel:function(){clearTimeout(timer);self.waiters.delete(waiter);reject(new Error('channel closed'));}};
+      timer=setTimeout(function(){self.waiters.delete(waiter);reject(new Error('presence timeout'));},10000);
+      self.waiters.add(waiter);
+    });
+  };
+  Chan.prototype.presenceChanged = function () { this.waiters.forEach(function(w){w.check();});if(this.onPresence)this.onPresence(); };
   Chan.prototype.send = function (ev, payload) { this.rt.send({ topic: this.topic, event: 'broadcast', ref: this.rt.ref(), payload: { type: 'broadcast', event: ev, payload: payload || {} } }); };
   Chan.prototype.track = function (meta) { this.rt.send({ topic: this.topic, event: 'presence', ref: this.rt.ref(), payload: { type: 'presence', event: 'track', payload: meta } }); };
-  Chan.prototype.leave = function () { this.rt.send({ topic: this.topic, event: 'phx_leave', payload: {}, ref: this.rt.ref() }); this.rt.chans.delete(this.topic); this.h = {}; this.onPresence = null; };
+  Chan.prototype.leave = function () { clearTimeout(this.joinTimer);if(!this.joined&&this._rej)this._rej(new Error('channel closed'));this.waiters.forEach(function(w){w.cancel();});this.rt.send({ topic: this.topic, event: 'phx_leave', payload: {}, ref: this.rt.ref() }); this.rt.chans.delete(this.topic); this.h = {}; this.onPresence = null; };
   Chan.prototype._msg = function (m) {
     var p = m.payload || {}, self = this;
     if (m.event === 'phx_reply') {
       if (m.ref === this.joinRef && !this.joined) {
-        if (p.status === 'ok') { this.joined = true; this._res(); } else this._rej(new Error('join refused'));
+        clearTimeout(this.joinTimer);if (p.status === 'ok') { this.joined = true; this._res(); } else this._rej(new Error('join refused'));
       }
     } else if (m.event === 'broadcast') {
       if (p.event && this.h[p.event]) this.h[p.event](p.payload || {});
     } else if (m.event === 'presence_state') {
       this.presence = {};
       Object.keys(p).forEach(function (k) { self.presence[k] = (p[k].metas || []).slice(); });
-      if (this.onPresence) this.onPresence();
+      this.presenceReady = true; this.presenceChanged();
     } else if (m.event === 'presence_diff') {
       var lv = p.leaves || {}, jn = p.joins || {};
       Object.keys(lv).forEach(function (k) {
@@ -91,9 +100,9 @@
         if (!self.presence[k].length) delete self.presence[k];
       });
       Object.keys(jn).forEach(function (k) { self.presence[k] = (self.presence[k] || []).concat(jn[k].metas || []); });
-      if (this.onPresence) this.onPresence();
+      this.presenceChanged();
     } else if (m.event === 'phx_error' || m.event === 'phx_close') {
-      if (this.onClose) this.onClose();
+      this.waiters.forEach(function(w){w.cancel();});if (this.onClose) this.onClose();
     }
   };
   function RT() { this.n = 0; this.chans = new Map(); this.ws = null; this.hb = 0; this.onClose = null; this.dead = false; }
@@ -284,7 +293,7 @@
     if (!tracked || !room || phase === 'connect' || phase === 'menu' || phase === 'idle') return;
     var all = members(), idx = all.findIndex(function (m) { return m.id === myId; });
     if (idx === -1) return;
-    if (idx >= 2 && phase === 'lobby') { leaveWith('Room full', 'That room already has 2 players.'); return; }
+    if (idx >= 2 && phase === 'lobby') { if(roomPublic){quickPlay();return;} leaveWith('Room full', 'That room already has 2 players.'); return; }
     isHost = all[0].id === myId;
     if (phase === 'lobby') { renderLobby(); return; }
     if (phase === 'play' && oppInfo && !all.some(function (m) { return m.id === oppInfo.id; })) endOnline('Your opponent left the match.');
@@ -680,17 +689,20 @@
     var ch = rt.channel(name, myId); room = ch; tracked = false;
     Object.keys(HANDLED).forEach(function (t) { ch.on(t, function (p) { HANDLED[t](p); }); });
     ch.onPresence = onPresence; ch.onClose = netLost;
-    var bail = function (r) { try { ch.leave(); } catch (e) { /* ignore */ } if (room === ch) room = null; tracked = false; return r; };
-    try { await ch.join(); } catch (e) { return bail('fail'); }
-    await sleep(800); if (token !== joinToken) return bail('fail');
+    var bail = function (r) { try { ch.leave(); } catch (e) { /* ignore */ } if (room === ch) {room = null;tracked = false;} return r; };
+    try { await ch.join(); await ch.waitPresence(function(){return true;}); } catch (e) { return bail('fail'); }
+    if (token !== joinToken) return bail('fail');
     var ex = members();
+    // A freshly subscribed node can send an empty snapshot before remote presence arrives.
+    if(opts.need && !ex.length){try{await ch.waitPresence(function(){return members().length>0;});}catch(e){return bail('empty');}if(token!==joinToken)return bail('fail');ex=members();}
     if (ex.some(function (m) { return m.st === 'play'; })) return bail('busy');
     if (ex.length >= 2) return bail('full');
     if (opts.need && !ex.length) return bail('empty');
     if (opts.create && ex.length) return bail('taken');
     myTs = Math.max.apply(null, [Date.now()].concat(ex.map(function (m) { return (m.ts || 0) + 1; })));
     myState = 'lobby'; ch.track(meta()); tracked = true;
-    await sleep(700); if (token !== joinToken) return bail('fail');
+    try { await ch.waitPresence(function(){return members().some(function(m){return m.id===myId;});}); } catch(e){return bail('fail');}
+    if (token !== joinToken) return bail('fail');
     var all = members(), idx = all.findIndex(function (m) { return m.id === myId; });
     if (idx === -1 || idx >= 2) return bail('full');
     if (all.some(function (m) { return m.st === 'play'; })) return bail('busy');
@@ -700,10 +712,10 @@
   }
   async function startNet(title, text) {
     closeNet(); var token = joinToken; connecting(title, text);
-    rt = new RT();
-    try { await rt.connect(); } catch (e) { if (token === joinToken) connectFail(); return null; }
-    if (token !== joinToken) { rt.close(); return null; }
-    rt.onClose = netLost;
+    var network = new RT();rt = network;
+    try { await network.connect(); } catch (e) { network.close();if (token === joinToken) connectFail(); return null; }
+    if (token !== joinToken) { network.close(); return null; }
+    network.onClose = netLost;
     return token;
   }
   async function quickPlay() {
