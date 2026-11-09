@@ -1,3 +1,5 @@
 Minecraft item, block and HUD textures from Minecraft Java Edition 1.21.4, mirrored by PrismarineJS/minecraft-assets. Minecraft artwork belongs to Mojang/Microsoft. Reference: https://minecraft.wiki/w/Item . This source note does not grant rights to the artwork.
 
 Nether block textures (obsidian, lava, netherrack, soul sand, glowstone, quartz/gold ore, basalt, blackstone and portal) and flint-and-steel, lava-bucket and quartz item textures use the same 1.21.4 PrismarineJS mirror: https://github.com/PrismarineJS/minecraft-assets/tree/master/data/1.21.4 . Animated textures use their first 16×16 frame.
+
+Ladder block texture: the same PrismarineJS Minecraft 1.21.4 asset mirror.

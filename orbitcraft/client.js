@@ -1,11 +1,13 @@
-import {changedSections,mergeSections} from './mesh-work.js';
-import {createRecipeBook} from './recipe-book.js?v=20261109-nether45';
-import {PoseHistory,reconciliationError,correctionStep} from './prediction.js?v=20261109-nether45';
-import {createSkinChooser} from './skins-ui.js?v=20261109-nether45';
-import {createSignEditor} from './signs-ui.js?v=20261109-nether45';
-import {addSignText} from './sign-visuals.js?v=20261109-nether45';
+import {isLadder} from './shapes.js';
+import {createShieldMesh,poseFirstPersonShield,posePlayerShield} from './shield-visuals.js';
+import {changedSections,mergeSections,faceShades} from './mesh-work.js';
+import {createRecipeBook} from './recipe-book.js?v=20261109-shields46';
+import {PoseHistory,RemoteMotion,reconciliationError,correctionStep} from './prediction.js?v=20261109-shields46';
+import {createSkinChooser} from './skins-ui.js?v=20261109-shields46';
+import {createSignEditor} from './signs-ui.js?v=20261109-shields46';
+import {addSignText} from './sign-visuals.js?v=20261109-shields46';
 import {createPearlVisuals} from './pearl-visuals.js?v=20261104-pearl31';
-import {createDrawnBow,createArrowVisuals} from './bow-visuals.js?v=20261109-nether45';
+import {createDrawnBow,createArrowVisuals} from './bow-visuals.js?v=20261109-shields46';
 import {createDamageTilt} from './damage-camera.js?v=20261104-mobs25';
 import {createLocatorBar,playerColor} from './locator.js?v=20261104-locator22';
 import {createSounds} from './sounds.js?v=20261104-audio20';
@@ -14,17 +16,17 @@ import {createXPVisuals} from './experience-visuals.js?v=20261104-audio20';
 import {isTorch,isPlant,isStair,isSpike,blockBoxes} from './shapes.js';
 import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261104-audio20';
 import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261104-audio20';
-import {createKeybinds} from './keybinds.js?v=20261109-nether45';
+import {createKeybinds} from './keybinds.js?v=20261109-shields46';
 import {createPauseMenu} from './pause-menu.js?v=20261104-audio20';
-import {furnitureModel} from './block-models.js?v=20261109-nether45';
+import {furnitureModel} from './block-models.js?v=20261109-shields46';
 import {createShortcuts} from './game-shortcuts.js?v=20261104-audio20';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261109-nether45';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261109-shields46';
 import * as THREE from './vendor/three.module.js';
-import { BLOCKS,SLOTS,CHUNK,HEIGHT,MIN_Y,CHUNK_HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,eyeHeight,raycast,solid,collides } from './world.js?v=20261109-nether45';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261109-nether45';
-import { createPlayerModel } from './players.js?v=20261109-nether45';
-import { createTextures, createAtmosphere, createHeldBlock, itemSpriteGeometry, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261109-nether45';
+import { BLOCKS,SLOTS,CHUNK,HEIGHT,MIN_Y,CHUNK_HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,eyeHeight,raycast,solid,collides } from './world.js?v=20261109-shields46';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261109-shields46';
+import { createPlayerModel } from './players.js?v=20261109-shields46';
+import { createTextures, createAtmosphere, createHeldBlock, itemSpriteGeometry, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261109-shields46';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();const sounds=createSounds();
@@ -54,8 +56,9 @@ const movementHistory=new PoseHistory();
 const furnaceStates=new Map();
 const signTexts=new Map();
 const bedDirections=new Map(),torchPositions=new Map(),torchLights=Array.from({length:coarse?2:4},()=>{const light=new THREE.PointLight(0xffb56c,0,12,1.5);light.name='world-point-light';scene.add(light);return light;});let torchLightAt=0;
-const firstShield=new THREE.Group();firstShield.name='first-person-shield';camera.add(firstShield);const shieldTexture=new THREE.TextureLoader().load(new URL('./assets/reference/shield_front.png',import.meta.url).href);shieldTexture.magFilter=THREE.NearestFilter;shieldTexture.minFilter=THREE.NearestFilter;shieldTexture.colorSpace=THREE.SRGBColorSpace;const shieldPlate=new THREE.Mesh(new THREE.BoxGeometry(.36,.52,.035),new THREE.MeshLambertMaterial({map:shieldTexture,depthTest:false,fog:false}));shieldPlate.renderOrder=1002;firstShield.add(shieldPlate);
-function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='left'?'offhandId':'heldId',meshKey=side==='left'?'offhandMesh':'itemMesh',arm=side==='left'?model.arm:model.arm2;if(model[key]===id)return;model[key]=id;if(model[meshKey]){arm.remove(model[meshKey]);model[meshKey].geometry.dispose();model[meshKey].material.dispose();model[meshKey]=null;}if(!id)return;const mesh=new THREE.Mesh((id>=100?itemSpriteGeometry(id,texture,ITEMS[id]?.tool?.55:.38):blockGeometry(id,.23)),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.name=side==='left'?'left-hand-item':'right-hand-item';mesh.position.set(0,-.48,-.12);mesh.rotation.set(id>=100?-.1:-.45,id>=100?Math.PI/2:0,id>=100?-.7:0);arm.add(mesh);model[meshKey]=mesh;}
+const firstShield=new THREE.Group();firstShield.name='first-person-shield';firstShield.position.set(-.75,-.58,-1.05);camera.add(firstShield);firstShield.add(createShieldMesh({firstPerson:true}));
+const rightShield=new THREE.Group();rightShield.name='first-person-right-shield';rightShield.position.set(.75,-.58,-1.05);camera.add(rightShield);rightShield.add(createShieldMesh({firstPerson:true}));
+function showHeldItem(model,id,side='right'){if(!model)return;const key=side==='left'?'offhandId':'heldId',meshKey=side==='left'?'offhandMesh':'itemMesh',arm=side==='left'?model.arm:model.arm2;if(model[key]===id)return;model[key]=id;if(model[meshKey]){arm.remove(model[meshKey]);model[meshKey].geometry.dispose();model[meshKey].material.dispose();model[meshKey]=null;}if(!id)return;const mesh=id===181?createShieldMesh():new THREE.Mesh((id>=100?itemSpriteGeometry(id,texture,ITEMS[id]?.tool?.55:.38):blockGeometry(id,.23)),new THREE.MeshLambertMaterial({map:texture,alphaTest:.5,side:THREE.DoubleSide}));mesh.name=side==='left'?'left-hand-item':'right-hand-item';mesh.position.set(0,-.48,-.12);mesh.rotation.set(id===181?0:id>=100?-.1:-.45,id===181?(side==='left'?-.3:.3):id>=100?Math.PI/2:0,id===181?0:id>=100?-.7:0);if(id===181)mesh.position.set(0,-.55,-.18);arm.add(mesh);model[meshKey]=mesh;}
 
 
 const lavaMaterial=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,emissive:0xff682b,emissiveMap:texture,emissiveIntensity:.8}),portalMaterial=new THREE.MeshBasicMaterial({map:texture,transparent:true,opacity:.87,side:THREE.DoubleSide,depthWrite:false}),glowMaterial=new THREE.MeshBasicMaterial({map:texture,vertexColors:true});
@@ -63,6 +66,7 @@ const material=new THREE.MeshLambertMaterial({map:texture,vertexColors:true,alph
 waterMaterial.onBeforeCompile=shader=>{shader.uniforms.flowTime={value:0};waterMaterial.userData.flowShader=shader;shader.fragmentShader='uniform float flowTime;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#ifdef USE_MAP\n diffuseColor *= texture2D(map, vec2(vMapUv.x, fract(vMapUv.y + flowTime * .16)));\n #endif');};
 const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006,1.006,1.006)),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.8}));scene.add(outline);outline.visible=false;
 const get=(x,y,z)=>{if(!inside(x,y,z))return 0;const k=`${x},${y},${z}`;if(edits.has(k))return edits.get(k);const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:connected?9:resourceBlock(x,y,z);};
+const FACE_UV=[[0,0],[1,0],[1,1],[0,1]];
 const faces=[
  {n:[1,0,0],v:[[1,0,1],[1,0,0],[1,1,0],[1,1,1]],s:.82},
  {n:[-1,0,0],v:[[0,0,0],[0,0,1],[0,1,1],[0,1,0]],s:.72},
@@ -75,15 +79,17 @@ function disposeRenderPart(part){part.traverse(m=>{m.geometry?.dispose();if(m.ma
 function* meshChunk(k,requested=null){
  const chunk=chunks.get(k);if(!chunk)return;const [cx,cz]=k.split(',').map(Number);
  const block=(x,y,z)=>{if(y<MIN_Y)return 9;if(y>=HEIGHT)return 0;if(!inside(x,y,z))return 0;const c=chunks.get(`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`);return c?c.data[chunkIndex((x%CHUNK+CHUNK)%CHUNK,y,(z%CHUNK+CHUNK)%CHUNK)]:9;};
+ const opaque=(x,y,z)=>{const b=block(x,y,z);return b&&b!==8&&b!==54&&b!==62&&b!==63&&b!==6&&b!==50&&b!==52&&!isTorch(b)&&!isPlant(b)&&!isLadder(b);};
  let highest=chunk.data.length-1;while(highest>=0&&!chunk.data[highest])highest--;const meshHeight=Math.min(HEIGHT,Math.floor(highest/(CHUNK*CHUNK))+MIN_Y+1),centerY=me?.y??terrain(cx*CHUNK+8,cz*CHUNK+8).height;
  if(!chunk.group){chunk.group=new THREE.Group();chunk.group.name='chunk:'+k;scene.add(chunk.group);}chunk.group.visible=!me||inRange(me,{x:cx*CHUNK,z:cz*CHUNK},viewDistance);
  const sectionIds=Array.from({length:Math.ceil((meshHeight-MIN_Y)/16)},(_,i)=>i+MIN_Y/16).sort((a,b)=>Math.abs((a+.5)*16-centerY)-Math.abs((b+.5)*16-centerY));
  for(const old of [...chunk.group.children])if(old.userData.section!=null&&!sectionIds.includes(old.userData.section))disposeRenderPart(old);
  for(const section of sectionIds){if(requested&&!requested.has(section))continue;const lights=[],furniture=[],groups=Array.from({length:5},()=>({p:[],n:[],uv:[],c:[]}));let sliceAt=performance.now();
  for(let y=section*16;y<Math.min(section*16+16,meshHeight);y++){for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++){
+  if((x+z*CHUNK)%64===0&&performance.now()-sliceAt>2){yield;sliceAt=performance.now();}
   const id=chunk.data[chunkIndex(x,y,z)];if(!id)continue;const wx=cx*CHUNK+x,wz=cz*CHUNK+z,g=groups[id===8?1:id===54?2:[62,63].includes(id)?3:id===57?4:0];
   if(id===57||[62,63].includes(id)||id===54&&wx%4===0&&wz%4===0&&block(wx,y+1,wz)!==54)lights.push({x:wx+.5,y:y+.6,z:wz+.5});
-  if([20,26,23,38].includes(id)||isTorch(id)||isStair(id)||isSpike(id)){let dx=0,dz=-1;const direction=bedDirections.get(`${wx},${y},${wz}`);if(direction){dx=direction.x;dz=direction.z;}else if(id!==23)for(const [x,z]of [[0,1],[0,-1],[1,0],[-1,0]])if(block(wx+x,y,wz+z)===(id===20?26:20)){dx=id===20?x:-x;dz=id===20?z:-z;break;}furniture.push({id,x:wx,y,z:wz,dx,dz});if(isTorch(id))lights.push({x:wx+.5,y:y+.8,z:wz+.5});continue;}
+  if([20,26,23,38].includes(id)||isTorch(id)||isStair(id)||isSpike(id)||isLadder(id)){let dx=0,dz=-1;const direction=bedDirections.get(`${wx},${y},${wz}`);if(direction){dx=direction.x;dz=direction.z;}else if(id!==23)for(const [x,z]of [[0,1],[0,-1],[1,0],[-1,0]])if(block(wx+x,y,wz+z)===(id===20?26:20)){dx=id===20?x:-x;dz=id===20?z:-z;break;}furniture.push({id,x:wx,y,z:wz,dx,dz});if(isTorch(id))lights.push({x:wx+.5,y:y+.8,z:wz+.5});continue;}
   if(id===25)lights.push({x:wx+.5,y:y+.65,z:wz+.5});
   if(id===22||isPlant(id)){const detail=id===22?29:id===31?13:id===32?14:15;if(detail!==null){
     const stage=cropStages.get(`${wx},${y},${wz}`)||0,height=id===25?.85:id===22?.3+stage*.2:detail===13?.6:.46,half=id===25?.2:.32,cx=wx+.5,cz=wz+.5;
@@ -91,13 +97,9 @@ function* meshChunk(k,requested=null){
     for(const [q,verts] of quads.entries())for(const backwards of [false,true])for(const i of backwards?[0,2,1,0,3,2]:[0,1,2,0,2,3]){const sign=backwards?-1:1;g.p.push(...verts[i]);g.n.push(sign*(q ? .707 : -.707),0,sign*.707);const uv=[[0,0],[1,0],[1,1],[0,1]][i];g.uv.push((detail*16+.2+uv[0]*15.6)/(TILE_COUNT*16),(.2+uv[1]*15.6)/16);g.c.push(1,1,1);}
   }}
   if(id===22||isTorch(id)||isPlant(id))continue;
-  for(const f of faces){const b=block(wx+f.n[0],y+f.n[1],wz+f.n[2]);if(b&&!isTorch(b)&&!isPlant(b)&&![20,26,23,22,34,35,36,37,38,50,52,62,63].includes(b)&&([8,54].includes(id)||![8,54].includes(b)))continue;
-   const uv=[[0,0],[1,0],[1,1],[0,1]],tile=tileFor(id,f.n[1],f.n[2],f.n[0],furnaceStates.get(`${wx},${y},${wz}`));
-   for(const i of [0,1,2,0,2,3]){const v=f.v[i];g.p.push(wx+(id===63?.44+v[0]*.12:v[0]),y+v[1],wz+(id===62?.44+v[2]*.12:v[2]));g.n.push(...f.n);g.uv.push((tile*16+.2+uv[i][0]*15.6)/(TILE_COUNT*16),(.2+uv[i][1]*15.6)/16);const outside=[wx+f.n[0],y+f.n[1],wz+f.n[2]],tangents=[0,1,2].filter(axis=>!f.n[axis]);
-    const offset=(axis,sign)=>{const p=[...outside];p[axis]+=sign;return p;};
-    const opaque=p=>{const b=block(...p);return b&&b!==8&&b!==6&&b!==50&&b!==52&&!isTorch(b)&&!isPlant(b);};
-    const first=offset(tangents[0],v[tangents[0]]?1:-1),second=offset(tangents[1],v[tangents[1]]?1:-1),corner=[...first];corner[tangents[1]]+=v[tangents[1]]?1:-1;
-    const shade=f.s*(1-.14*(Number(!!opaque(first))+Number(!!opaque(second))+Number(!!opaque(corner))));g.c.push(shade,shade,shade);}
+  for(const f of faces){const b=block(wx+f.n[0],y+f.n[1],wz+f.n[2]);if(b&&!isTorch(b)&&!isPlant(b)&&![20,26,23,22,34,35,36,37,38,50,52,62,63,64,65,66,67].includes(b)&&([8,54].includes(id)||![8,54].includes(b)))continue;
+   const uv=FACE_UV,shades=faceShades(f.n,f.v,f.s,wx,y,wz,opaque),tile=tileFor(id,f.n[1],f.n[2],f.n[0],furnaceStates.get(`${wx},${y},${wz}`));
+   for(const i of [0,1,2,0,2,3]){const v=f.v[i];g.p.push(wx+(id===63?.44+v[0]*.12:v[0]),y+v[1],wz+(id===62?.44+v[2]*.12:v[2]));g.n.push(...f.n);g.uv.push((tile*16+.2+uv[i][0]*15.6)/(TILE_COUNT*16),(.2+uv[i][1]*15.6)/16);const shade=shades[i];g.c.push(shade,shade,shade);}
   }
  }
  if(performance.now()-sliceAt>2){yield;sliceAt=performance.now();}}
@@ -207,7 +209,7 @@ async function join({automatic=false}={}){
    updateRoster(m.roster||m.players); locatorTargets=m.locators||m.players;
 
    resources.setMining(m.players);miningFeedback=m.players.find(p=>p.id===me.id)?.mining||null;
-   const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const snapshot=predictionHistory.get(p.seq),error=reconciliationError(p,snapshot,movementHistory,performance.now()),expected=error?{x:me.x+error.x,y:me.y+error.y,z:me.z+error.z}:me;if(p.hurtAt&&p.hurtAt!==me.hurtAt){me.hurtAt=p.hurtAt;me.vy=p.vy;correction.set(p.x-me.x,p.y-me.y,p.z-me.z);predictionHistory.clear();movementHistory.clear();}else if(forceReconcile||error&&Math.hypot(error.x,error.y,error.z)>12){forceReconcile=false;Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});correction.set(0,0,0);predictionHistory.clear();movementHistory.clear();}else{correction.set(expected.x-me.x,expected.y-me.y,expected.z-me.z);if(!input.jump&&Math.abs(expected.y-me.y)>.3)me.vy=p.vy;}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}if((a.target?.health??20)<=0&&(p.health??20)>0){delete a.group.userData.deathAt;delete a.group.userData.damageAt;}a.setSkin?.(p.skin);a.target=p;a.group.visible=(p.health??20)>0;applyEquipment(a,p.equipment);showHeldItem(a,p.held||0);showHeldItem(a,p.offhand===181?0:p.offhand||0,'left');}}
+   const ids=new Set();for(const p of m.players){ids.add(p.id);if(p.id===me.id){const snapshot=predictionHistory.get(p.seq),error=reconciliationError(p,snapshot,movementHistory,performance.now()),expected=error?{x:me.x+error.x,y:me.y+error.y,z:me.z+error.z}:me;if(p.hurtAt&&p.hurtAt!==me.hurtAt){me.hurtAt=p.hurtAt;me.vy=p.vy;correction.set(p.x-me.x,p.y-me.y,p.z-me.z);predictionHistory.clear();movementHistory.clear();}else if(forceReconcile||error&&Math.hypot(error.x,error.y,error.z)>12){forceReconcile=false;Object.assign(me,{x:p.x,y:p.y,z:p.z,vy:p.vy});correction.set(0,0,0);predictionHistory.clear();movementHistory.clear();}else{correction.set(expected.x-me.x,expected.y-me.y,expected.z-me.z);if(!input.jump&&Math.abs(expected.y-me.y)>.3)me.vy=p.vy;}}else{let a=avatars.get(p.id);if(!a){a=avatar(p);avatars.set(p.id,a);a.group.position.set(p.x,p.y,p.z);}if((a.target?.health??20)<=0&&(p.health??20)>0){delete a.group.userData.deathAt;delete a.group.userData.damageAt;}a.setSkin?.(p.skin);a.target=p;(a.motion??=new RemoteMotion()).push(performance.now(),p);a.group.visible=(p.health??20)>0;applyEquipment(a,p.equipment);showHeldItem(a,p.held||0);showHeldItem(a,p.offhand===181?0:p.offhand||0,'left');}}
    for(const id of avatars.keys())if(!ids.has(id))removeAvatar(id);$('online').textContent=`${m.online??m.players.length} online`;
   }else if(m.type==='block'){
    if(!me||!retainChunk(Math.floor(m.x/CHUNK),Math.floor(m.z/CHUNK)))return;
@@ -333,6 +335,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
   movementHistory.record(performance.now(),me);
   camera.position.set(me.x,me.y+eyeHeight(me),me.z);camera.rotation.set(me.pitch,me.yaw,0,'YXZ');
   if(ownPlayer){ownPlayer.setSkin?.(survival.state.skin);ownPlayer.group.visible=(perspective!==0||survival.state.sleeping)&&survival.state.health>0;ownPlayer.group.rotation.z=0;ownPlayer.group.scale.y=me.crouching&&!survival.state.sleeping?.83:1;ownPlayer.group.position.set(me.x,me.y,me.z);ownPlayer.group.rotation.y=me.yaw;ownPlayer.head.rotation.x=me.pitch;showHeldItem(ownPlayer,inventory[hotbarSlots[selected]]>0?hotbarSlots[selected]:0);showHeldItem(ownPlayer,survival.state.offhand?.id===181?0:survival.state.offhand?.id||0,'left');const stride=controls()&&(input.forward||input.back||input.left||input.right)?Math.sin(now*.009)*.5:0;ownPlayer.left.rotation.x=survival.state.boat?-Math.PI/2:stride;ownPlayer.right.rotation.x=survival.state.boat?-Math.PI/2:-stride;ownPlayer.arm.rotation.x=-stride;ownPlayer.arm2.rotation.x=input.eat&&ITEMS[hotbarSlots[selected]]?.food&&survival.state.hunger<20?-1.7+Math.sin(now*.028)*.08:miningHeld?-.9+Math.sin(now*.022)*.35:stride;applyEquipment(ownPlayer,{...survival.state.equipment,...(survival.state.offhand?.id===181?{shield:181}:{})});}
+  if(ownPlayer)posePlayerShield(ownPlayer,input.block);
   if(ownPlayer&&!survival.state.sleeping)tintAndFall(ownPlayer.group,now);
   if(survival.state.sleeping&&survival.state.bedPose){sleepPose(ownPlayer.group,survival.state.bedPose);if(!perspective){const b=survival.state.bedPose;camera.position.set(b.head.x+.5,b.head.y+1,b.head.z+.5);camera.rotation.set(1.2,me.yaw,0);}}
   if(perspective){const eye=new THREE.Vector3(me.x,me.y+1.5,me.z),direction=new THREE.Vector3(-Math.sin(me.yaw)*Math.cos(me.pitch),Math.sin(me.pitch),-Math.cos(me.yaw)*Math.cos(me.pitch)).multiplyScalar(perspective===1?-1:1);let distance=4.2;for(let t=.3;t<=4.2;t+=.08){const point=eye.clone().addScaledVector(direction,t);if(solid(get(Math.floor(point.x),Math.floor(point.y),Math.floor(point.z)))){distance=Math.max(.15,t-.25);break;}}camera.position.copy(eye).addScaledVector(direction,distance);camera.lookAt(eye);}
@@ -342,17 +345,18 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
 
   if(now-hudAt>180){hudAt=now;$('target').textContent=hit?.block===9?'Unbreakable':'';$('coordinates').textContent=`XYZ ${me.x.toFixed(1)} / ${me.y.toFixed(1)} / ${me.z.toFixed(1)}`;$('biome').textContent=dimension==='nether'?'Nether Wastes':terrain(Math.floor(me.x),Math.floor(me.z)).biome;}
  }else{if(ownPlayer)ownPlayer.group.visible=false;outline.visible=false;camera.position.set(32+Math.sin(now*.00003)*7,37,43);camera.lookAt(0,15,0);}
- for(const a of avatars.values()){const t=a.target,d=Math.hypot(a.group.position.x-t.x,a.group.position.z-t.z);a.group.position.lerp(new THREE.Vector3(t.x,t.y,t.z),Math.min(1,dt*13));a.group.rotation.y=t.yaw;a.group.scale.y=t.crouching&&!t.sleeping?.83:1;a.left.rotation.x=d>.01?Math.sin(now*.009)*.45:0;a.right.rotation.x=-a.left.rotation.x;a.arm.rotation.x=-a.left.rotation.x*.85;a.arm2.rotation.x=a.left.rotation.x*.85;a.head.rotation.x=Math.max(-.8,Math.min(.8,t.pitch||0));if(t.boat){a.left.rotation.x=-Math.PI/2;a.right.rotation.x=-Math.PI/2;}tintAndFall(a.group,now);if(t.sleeping)sleepPose(a.group,t.bedPose);if(t.bowDrawing){a.arm.rotation.x=-1.3;a.arm2.rotation.x=-1.4;}else if(t.eating)a.arm2.rotation.x=-1.7+Math.sin(now*.028)*.08;else if(t.mining)a.arm2.rotation.x=-.9+Math.sin(now*.022)*.35;}
+ for(const a of avatars.values()){const t=a.target,pose=a.motion?.sample(now)||t,d=Math.hypot(a.group.position.x-pose.x,a.group.position.z-pose.z);a.group.position.set(pose.x,pose.y,pose.z);a.group.rotation.y=pose.yaw;a.group.scale.y=t.crouching&&!t.sleeping?.83:1;a.left.rotation.x=d>.01?Math.sin(now*.009)*.45:0;a.right.rotation.x=-a.left.rotation.x;a.arm.rotation.x=-a.left.rotation.x*.85;a.arm2.rotation.x=a.left.rotation.x*.85;a.head.rotation.x=Math.max(-.8,Math.min(.8,pose.pitch||0));posePlayerShield(a,t.blocking);if(t.boat){a.left.rotation.x=-Math.PI/2;a.right.rotation.x=-Math.PI/2;}tintAndFall(a.group,now);if(t.sleeping)sleepPose(a.group,t.bedPose);if(t.bowDrawing){a.arm.rotation.x=-1.3;a.arm2.rotation.x=-1.4;}else if(t.eating)a.arm2.rotation.x=-1.7+Math.sin(now*.028)*.08;else if(t.mining)a.arm2.rotation.x=-.9+Math.sin(now*.022)*.35;}
  const underwater=me&&get(Math.floor(me.x),Math.floor(me.y+eyeHeight(me)),Math.floor(me.z))===8;
  document.body.classList.toggle('underwater',!!underwater);
  pearlVisuals.animate(now);arrowVisuals.animate(now);const daylight=survival.animate(now,dt),nether=dimension==='nether',underground=!!me&&me.y<terrain(Math.floor(me.x),Math.floor(me.z)).height-4;sun.intensity=nether?0:underground?0:1.65*daylight;scene.children.find(o=>o.isHemisphereLight).intensity=nether?1.05:underground?.3:.2+daylight*1.5;scene.background.set(nether?'#2b0b08':'#acd2df');scene.fog.color.set(nether?'#461b12':underwater?'#3887a9':underground?'#171820':'#b9d4ff').multiplyScalar(nether||underwater||underground?1:daylight);for(const child of scene.children)if(child.material?.isShaderMaterial)child.material.uniforms.daylight.value=daylight;scene.fog.near=nether?4:underwater?1:Math.max(8,(viewDistance-1)*CHUNK);scene.fog.far=nether?Math.min(48,viewDistance*CHUNK):underwater?16:viewDistance*CHUNK;
  if(miningHeld&&controls()&&now-lastMiningSwing>320){lastMiningSwing=now;held.swing();if(miningFeedback)sounds.play('mine',{block:miningFeedback.block});}
  leftHeld.select(survival.state.offhand?.id||0,survival.state.offhand?.count||0);leftHeld.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&perspective===0&&survival.state.health>0&&!menuOpen()&&survival.state.offhand?.id!==181);
- firstShield.visible=connected&&perspective===0&&survival.state.health>0&&survival.state.offhand?.id===181&&!menuOpen();firstShield.scale.setScalar(2.2*Math.max(.6,Math.min(1,camera.aspect/1.25)));firstShield.position.lerp(new THREE.Vector3((input.block?-.4:-.7)*Math.min(1,camera.aspect/1.25),input.block?-.3:-.62,input.block?-.8:-.95),Math.min(1,dt*12));firstShield.rotation.y=input.block?0:.4;
+ const leftShieldOn=survival.state.offhand?.id===181||survival.state.equipment?.shield===181;firstShield.visible=connected&&perspective===0&&survival.state.health>0&&leftShieldOn&&!menuOpen();poseFirstPersonShield(firstShield,input.block,camera.aspect,dt);
+ rightShield.visible=connected&&perspective===0&&survival.state.health>0&&hotbarSlots[selected]===181&&inventory[181]>0&&!menuOpen();poseFirstPersonShield(rightShield,input.block,camera.aspect,dt,1);
  sounds.frame({player:me,active:connected&&controls()&&survival.state.health>0&&!survival.state.sleeping,furnace:!!survival.state.furnace?.job,eating:input.eat&&!!ITEMS[hotbarSlots[selected]]?.food&&(inventory[hotbarSlots[selected]]||0)>0&&survival.state.hunger<20,get,grounded:!!me&&collides({...me,y:me.y-.065},get),now});
  resources.update(Date.now(),dt,camera);xpEffects.animate(now,dt);
  drawnBow.group.visible=connected&&inventory[235]>0&&hotbarSlots[selected]===235&&!survival.state.sleeping&&!menuOpen()&&perspective===0&&survival.state.health>0;drawnBow.update(bowHeld?Math.min(1,(now-bowDrawAt)/1000):0,!!((inventory[236]||0)>0||survival.state.offhand?.id===236));
- held.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&!survival.state.sleeping&&!menuOpen()&&perspective===0&&survival.state.health>0&&hotbarSlots[selected]!==235,input.eat&&!!ITEMS[hotbarSlots[selected]]?.food&&inventory[hotbarSlots[selected]]>0&&survival.state.hunger<20);
+ held.update(now,controls()&&!!(input.forward||input.back||input.left||input.right),connected&&!survival.state.sleeping&&!menuOpen()&&perspective===0&&survival.state.health>0&&hotbarSlots[selected]!==235&&hotbarSlots[selected]!==181,input.eat&&!!ITEMS[hotbarSlots[selected]]?.food&&inventory[hotbarSlots[selected]]>0&&survival.state.hunger<20);
  atmosphere(now,camera,survival.state.time||6000,dimension);
  if(waterMaterial.userData.flowShader)waterMaterial.userData.flowShader.uniforms.flowTime.value=now/1000;renderer.render(scene,camera);
  // Spread chunk construction across spare frame time after responsive movement/rendering.

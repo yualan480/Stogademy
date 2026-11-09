@@ -1,3 +1,4 @@
+import {isLadder} from './shapes.js';
 import {NETHER_BLOCKS} from './nether.js';
 import {DEEP_TEXTURES} from './deep-textures.js';
 import {furnaceFront} from './furnaces.js';
@@ -15,7 +16,7 @@ export const TEXTURE_TILES = Object.freeze([
   'grass_top','dirt','stone','sand','oak_bark','oak_leaves','snow',
   'water','bedrock','oak_planks','grass_side','oak_end','snowy_grass_side',
   'grass_plant','poppy','poppy_variant','cobblestone','gravel','coal_ore','iron_ore','diamond_ore',
-  'gold_ore','ancient_debris','crafting_top','crafting_side','furnace_top','furnace_side','bed','farmland','wheat','chest_top','chest_side','furnace_wall','crafting_tools','torch','chest_wall',...itemIds.map(id=>'item_'+id),'furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top',...new Set(Object.values(NETHER_BLOCKS))
+  'gold_ore','ancient_debris','crafting_top','crafting_side','furnace_top','furnace_side','bed','farmland','wheat','chest_top','chest_side','furnace_wall','crafting_tools','torch','chest_wall',...itemIds.map(id=>'item_'+id),'furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top',...new Set(Object.values(NETHER_BLOCKS)),'ladder'
 ]);
 export const TILE_COUNT = TEXTURE_TILES.length;
 const random = (x, y, seed) => {
@@ -24,6 +25,7 @@ const random = (x, y, seed) => {
   return ((n ^ n >>> 16) >>> 0) / 4294967295;
 };
 export function tileFor(id, normalY, normalZ=0,normalX=0,furnace=null) {
+  if(isLadder(id))return TEXTURE_TILES.indexOf('ladder');
   if(NETHER_BLOCKS[id])return TEXTURE_TILES.indexOf(NETHER_BLOCKS[id]);
   if(DEEP_TEXTURES[id])return TEXTURE_TILES.indexOf(id===39&&normalY?'deepslate_top':DEEP_TEXTURES[id]);
   if(isStair(id)||id===38)return 9;
@@ -191,7 +193,7 @@ export async function createTextures() {
     const [source,blocks,manifest]=await Promise.all([load('./assets/reference/items.png'),load('./assets/reference/blocks.png'),fetch(new URL('./assets/reference/manifest.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('Texture manifest unavailable');return r.json();})]);
     for(const id of Object.keys(manifest.items).map(Number)){const tile=itemTiles.get(id);if(tile==null)continue;context.clearRect(tile*16,0,16,16);context.drawImage(source,id*16,0,16,16,tile*16,0,16,16);}
     for(const tile of Object.keys(manifest.blocks).map(Number)){context.clearRect(tile*16,0,16,16);context.drawImage(blocks,tile*16,0,16,16,tile*16,0,16,16);}
-    const extraNames=['furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top',...new Set(Object.values(NETHER_BLOCKS))];const extraImages=await Promise.all(extraNames.map(name=>load('./assets/reference/'+name+'.png')));for(let i=0;i<extraNames.length;i++){const tile=TEXTURE_TILES.indexOf(extraNames[i]);context.clearRect(tile*16,0,16,16);context.drawImage(extraImages[i],0,0,16,16,tile*16,0,16,16);}
+    const extraNames=['furnace_front_on','blast_furnace_top','blast_furnace_side','blast_furnace_front','blast_furnace_front_on',...Object.values(DEEP_TEXTURES),'deepslate_top',...new Set(Object.values(NETHER_BLOCKS)),'ladder'];const extraImages=await Promise.all(extraNames.map(name=>load('./assets/reference/'+name+'.png')));for(let i=0;i<extraNames.length;i++){const tile=TEXTURE_TILES.indexOf(extraNames[i]);context.clearRect(tile*16,0,16,16);context.drawImage(extraImages[i],0,0,16,16,tile*16,0,16,16);}
     atlas.dataset.reference='minecraft-java-1.21.4';
   } catch(error) {console.warn('Item reference artwork unavailable; using built-in textures.',error);}
   const texture = new THREE.CanvasTexture(atlas);
@@ -212,7 +214,7 @@ export async function createTextures() {
       }
       if(id===38){draw.fillStyle='#553819';draw.fillRect(21,25,6,21);draw.drawImage(atlas,9*16,0,16,16,4,5,40,25);draw.strokeStyle='#553819';draw.strokeRect(4.5,5.5,39,24);icons.set(id,c.toDataURL());return icons.get(id);}
       if(isStair(id)){const project=(x,y,z)=>[24+(x-z)*20,25+(x+z)*10-y*24];for(const [x,y,z,a,b,c] of blockBoxes(34)){face(9,[[x,b,c],[a,b,c],[a,y,c],[x,y,c]].map(p=>project(...p)),.1);face(9,[[a,b,c],[a,b,z],[a,y,z],[a,y,c]].map(p=>project(...p)),.28);face(9,[[x,b,z],[a,b,z],[a,b,c],[x,b,c]].map(p=>project(...p)),0);}icons.set(id,c.toDataURL());return icons.get(id);}
-      if(id!==116&&(id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20)){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
+      if(id!==116&&(id>=100||isLadder(id)||isTorch(id)||isPlant(id)||isSpike(id)||id===20)){draw.drawImage(atlas,tileFor(id,0)*16,0,16,16,3,3,42,42);icons.set(id,c.toDataURL());return icons.get(id);}
       face(tileFor(id,0,1),[[4,12],[24,22],[24,46],[4,36]],.1);
       face(tileFor(id,0),[[24,22],[44,12],[44,36],[24,46]],.28);
       face(tileFor(id,1),[[24,2],[44,12],[24,22],[4,12]],0);
@@ -290,14 +292,14 @@ export function createHeldBlock(camera, texture, {left=false}={}) {
   return {
     select(id, count) {
       group.userData.itemId=count>0?id:0;
-      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20?itemSpriteGeometry(id,texture,ITEMS[id]?.tool?1.05:.78):new THREE.BoxGeometry(.34,.34,.34);material.side=THREE.DoubleSide;}
+      if(id!==selected&&id){block.geometry.dispose();block.geometry=(isStair(id)||id===38)?stairGeometry(blockBoxes(id),.24,9,TILE_COUNT):id>=100||isLadder(id)||isTorch(id)||isPlant(id)||isSpike(id)||id===20?itemSpriteGeometry(id,texture,ITEMS[id]?.tool?1.05:.78):new THREE.BoxGeometry(.34,.34,.34);material.side=THREE.DoubleSide;}
       const tool=!!ITEMS[id]?.tool;hand.visible=sleeve.visible=!tool||count<=0;
-      const sprite=id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20;block.position.set(tool?.72:sprite?.62:.5,tool?-.34:sprite?-.4:-.42,tool?-.85:sprite?-.85:-.78);block.rotation.set(sprite?0:.2,sprite?-.45:-.6,sprite?-.08:-.1);block.userData.toolPose=tool;
+      const sprite=id>=100||isLadder(id)||isTorch(id)||isPlant(id)||isSpike(id)||id===20;block.position.set(tool?.72:sprite?.62:.5,tool?-.34:sprite?-.4:-.42,tool?-.85:sprite?-.85:-.78);block.rotation.set(sprite?0:.2,sprite?-.45:-.6,sprite?-.08:-.1);block.userData.toolPose=tool;
       block.visible = count > 0;
       if (!id || id === selected) return; selected = id;
       if(isStair(id)||id===38||block.geometry.userData.extrudedSprite)return;
       const uv = block.geometry.attributes.uv;
-      for (let face = 0; face < (id>=100||isTorch(id)||isPlant(id)||isSpike(id)||id===20?1:6); face++) {
+      for (let face = 0; face < (id>=100||isLadder(id)||isTorch(id)||isPlant(id)||isSpike(id)||id===20?1:6); face++) {
         const tile = tileFor(id, face === 2 ? 1 : face === 3 ? -1 : 0,face===4?1:face===5?-1:0);
         for (let v = 0; v < 4; v++) uv.setXY(face * 4 + v, (tile * 16 + .2 + (v % 2) * 15.6) / (TILE_COUNT * 16), (.2 + (v < 2 ? 1 : 0) * 15.6) / 16);
       }

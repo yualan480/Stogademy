@@ -1,6 +1,6 @@
 import {netherBlock,overworldLava} from './nether.js';
 import {lowerBlock,deepCave,deepOre,deepHash} from './underground.js';
-import {isTorch,isPlant,inShape,isStair,blockBoxes} from './shapes.js';
+import {isLadder,isTorch,isPlant,inShape,isStair,blockBoxes} from './shapes.js';
 import { ITEMS } from './items.js';
 // Shared, deterministic world and collision rules. Never change the generation
 // algorithm/seed of an existing database without migrating its world.
@@ -18,7 +18,7 @@ export const BLOCKS = {
 };
 for(const [id,item] of Object.entries(ITEMS))if(item.block)BLOCKS[id]={name:item.name,color:'#8e8071'};
 export const SLOTS = [2,3,5,10,4,1,6,7];
-export const solid = b => b !== 0 && b !== 8 && b!==54 && b!==62 && b!==63 && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b)&&b!==50&&b!==52;
+export const solid = b => b !== 0 && b !== 8 && b!==54 && b!==62 && b!==63 && !isLadder(b) && b !== 22 && b !== 38 && !isTorch(b)&&!isPlant(b)&&b!==50&&b!==52;
 export const inside = (x,y,z) => Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z) && x >= -SIZE/2 && x < SIZE/2 && z >= -SIZE/2 && z < SIZE/2 && y >= MIN_Y && y < HEIGHT;
 export function hash(x,y=0,z=0) { let h = Math.imul(x ^ SEED, 374761393) ^ Math.imul(y,668265263) ^ Math.imul(z,2147483647); h = Math.imul(h ^ h>>>13,1274126177); return ((h ^ h>>>16)>>>0)/4294967295; }
 const mix=(a,b,t)=>a+(b-a)*t, smooth=t=>t*t*(3-2*t);
@@ -70,6 +70,7 @@ export function step(p,input,dt,get) {
   // Keep swimming until the feet clear the surface; checking only the torso
   // switched to air gravity before swimmers could rise onto a one-block bank.
   const water=[.05,.8].some(h=>get(Math.floor(p.x),Math.floor(p.y+h),Math.floor(p.z))===8);
+  let ladder=false;const lx=Math.floor(p.x),lz=Math.floor(p.z);for(const h of [.05,.8]){const id=get(lx,Math.floor(p.y+h),lz);if(id===64&&p.z-lz<.36||id===65&&p.z-lz>.64||id===66&&p.x-lx<.36||id===67&&p.x-lx>.64)ladder=true;}
   const grounded=collides({...p,y:p.y-.065},get);
   let f=Number(!!input.forward)-Number(!!input.back),s=Number(!!input.right)-Number(!!input.left);
   const n=Math.hypot(f,s)||1; f/=n;s/=n;
@@ -80,6 +81,7 @@ export function step(p,input,dt,get) {
     if(grounded)p.vy=JUMP_VELOCITY-JUMP_GRAVITY*dt/2;
     else if(water)p.vy=Math.max(p.vy,4); // Swimming must not cancel a jump off the bottom.
   }
+  p.climbing=ladder&&!flying;if(p.climbing){p.fallTop=p.y;p.vy=input.sneak?0:input.jump||input.forward?3.2:Math.max(p.vy,-2.6);}
   const dx=(-Math.sin(yaw)*f+Math.cos(yaw)*s)*speed*dt,dz=(-Math.cos(yaw)*f-Math.sin(yaw)*s)*speed*dt;
   for(const [axis,d] of [['x',dx],['z',dz],['y',p.vy*dt]]) {
     const count=Math.max(1,Math.ceil(Math.abs(d)/.15));
@@ -107,7 +109,7 @@ export function raycast(p,get,reach=6) {
 }
 
 // Hand-mining times in milliseconds. Bedrock has no break duration.
-export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000,39:3900,40:3900,41:3500,42:4500,43:4500,44:5000,45:5000,46:5000,47:6500,48:4500,49:2000,50:1000,51:300,52:1000,53:75000,54:0,55:1600,56:700,57:1000,58:3000,59:3000,60:3000,61:2600,62:0,63:0});
+export const MINING_MS = Object.freeze({1:750,2:650,3:2600,4:550,5:1800,6:350,7:450,10:1200,11:2600,12:650,13:3000,14:3500,15:5000,16:3500,17:9000,18:1800,19:3500,20:900,21:650,22:250,23:1800,24:3500,25:200,26:900,27:200,28:200,29:200,30:200,31:50,32:50,33:50,34:1200,35:1200,36:1200,37:1200,38:1000,39:3900,40:3900,41:3500,42:4500,43:4500,44:5000,45:5000,46:5000,47:6500,48:4500,49:2000,50:1000,51:300,52:1000,53:75000,54:0,55:1600,56:700,57:1000,58:3000,59:3000,60:3000,61:2600,62:0,63:0,64:600,65:600,66:600,67:600});
 export const PICKUP_DELAY_MS = 750;
 
 // Resources only overlay natural stone; stored edits always take precedence.

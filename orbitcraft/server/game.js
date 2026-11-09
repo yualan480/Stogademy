@@ -1,3 +1,4 @@
+import {isLadder} from '../shapes.js';
 import {generateChunk} from '../chunk-generation.js';
 import {furnaceFacing,furnaceView} from '../furnaces.js';
 import {publicSign} from './signs.js';
@@ -41,7 +42,7 @@ export class Game {
     p.dimension=this.dimension;this.survival.init(p);this.store.savePlayer(p);this.players.set(p.id,p);return p;
   }
   leave(p) {if(this.players.get(p.id)!==p)return;if(p.survival.boat&&this.survival.world.boats[p.survival.boat])this.survival.world.boats[p.survival.boat].rider=null;p.survival.boat=null;this.store.savePlayer(p);this.players.delete(p.id);if(!this.players.size)this.flushDrops();this.pruneChunks();}
-  public(p){return {dimension:this.dimension,id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,crouching:!!p.crouching,skin:p.survival?.skin||'steve',held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,mining:!!p.input?.mine,eating:!!p.eating,bowDrawing:p.bowDrawAt!=null,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
+  public(p){return {dimension:this.dimension,id:p.id,name:p.name,x:p.x,y:p.y,z:p.z,yaw:p.yaw,pitch:p.pitch,crouching:!!p.crouching,skin:p.survival?.skin||'steve',held:p.hotbar?.[p.selected]&&p.inventory[p.hotbar[p.selected]]>0?p.hotbar[p.selected]:0,offhand:p.survival?.offhand?.id||0,equipment:{...p.survival?.equipment,...(p.survival?.offhand?.id===181?{shield:181}:{})},health:p.survival?.health,mining:!!p.input?.mine,eating:!!p.eating,blocking:!!p.input?.block,bowDrawing:p.bowDrawAt!=null,sleeping:!!p.survival?.sleeping,bedPose:p.survival?.bedPose,boat:p.survival?.boat,hurtAt:p.hurtAt||0};}
   inventory(p){p.send({type:'inventory',inventory:p.inventory,mined:p.mined,placed:p.placed,slots:stacks(p),hotbar:p.hotbar});}
   broadcast(message){for(const p of this.players.values())p.send(message);}
   publicDrop(d){return {id:d.id,block:d.block,count:d.count,x:d.x,y:d.y,z:d.z,created:d.created};}
@@ -154,12 +155,13 @@ export class Game {
     if(!isBlock(id)||[8,9,21,22,26,27,28,29,30,52].includes(id)||(offhand?!(source?.count>0):(p.inventory[id]||0)<1))throw Error('Collect that block before placing it.');
     const a=hit.place;
     if(!a||!inside(a.x,a.y,a.z)||solid(this.get(a.x,a.y,a.z))||isTorch(this.get(a.x,a.y,a.z))||this.get(a.x,a.y,a.z)===38||isSpike(this.get(a.x,a.y,a.z)))throw Error('Cannot place here.');
+    if(isLadder(id)){if(!solid(hit.block)||a.y!==hit.y)throw Error('Attach ladders to a solid wall.');const dx=a.x-hit.x,dz=a.z-hit.z;id=dz===1?64:dz===-1?65:dx===1?66:67;}
     if(isStair(id))id=34+((Math.round(p.yaw/(Math.PI/2))%4+4)%4);
     if(id===50){if(a.y<hit.y)id=52;else if(a.y<=hit.y)throw Error('Place pointed dripstone on a floor or ceiling.');}
     if(id===38&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Place the sign on solid ground.');
     if(id===20){placeBed(this.survival,p,a,offhand);return;}
     if(id===25){if(this.get(a.x,a.y,a.z)!==0||!solid(hit.block))throw Error('Attach the torch to a solid surface.');const dx=a.x-hit.x,dz=a.z-hit.z;if(a.y>hit.y)id=25;else if(dx===1)id=27;else if(dx===-1)id=28;else if(dz===1)id=29;else if(dz===-1)id=30;else throw Error('Cannot attach a torch underneath a block.');}if(isPlant(id)&&!solid(this.get(a.x,a.y-1,a.z)))throw Error('Plants need solid ground.');
-    if(!isTorch(id)&&!isPlant(id)&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');
+    if(!isTorch(id)&&!isPlant(id)&&!isLadder(id)&&[...this.players.values()].some(other=>overlaps(a.x,a.y,a.z,other)))throw Error('A player is standing there.');
     this.survival.atomic(p,tx=>{if(offhand){if(!--source.count)p.survival.offhand=null;}else p.inventory[spend]--;p.placed++;if([19,24].includes(id)){const facing=furnaceFacing(p.yaw);this.survival.world.furnaces[key(a.x,a.y,a.z)]={output:{},fuel:0,facing};tx.block({...a,furnace:{facing,lit:false}},id);}else tx.block(a,id);});
   }
 }
