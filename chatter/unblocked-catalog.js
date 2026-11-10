@@ -13,6 +13,18 @@ export const UNBLOCKED_GAMES=[{
  tags:['electron','dash','runner','neon','tunnel','jump'],
  controls:'Use the on-screen arrow and Jump buttons on phones. Keyboard: A/D or Left/Right to move; W, Up Arrow, or Space to jump.'
 },{
+ id:'pokemon-cry',title:'Guess the Pokémon (Cry)',category:'Quiz',players:'Single player',
+ description:'Listen to a Pokémon cry and choose the correct name. Includes seven generations.',
+ image:'../games/pokemon-cry/cover.svg',src:'../games/pokemon-cry/index.html',
+ tags:['pokemon','pokémon','guess','cry','sound','quiz'],
+ controls:'Tap Play to hear the cry, then choose an answer. Use the generation buttons to change the Pokémon pool.'
+},{
+ id:'pokemon-stats',title:'Guess the Pokémon (Stats)',category:'Quiz',players:'Single player',
+ description:'Identify a mystery Pokémon from its six base stats, with optional type and ability hints.',
+ image:'../games/pokemon-stats/cover.svg',src:'../games/pokemon-stats/index.html',
+ tags:['pokemon','pokémon','guess','stats','quiz'],
+ controls:'Read the stat bars, type a name, and press Guess. Show values and Hint reveal more clues; Reveal answer skips to the solution.'
+},{
  id:'moto-x3m',title:'Moto X3M',category:'Racing',players:'Single player',
  description:'Race across wild stunt tracks, clear the obstacles, and stick the landing.',
  image:'../games/moto-x3m/cover.png',src:'../games/moto-x3m/index.html',

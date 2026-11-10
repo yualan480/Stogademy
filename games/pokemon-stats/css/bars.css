@@ -1,0 +1,54 @@
+.stat-wrapper {
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width: 100%;
+    height: 40px;
+    background-color: beige;
+}
+
+.stat {
+    height: 30px;
+    width: 100px;
+    position: absolute;
+    top: 5px;
+    left: 30px;
+}
+    
+.stat-label {
+    position: relative;
+    top: 10px
+}
+
+.stat-value {
+    float: right;
+    translate: -10px -15px;
+    height: 35px;
+}
+
+.solve-riddle {
+    max-width: 100%;
+}
+
+.container {
+    padding: 1rem;
+}
+
+.input-error {
+    color: red;
+    font-weight: bold;
+    position: relative;
+    left: -20px;
+}
+
+.border-error {
+    border: solid !important;
+    border-color: red !important;
+    border-width: 2px !important;
+}
+
+.container {
+    width: 100%;
+    padding: .5rem;
+    margin-bottom: 7rem;
+}

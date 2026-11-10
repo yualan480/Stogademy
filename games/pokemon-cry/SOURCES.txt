@@ -1,0 +1,6 @@
+Source: https://github.com/fent/pokecry
+Revision: 0ae6fd48977393054d0ab4f93e7e4b019833fd5c
+Hosted locally inside Orbit.
+Orbit adaptations: title, responsive theme, local assets, gallery artwork.
+Built using npm run build. Original MIT license retained in LICENSE.
+Pokémon names, sprites and cries belong to Nintendo / Game Freak / Creatures.

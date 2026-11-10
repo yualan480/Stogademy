@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Guess Who's That Pokemon from its in-game cry." />
+    <title>Guess the Pokémon (Cry)</title>
+    <link rel="stylesheet" href="style/style.css" type="text/css" media="all" />
+  <link rel="stylesheet" href="orbit.css"></head>
+  <body>
+    <div class="content">
+      <h1>Guess the Pokémon (Cry)</h1><p>Listen to the cry, then choose a Pokémon.</p>
+      <div class="results">
+        <span class="score">&nbsp;</span>
+        <h2 class="filler">&nbsp;</h2>
+        <h2 class="success hidden">correct</h2>
+        <h2 class="failure hidden">wrong</h2>
+        <p class="status sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+      <button class="play" type="button" aria-label="Play the Pokemon cry">▶</button>
+      <img class="pokemon-sprite hidden" alt="Mystery Pokemon" />
+      <div class="options">
+        <button class="option" type="button"></button>
+        <button class="option" type="button"></button>
+        <button class="option" type="button"></button>
+        <button class="option" type="button"></button>
+      </div>
+      <div class="gens-title" id="gens-title">gens</div>
+      <div class="gens" role="group" aria-labelledby="gens-title">
+        <button
+          class="gen gen-1"
+          type="button"
+          data-gen="1"
+          data-tooltip="blue / red / yellow"
+          aria-label="Generation 1: blue, red, yellow"
+          aria-pressed="true"
+        >
+          I
+        </button>
+        <button
+          class="gen gen-2"
+          type="button"
+          data-gen="2"
+          data-tooltip="gold / silver / crystal"
+          aria-label="Generation 2: gold, silver, crystal"
+          aria-pressed="false"
+        >
+          II
+        </button>
+        <button
+          class="gen gen-3"
+          type="button"
+          data-gen="3"
+          data-tooltip="ruby / sapphire / emerald"
+          aria-label="Generation 3: ruby, sapphire, emerald"
+          aria-pressed="false"
+        >
+          III
+        </button>
+        <button
+          class="gen gen-4"
+          type="button"
+          data-gen="4"
+          data-tooltip="diamond / pearl / platinum"
+          aria-label="Generation 4: diamond, pearl, platinum"
+          aria-pressed="false"
+        >
+          IV
+        </button>
+        <button
+          class="gen gen-5"
+          type="button"
+          data-gen="5"
+          data-tooltip="black / white"
+          aria-label="Generation 5: black, white"
+          aria-pressed="false"
+        >
+          V
+        </button>
+        <button
+          class="gen gen-6"
+          type="button"
+          data-gen="6"
+          data-tooltip="x / y"
+          aria-label="Generation 6: x, y"
+          aria-pressed="false"
+        >
+          VI
+        </button>
+        <button
+          class="gen gen-7"
+          type="button"
+          data-gen="7"
+          data-tooltip="sun / moon"
+          aria-label="Generation 7: sun, moon"
+          aria-pressed="false"
+        >
+          VII
+        </button>
+      </div>
+    </div>
+    <div class="end-screen hidden"></div>
+    <footer>Pokecry by fent · MIT License. Pokémon © Nintendo / Game Freak / Creatures.</footer><noscript>This game needs JavaScript to run.</noscript>
+    <script src="pokemon.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>

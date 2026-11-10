@@ -1,0 +1,6 @@
+Source: https://github.com/Leoniebra/PokemonStatQuiz
+Revision: 7a475b1f82896b1a7e82bbdb9ea63662bc387fb1
+Hosted locally inside Orbit.
+Orbit adaptations: title, responsive theme, local assets, gallery artwork.
+Stats adaptations: English labels and feedback, valid random selection, case-insensitive answers, safe tier columns and local sprite paths.
+Pokémon names, sprites and cries belong to Nintendo / Game Freak / Creatures.

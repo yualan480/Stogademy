@@ -1,0 +1,323 @@
+:root {
+  --ink: #000;
+  --paper: #fff;
+  --muted: #dcdcdc;
+  --border: #333;
+  --muted-strong: grey;
+  --success: green;
+  --failure: red;
+  --focus: #1a73e8;
+  --ribbon: #121621;
+  --ribbon-shadow: rgb(0 0 0 / 30%);
+  --tooltip-bg: hsla(0, 0%, 20%, 0.9);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-size: 130%;
+  font-family:
+    'Avant Garde', Avantgarde, 'Century Gothic', CenturyGothic, 'AppleGothic', sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.content {
+  width: 450px;
+  max-width: calc(100% - 2rem);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.github-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 999;
+  width: 149px;
+  height: 149px;
+  overflow: hidden;
+}
+
+.github-ribbon a {
+  position: absolute;
+  top: 38px;
+  right: -43px;
+  width: 200px;
+  padding: 6px 0;
+  transform: rotate(45deg);
+  background: var(--ribbon);
+  color: var(--paper);
+  font:
+    700 13px/1.4 'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px var(--ribbon-shadow);
+}
+
+.github-ribbon a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+.hidden {
+  display: none;
+}
+
+.results {
+  height: 80px;
+}
+
+.success,
+.right {
+  color: var(--success);
+}
+
+.failure {
+  color: var(--failure);
+}
+
+.score {
+  color: var(--ink);
+  padding-left: 10px;
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  padding: 0 0 0 5px;
+  border: 0;
+  border-radius: 100%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 40px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.play.hidden {
+  display: none;
+}
+
+.pokemon-sprite {
+  width: 80px;
+  height: 73px;
+}
+
+.options {
+  margin-top: 30px;
+}
+
+.option {
+  display: block;
+  width: calc(100% - 6px);
+  margin: 3px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.option:disabled {
+  background: var(--muted);
+  opacity: 1;
+  cursor: default;
+}
+
+.option:hover:not(:disabled),
+.gens .gen:hover,
+.gens .gen[aria-pressed='true'] {
+  color: var(--paper);
+  background-color: var(--ink);
+}
+
+.option:active:not(:disabled),
+.gens .gen:active {
+  color: var(--muted-strong);
+}
+
+.play:focus-visible,
+.option:focus-visible,
+.gen:focus-visible,
+.end-pokemon:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.gens-title {
+  margin-top: 30px;
+}
+
+.gens .gen {
+  display: inline-block;
+  width: 32px;
+  padding: 0;
+  border: 1px solid var(--muted-strong);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before,
+[data-tooltip]::after {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-tooltip]::before {
+  z-index: 999;
+  content: attr(data-tooltip);
+  display: block;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 1px solid var(--ink);
+  border-radius: 5px;
+  background: var(--tooltip-bg);
+  color: var(--paper);
+  text-align: center;
+  filter: drop-shadow(2px 2px 2px var(--tooltip-bg));
+  white-space: nowrap;
+}
+
+[data-tooltip]::after {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 0;
+  margin-left: -5px;
+  margin-bottom: 5px;
+  border-top: 5px solid var(--tooltip-bg);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  content: ' ';
+  font-size: 0;
+  line-height: 0;
+}
+
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::before,
+[data-tooltip]:focus-visible::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+.end-screen {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  width: calc(100% - 200px);
+  height: 100%;
+}
+
+.end-pokemon {
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes rumble {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-2px, 1px) rotate(-2deg);
+  }
+  50% {
+    transform: translate(2px, -1px) rotate(2deg);
+  }
+  75% {
+    transform: translate(-1px, -2px) rotate(-1deg);
+  }
+  100% {
+    transform: translate(1px, 2px) rotate(1deg);
+  }
+}
+
+.rumble {
+  animation: rumble 0.12s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rumble {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    font-size: 250%;
+  }
+
+  .content {
+    width: 90%;
+  }
+
+  .play {
+    width: 240px;
+    height: 240px;
+    padding-left: 15px;
+    font-size: 120px;
+  }
+
+  .pokemon-sprite {
+    width: 240px;
+    height: 219px;
+  }
+
+  .option {
+    line-height: 200%;
+  }
+
+  .gens-title {
+    margin-top: 60px;
+    margin-bottom: 10px;
+  }
+
+  .gens .gen {
+    width: 92px;
+    border-radius: 10px;
+    line-height: 200%;
+  }
+}
