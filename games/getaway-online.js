@@ -37,9 +37,9 @@
   if (!SB || !window.WebSocket || !document.body) return;   // no matchmaking server: the game stays local only
 
   var requestedGame=document.currentScript&&document.currentScript.getAttribute('data-game');
-  var GAME_KIND=['rooftop-snipers','basket-random','soccer-random','boxing-random'].indexOf(requestedGame)>=0?requestedGame:'getaway';
+  var GAME_KIND=['rooftop-snipers','basket-random','soccer-random','boxing-random','house-of-hazards'].indexOf(requestedGame)>=0?requestedGame:'getaway';
   var IS_RANDOM=GAME_KIND.endsWith('-random');
-  var GAME_TITLE=GAME_KIND==='boxing-random'?'Boxing Random':GAME_KIND==='soccer-random'?'Soccer Random':GAME_KIND==='basket-random'?'Basket Random':GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=IS_RANDOM?1:GAME_KIND==='rooftop-snipers'?2:3;
+  var GAME_TITLE=GAME_KIND==='house-of-hazards'?'House of Hazards':GAME_KIND==='boxing-random'?'Boxing Random':GAME_KIND==='soccer-random'?'Soccer Random':GAME_KIND==='basket-random'?'Basket Random':GAME_KIND==='rooftop-snipers'?'Rooftop Snipers':'Getaway Shootout',CONTROL_COUNT=GAME_KIND==='house-of-hazards'?4:IS_RANDOM?1:GAME_KIND==='rooftop-snipers'?2:3;
   var CONTROL_INDICES=Array.from({length:CONTROL_COUNT},function(_,i){return i;});
 
   /* ---- Seat controls: three keys for Getaway, two for Rooftop Snipers. ---- */
@@ -47,6 +47,7 @@
     [ { key: 'w', code: 'KeyW', kc: 87 }, { key: 'e', code: 'KeyE', kc: 69 }, { key: 'r', code: 'KeyR', kc: 82 } ],   // Player 1: W / E / R
     [ { key: 'i', code: 'KeyI', kc: 73 }, { key: 'o', code: 'KeyO', kc: 79 }, { key: 'p', code: 'KeyP', kc: 80 } ]    // Player 2: I / O / P
   ];
+  if(GAME_KIND==='house-of-hazards')SEAT_KEYS=[['a','d','w','s'],['j','l','i','k']].map(function(keys){return keys.map(function(key){return {key:key,code:'Key'+key.toUpperCase(),kc:key.toUpperCase().charCodeAt(0)};});});
   if(IS_RANDOM)SEAT_KEYS=[[{key:'w',code:'KeyW',kc:87}],[{key:'ArrowUp',code:'ArrowUp',kc:38,label:'↑'}]];
   SEAT_KEYS=SEAT_KEYS.map(function(keys){return keys.slice(0,CONTROL_COUNT);});
   var SEAT_LABEL=SEAT_KEYS.map(function(keys){return keys.map(function(k){return k.label||k.key.toUpperCase();}).join(' / ');});
@@ -221,6 +222,7 @@
   col.appendChild(btn('Join with a code', 'alt', function () { showPanel('join'); codeIn.focus(); }));
   col.appendChild(btn('Back to the game', 'alt small', function () { closeOverlay(); phase = 'idle'; renderBtn(); }));
   pMenu.appendChild(col);
+  if(GAME_KIND==='house-of-hazards')pMenu.appendChild(txt('p','fine','Online matches use two players. Choose two characters in the game. Player 1 uses A / D / W / S; Player 2 uses J / L / I / K.')) ;
   pMenu.appendChild(txt('p', 'fine', 'Needs a connection to the matchmaking server. Both players need to keep this page open and in front.'));
 
   // join
@@ -678,6 +680,7 @@
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); b.className = 'on'; try { b.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } myInput(i, true); });
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { b.addEventListener(t, function () { b.className = ''; myInput(i, false); }); });
   });
+  if(GAME_KIND==='house-of-hazards'){tap.style.gap='6px';tapBtns.forEach(function(b){b.style.width='min(20vw,84px)';b.style.height='64px';});}
   function updateTapLabels() {
     var letters=SEAT_KEYS[mySeat].map(function(k){return k.label||k.key.toUpperCase();});
     tapBtns.forEach(function (b, i) { b.textContent = letters[i]; });
@@ -717,7 +720,7 @@
   function hostStart() {
     if (!isHost || members().length < 2 || phase !== 'lobby') return;
     clearTimeout(autoT); autoT = 0;
-    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)||(GAME_KIND==='basket-random'&&!window.basketReady)||(GAME_KIND==='soccer-random'&&!window.soccerReady)||(GAME_KIND==='boxing-random'&&!window.boxingReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
+    if(!gameCanvas()||(GAME_KIND==='rooftop-snipers'&&!window.rooftopReady)||(GAME_KIND==='basket-random'&&!window.basketReady)||(GAME_KIND==='soccer-random'&&!window.soccerReady)||(GAME_KIND==='boxing-random'&&!window.boxingReady)||(GAME_KIND==='house-of-hazards'&&!window.houseReady)){lSub.textContent='Waiting for the game to finish loading…';autoT=setTimeout(hostStart,500);return;}
     sendRoom('start', {});
     enterPlay(0);
   }
@@ -840,4 +843,5 @@
   if(GAME_KIND==='basket-random')window.BasketOnline=window.GetawayOnline;
   if(GAME_KIND==='soccer-random')window.SoccerOnline=window.GetawayOnline;
   if(GAME_KIND==='boxing-random')window.BoxingOnline=window.GetawayOnline;
+  if(GAME_KIND==='house-of-hazards')window.HouseOnline=window.GetawayOnline;
 })();
