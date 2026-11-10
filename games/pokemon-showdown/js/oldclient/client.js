@@ -807,6 +807,13 @@ function toId() {
 						console.log(url);
 						return new WebSocket(url);
 					}
+					if (Config.orbitDirectWebSocket && !self.orbitSocketFallback && window.WebSocket) {
+						var directSocket = new WebSocket('wss://' + Config.server.host + ':443' + Config.sockjsprefix + '/websocket');
+						var directTimeout = setTimeout(function () { if (directSocket.readyState === 0) directSocket.close(); }, 10000);
+						directSocket.addEventListener('open', function () { clearTimeout(directTimeout); });
+						directSocket.addEventListener('close', function () { clearTimeout(directTimeout); });
+						return directSocket;
+					}
 					return new SockJS(
 						protocol + '://' + Config.server.host + ':' + Config.server.port + Config.sockjsprefix,
 						[], { timeout: 5 * 60 * 1000 }
@@ -870,6 +877,11 @@ function toId() {
 			};
 			this.socket.onclose = function () {
 				if (!socketopened) {
+					if (Config.orbitDirectWebSocket && !self.orbitSocketFallback) {
+						self.orbitSocketFallback = true;
+						self.socket = reconstructSocket(self.socket);
+						return;
+					}
 					if (Config.server.altport && !altport) {
 						altport = true;
 						Config.server.port = Config.server.altport;

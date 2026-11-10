@@ -55,6 +55,12 @@ export const UNBLOCKED_GAMES=[{
  tags:['stickman','hook','swing','rope','physics','platformer'],
  controls:'Hold the mouse button or touch the screen to hook and swing. Release to let go.'
 },{
+ id:'worlds-hardest-game',title:"World’s Hardest Game",category:'Arcade',players:'Single player',
+ description:'Guide the red square past blue enemies, collect every coin, and reach the green safe zone.',
+ image:'../games/worlds-hardest-game/cover.svg',src:'../games/worlds-hardest-game/index.html',
+ tags:['worlds','hardest','game','dodge','arcade','platformer','puzzle'],
+ controls:'Use arrow keys or WASD to move. On phones, use the touch controls. Collect yellow coins and reach the green zone; P pauses and M mutes.'
+},{
  id:'yohoho',title:'Yohoho.io',category:'Action',players:'Single player',
  description:'Battle pirates, collect doubloons, and be the last pirate standing.',
  image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html?v=2',

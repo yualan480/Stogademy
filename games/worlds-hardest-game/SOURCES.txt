@@ -1,0 +1,6 @@
+World’s Hardest Game — original game by Stephen Critoph / Snubby Land.
+HTML5 game source: https://github.com/ubg98/WorldsHardestGame/tree/f1bbbce3770d108ff9d3ebd1180f0157d82d352f
+Revision: f1bbbce3770d108ff9d3ebd1180f0157d82d352f
+Orbit adaptation: local runtime, artwork and sound assets; removed source-site analytics and portal scripts; touch styling and gallery cover.
+Original in-game credits retained. Artwork, audio, game code and trademarks remain the property of their respective owners.
+Additional fixes: enabled the supplied MP3 loader on mobile (upstream mobile audio initialization was empty), and release controls on cancelled gestures or focus loss.
