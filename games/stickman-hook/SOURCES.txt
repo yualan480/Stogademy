@@ -1,0 +1,5 @@
+Stickman Hook by Madbox. Original game bundle and credits retained.
+User source: https://github.com/gogoat35/gogoat35.github.io/blob/main/Stickman%20Hook.html
+That Google Sites export embeds https://app-176446.games.s3.yandex.net/176446/il4mmrxspkuvcdme8wshu4meofhazeaf/index.html
+Game bundle, images and fonts from that embedded build.
+Orbit packages assets locally, omits the Google Sites wrapper and advertising/analytics integrations, and supplies offline lifecycle callbacks in orbit-host.js. Rewarded ads are unavailable and do not grant rewards.

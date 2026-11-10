@@ -19,6 +19,12 @@ export const UNBLOCKED_GAMES=[{
  tags:['paper','io','territory','capture','arena'],
  controls:'Move with arrow keys or WASD; use the on-screen D-pad on touch devices. Z/Space is A, X is B. Return to your color to claim land.'
 },{
+ id:'stickman-hook',title:'Stickman Hook',category:'Action',players:'Single player',
+ description:'Swing from hook to hook, build momentum, and reach the finish line.',
+ image:'../games/stickman-hook/cover.png',src:'../games/stickman-hook/index.html',
+ tags:['stickman','hook','swing','rope','physics','platformer'],
+ controls:'Hold the mouse button or touch the screen to hook and swing. Release to let go.'
+},{
  id:'yohoho',title:'Yohoho.io',category:'Action',players:'Single player',
  description:'Battle pirates, collect doubloons, and be the last pirate standing.',
  image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html?v=2',
