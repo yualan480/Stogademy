@@ -13,6 +13,12 @@ export const UNBLOCKED_GAMES=[{
  tags:['motorbike','bike','motorcycle','stunts','racing','moto','x3m'],
  controls:'Arrow keys to ride and lean. Use the game’s on-screen controls on touch devices.'
 },{
+ id:'paper-io',title:'Paper.io 2',category:'Action',players:'Single player',
+ description:'Claim territory, close your loops, and protect your trail from rival bots.',
+ image:'../games/paper-io/cover.svg',src:'../games/paper-io/index.html',
+ tags:['paper','io','territory','capture','arena'],
+ controls:'Steer with your mouse or arrow keys. Return to your territory to capture land; keep your trail safe.'
+},{
  id:'yohoho',title:'Yohoho.io',category:'Action',players:'Single player',
  description:'Battle pirates, collect doubloons, and be the last pirate standing.',
  image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html?v=2',

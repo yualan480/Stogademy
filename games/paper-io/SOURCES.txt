@@ -1,0 +1,5 @@
+Paper.io 2 browser build: https://github.com/ubg17/PaperIO2
+Revision: 62abed6bb58c3c6aa3e68be8b6c34f8acb916145
+Original game by Voodoo. Artwork is bundled game logo.
+User-supplied https://github.com/briander9/Paper-Io contains no game files.
+Orbit adds local hosting, removes advertising/analytics integrations, and blocks external navigation.
