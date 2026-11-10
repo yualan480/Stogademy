@@ -758,14 +758,23 @@
         eachCell(mat, (r, c) => drawBlock(g, px + (c - c0) * mini, py + (r - r0) * mini, mini, COLORS[type]));
       }
 
+      function clearPreview(canvas, context) {
+        // Canvas dimensions are physical pixels; clear without the device-pixel scale.
+        // At browser zoom levels below 100%, clearing scaled dimensions leaves old pieces behind.
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+      }
+
       function drawPreviews() {
-        hctx.clearRect(0, 0, holdCv.width, holdCv.height);
+        clearPreview(holdCv, hctx);
         if (holdType) {
           hctx.globalAlpha = canHold ? 1 : 0.4;
           drawPiecePreview(hctx, holdType, 0, 0);
           hctx.globalAlpha = 1;
         }
-        nctx.clearRect(0, 0, nextCv.width, nextCv.height);
+        clearPreview(nextCv, nctx);
         if (queue) {
           for (let i = 0; i < 3; i++) {
             if (portrait) drawPiecePreview(nctx, queue[i], i * 4 * mini, 0);

@@ -1,5 +1,4 @@
-Paper.io by UnsignedArduino: https://github.com/UnsignedArduino/Paper-io
-Revision: 06d267c0f144570df284d7e5c8472afbe5943af1
-Game source from that repository. The checked-in binary is a starter template; Orbit compiled main.ts and pinned pxt.json dependencies using pxt-arcade 4.2.1 and pxt-core 13.2.1.
-MakeCode simulator HTML/CSS template from https://trg-arcade.userpxt.io/v1.4.41/---simulator and its linked cdn.makecode.com assets; Runtime JS is built/sim.js and built/common-sim.js from pxt-arcade 4.2.1, plus built/pxtsim.js from pxt-core 13.2.1. Microsoft runtime notices retained.
-Orbit localizes runtime paths, validates simulator messages, and embeds the game without external navigation.
+Paper.io 2 browser build: https://github.com/ubg17/PaperIO2
+Revision: 62abed6bb58c3c6aa3e68be8b6c34f8acb916145
+Original game by Voodoo. Artwork is bundled game logo.
+Orbit supplies local hosting, omits advertising/analytics integrations, and blocks external navigation.

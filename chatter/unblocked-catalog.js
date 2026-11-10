@@ -19,11 +19,17 @@ export const UNBLOCKED_GAMES=[{
  tags:['motorbike','bike','motorcycle','stunts','racing','moto','x3m'],
  controls:'Arrow keys to ride and lean. Use the game’s on-screen controls on touch devices.'
 },{
- id:'paper-io',title:'Paper.io',category:'Action',players:'Single player',
+ id:'paper-io',title:'Paper.io 2',category:'Action',players:'Single player',
  description:'Claim territory, close your loops, and protect your trail from rival bots.',
- image:'../games/paper-io/cover.png',src:'../games/paper-io/index.html?v=3',
+ image:'../games/paper-io/cover.svg',src:'../games/paper-io/index.html?v=4',
  tags:['paper','io','territory','capture','arena'],
- controls:'Move with arrow keys or WASD; use the on-screen D-pad on touch devices. Z/Space is A, X is B. Return to your color to claim land.'
+ controls:'Steer with your mouse or arrow keys. Return to your territory to capture land; keep your trail safe.'
+},{
+ id:'pokemon-showdown',title:'Pokémon Showdown',category:'Strategy',players:'Online multiplayer',
+ description:'Build a team, find a battle, or challenge a friend to a Pokémon match.',
+ image:'../games/arcade-covers/pokemon-showdown.png',src:'../games/pokemon-showdown.html?embed=1',allowForms:true,
+ tags:['pokemon','pokémon','showdown','battle','teams','strategy','multiplayer'],
+ controls:'Choose a name, then Battle! for matchmaking or Find a user to challenge a friend.'
 },{
  id:'stickman-hook',title:'Stickman Hook',category:'Action',players:'Single player',
  description:'Swing from hook to hook, build momentum, and reach the finish line.',
