@@ -43,6 +43,12 @@ export const UNBLOCKED_GAMES=[{
  tags:['pokemon','pokémon','showdown','battle','teams','strategy','multiplayer'],
  controls:'Choose a name, then Battle! for matchmaking or Find a user to challenge a friend.'
 },{
+ id:'retro-bowl',title:'Retro Bowl',category:'Sports',players:'Single player',
+ description:'Manage your football team, call the plays, and chase a championship in pixel-art football.',
+ image:'../games/retro-bowl/cover.svg',src:'../games/retro-bowl/index.html',
+ tags:['retro','bowl','football','sports','quarterback','touchdown'],
+ controls:'Click or tap to navigate. Drag back from your quarterback and release to pass; use the game’s tutorial for running and kicking. Progress saves in this browser.'
+},{
  id:'stickman-hook',title:'Stickman Hook',category:'Action',players:'Single player',
  description:'Swing from hook to hook, build momentum, and reach the finish line.',
  image:'../games/stickman-hook/cover.png',src:'../games/stickman-hook/index.html',

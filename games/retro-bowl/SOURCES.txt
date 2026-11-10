@@ -1,0 +1,6 @@
+Retro Bowl by New Star Games.
+Source files: https://github.com/8bitCAP/Retro-Bowl/tree/c3e91e0ac791367d9b1bd4ede3a2ad686d1e3b1e/rb
+Revision: c3e91e0ac791367d9b1bd4ede3a2ad686d1e3b1e
+Only the playable html5game assets and entry page are hosted here.
+Orbit changes: relative entry path, local SDK-free hosting configuration, safe team URL parameter handling, responsive canvas styling, gallery cover.
+Original game code, artwork, sounds and trademarks remain the property of their respective owners.
