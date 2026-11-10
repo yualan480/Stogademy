@@ -38,5 +38,5 @@ try{
  for(let i=0;i<catalog.UNBLOCKED_GAMES.length;i+=3)await Promise.all(catalog.UNBLOCKED_GAMES.slice(i,i+3).map(check));
  console.log(JSON.stringify(results,null,2));
  assert.deepEqual(results.filter(r=>r.error),[]);
- console.log('PASS all 12 Unblocked Games: desktop, laptop, portrait and landscape layout; canvas games fill and center without cropping; DOM games have no horizontal scrollbars.');
+ console.log('PASS all catalog games: desktop, laptop, portrait and landscape layout; canvas games fill and center without cropping; DOM games have no horizontal scrollbars.');
 }finally{await browser.close();server.close();}

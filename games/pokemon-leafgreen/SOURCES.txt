@@ -1,0 +1,4 @@
+Emulator: https://github.com/endrift/gbajs/tree/0cf0ac7d624eaae032e19ba2f154e0ae1ce73796
+License: BSD 2-Clause, see COPYING.
+The 220-byte BIOS replacement is built from the included upstream bios.S; no Nintendo BIOS or game ROM is bundled.
+Orbit adaptation: local-file LeafGreen launcher, touch controls, pause/audio controls and save import/export.

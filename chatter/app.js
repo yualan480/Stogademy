@@ -1,6 +1,6 @@
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
-import {initUnblockedGames} from './unblocked-games.js?v=17';
+import {initUnblockedGames} from './unblocked-games.js?v=18';
 import { initGuides } from './guides.js?v=2';
 import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
