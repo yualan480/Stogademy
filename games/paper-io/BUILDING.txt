@@ -1,0 +1,10 @@
+Simulator build notes
+
+Source and revision are recorded in SOURCES.txt. Use that repository's original pxt.json dependency versions.
+Toolchain: pxt CLI, pxt-arcade 4.2.1, pxt-core 13.2.1.
+Install the Arcade target and run pxt install, then pxt run to generate built/debug/binary.js.
+The CLI Node runner cannot execute all Arcade browser APIs; use the generated JavaScript in the browser simulator.
+Prepend the loader metadata (target arcade, targetVersion 4.2.1) to binary.js.
+Copy matching pxt-arcade built/common-sim.js, built/sim.js and pxt-core built/pxtsim.js.
+The simulator template includes the safari-enable-game element expected by the current runtime.
+Orbit's loader uses local simulator/CDN URLs and a dedicated storage key.
