@@ -7,6 +7,12 @@ export const UNBLOCKED_GAMES=[{
  tags:['cookies','baking','idle','incremental','clicker','upgrades'],
  controls:'Click the big cookie and buy buildings. The game autosaves; use Options → Save before leaving.'
 },{
+ id:'electron-dash',title:'Electron Dash',category:'Action',players:'Single player',
+ description:'Race through a neon tunnel, dodge hazards, and leap across gaps.',
+ image:'../games/electron-dash/cover.png',src:'../games/electron-dash/index.html',
+ tags:['electron','dash','runner','neon','tunnel','jump'],
+ controls:'A/D or Left/Right to move. W, Up Arrow, or Space to jump.'
+},{
  id:'moto-x3m',title:'Moto X3M',category:'Racing',players:'Single player',
  description:'Race across wild stunt tracks, clear the obstacles, and stick the landing.',
  image:'../games/moto-x3m/cover.png',src:'../games/moto-x3m/index.html',
