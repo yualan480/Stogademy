@@ -12,4 +12,10 @@ export const UNBLOCKED_GAMES=[{
  image:'../games/moto-x3m/cover.png',src:'../games/moto-x3m/index.html',
  tags:['motorbike','bike','motorcycle','stunts','racing','moto','x3m'],
  controls:'Arrow keys to ride and lean. Use the game’s on-screen controls on touch devices.'
+},{
+ id:'yohoho',title:'Yohoho.io',category:'Action',players:'Single player',
+ description:'Battle pirates, collect doubloons, and be the last pirate standing.',
+ image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html',
+ tags:['pirate','battle','royale','yohoho','io','action'],
+ controls:'Move with your mouse, WASD, or arrow keys. Click or press Space to attack; hold to charge a dash.'
 }];
