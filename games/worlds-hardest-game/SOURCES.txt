@@ -4,3 +4,4 @@ Revision: f1bbbce3770d108ff9d3ebd1180f0157d82d352f
 Orbit adaptation: local runtime, artwork and sound assets; removed source-site analytics and portal scripts; touch styling and gallery cover.
 Original in-game credits retained. Artwork, audio, game code and trademarks remain the property of their respective owners.
 Additional fixes: enabled the supplied MP3 loader on mobile (upstream mobile audio initialization was empty), and release controls on cancelled gestures or focus loss.
+Viewport fix: desktop canvas scales proportionally and centers in the available frame; mouse coordinates are converted back into the native 800×600 coordinate system. Phone rendering keeps the native responsive touch layout.

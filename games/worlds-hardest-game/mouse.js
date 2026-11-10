@@ -1,8 +1,8 @@
 function getMousePos(evt) {
     var rect = canvasElement.getBoundingClientRect();
     return {
-        x: evt.clientX - rect.left,
-        y: evt.clientY - rect.top
+        x: (evt.clientX - rect.left) * canvasElement.width / rect.width,
+        y: (evt.clientY - rect.top) * canvasElement.height / rect.height
     };
 }
 
@@ -13,6 +13,8 @@ canvasElement.addEventListener("mousemove", function(evt) {
 }, false);
 
 canvasElement.addEventListener("mousedown", function(evt) {
+    var position = getMousePos(evt);
+    mouseX = position.x; mouseY = position.y;
     mouseDown = true;
     clickButtons();
 }, false);

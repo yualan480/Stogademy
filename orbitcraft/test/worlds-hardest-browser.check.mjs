@@ -14,7 +14,7 @@ try{
   const page=await context.newPage(),errors=[],failed=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400&&r.url().includes('worlds-hardest-game'))failed.push(r.url());});
   await page.goto(base+'/games/worlds-hardest-game/index.html');
   await page.waitForFunction(()=>loadedAssets>=TOTAL_ASSETS,null,{timeout:20000});
-  const tap=async(x,y)=>{const point=await page.evaluate(([x,y])=>({x:cwh(x)+os.x,y:cwh(y)+os.y}),[x,y]);if(phone)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y,{delay:100});};
+  const tap=async(x,y)=>{const point=await page.evaluate(([x,y])=>(()=>{const r=canvasElement.getBoundingClientRect();return{x:r.left+(cwh(x)+os.x)*r.width/canvasElement.width,y:r.top+(cwh(y)+os.y)*r.height/canvasElement.height}})(),[x,y]);if(phone)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y,{delay:100});};
   await tap(400,280);await page.waitForFunction(()=>state==='main_menu');
   await tap(180,350);await page.waitForFunction(()=>state==='game',null,{timeout:15000});
   assert.equal(await page.evaluate(()=>level),1);assert.equal(await page.evaluate(()=>localStorage.getItem('whg_level')),'1');

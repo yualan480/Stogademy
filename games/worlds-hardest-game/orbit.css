@@ -1,1 +1,1 @@
-html,body{width:100%;height:100%;overscroll-behavior:none}canvas{touch-action:none;outline:none}
+html,body{width:100%;height:100%;overscroll-behavior:none;margin:0;overflow:hidden}canvas{touch-action:none;outline:none}body:not(.orbit-touch){display:flex;align-items:center;justify-content:center}body:not(.orbit-touch)>div{display:none}body:not(.orbit-touch) canvas{display:block;width:min(100vw,133.333333vh);height:auto;max-height:100vh}body.orbit-touch canvas{display:block;width:100%;height:100%}

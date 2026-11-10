@@ -63,7 +63,7 @@ export const UNBLOCKED_GAMES=[{
 },{
  id:'worlds-hardest-game',title:"World’s Hardest Game",category:'Arcade',players:'Single player',
  description:'Guide the red square past blue enemies, collect every coin, and reach the green safe zone.',
- image:'../games/worlds-hardest-game/cover.svg',src:'../games/worlds-hardest-game/index.html',
+ image:'../games/worlds-hardest-game/cover.svg',src:'../games/worlds-hardest-game/index.html?v=2',
  tags:['worlds','hardest','game','dodge','arcade','platformer','puzzle'],
  controls:'Use arrow keys or WASD to move. On phones, use the touch controls. Collect yellow coins and reach the green zone; P pauses and M mutes.'
 },{
