@@ -200,6 +200,24 @@
       B.rpc('tournament_record_score', { p_game: game, p_score: score }).catch(function () { tSent[game] = 0; });
     } catch (e) { /* tournaments are a bonus, never break a game */ }
   }
+  // Retain unsent bests across navigation and temporary connection/server failures.
+  function pendingKey(game, name) { return 'lb-pending-' + game + '-' + name.toLowerCase(); }
+  function queueScore(game, name, score) {
+    try { var key = pendingKey(game, name), old = Number(localStorage.getItem(key)) || 0;
+      localStorage.setItem(key, String(Math.max(old, score))); } catch (e) { /* storage unavailable */ }
+  }
+  function clearPending(game, name, score) {
+    try { var key = pendingKey(game, name); if ((Number(localStorage.getItem(key)) || 0) <= score) localStorage.removeItem(key); } catch (e) { /* storage unavailable */ }
+  }
+  function retryScores() {
+    var name = getName(); if (!name) return;
+    GAMES.forEach(function (game) {
+      try { var score = Number(localStorage.getItem(pendingKey(game, name))) || 0;
+        if (score > 0) sendScore(game, score); } catch (e) { /* storage unavailable */ }
+    });
+  }
+  window.addEventListener('online', retryScores);
+  setTimeout(retryScores, 2000);
   function sendScore(game, score) {
     score = Math.floor(Number(score));
     var name = getName();
@@ -212,20 +230,21 @@
     var old = '';
     try { old = localStorage.getItem(memo) || ''; } catch (e) { old = ''; }
     var parts = old.split('|'), prevScore = parseInt(parts[0], 10) || 0, prevAv = parts[1] || '';
-    if (score <= prevScore && av === prevAv) return Promise.resolve(false);
-    try { localStorage.setItem(memo, Math.max(score, prevScore) + '|' + av); } catch (e) { /* storage unavailable */ }
-    var revert = function () { try { localStorage.setItem(memo, old); } catch (e) { /* ignore */ } };
+    if (score <= prevScore && av === prevAv) { clearPending(game, name, prevScore); return Promise.resolve(false); }
+    queueScore(game, name, score);
     return fetch(BASE, {
       method: 'POST',
       headers: headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
       body: JSON.stringify({ game: game, name: name, score: score, avatar: avatar }),
       keepalive: true
     }).then(function (r) {
-      if (r.ok) { lastError = ''; return true; }
-      revert();
+      if (r.ok) {
+        try { var sent = parseInt(localStorage.getItem(memo), 10) || 0; localStorage.setItem(memo, Math.max(score, prevScore, sent) + '|' + av); } catch (e) { /* storage unavailable */ }
+        clearPending(game, name, score); cache = {}; lastError = ''; return true;
+      }
       return r.text().then(function (t) { lastError = 'HTTP ' + r.status + ' ' + String(t || '').replace(/\s+/g, ' ').slice(0, 160); return false; },
                            function () { lastError = 'HTTP ' + r.status; return false; });
-    }).catch(function () { revert(); lastError = 'no connection'; return false; });
+    }).catch(function () { lastError = 'no connection'; return false; });
   }
 
   // best score per name, highest first; each name shows its newest picture.
@@ -327,13 +346,20 @@
       return;
     }
     if (!isCleanName(name)) return;
-    sending.then(function () { return top(game, Infinity, true); }).then(function (rows) {
+    sending.then(function (saved) {
+      if (!saved && lastError) {
+        toast(function (t) { text(t, 'span', '', 'Score not uploaded yet. We’ll retry when you reconnect or reopen Games.'); });
+        return null;
+      }
+      return top(game, Infinity, true);
+    }).then(function (rows) {
+      if (!rows) return;
       var me = name.toLowerCase(), idx = -1, i;
       for (i = 0; i < rows.length; i++) if (rows[i].name.toLowerCase() === me) { idx = i; break; }
       if (idx === -1) {
         if (score > 0) toast(function (t) {
           var box = document.createElement('div');
-          text(box, 'span', '', 'Could not save your score right now.');
+          text(box, 'span', '', 'Score not uploaded yet. We’ll retry when you reconnect or reopen Games.');
           if (lastError) text(box, 'small', '', 'Server said: ' + lastError);
           t.appendChild(box);
         });
