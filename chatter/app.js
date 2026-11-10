@@ -1,4 +1,5 @@
-import {initUnblockedGames} from './unblocked-games.js?v=10';
+import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
+import {initUnblockedGames} from './unblocked-games.js?v=11';
 import { initGuides } from './guides.js?v=2';
 import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
@@ -119,6 +120,7 @@ function toast(msg, isErr) {
   $('#toasts').append(t); setTimeout(() => t.remove(), 4500);
 }
 function modal(title, body, buttons = [{ label: 'Close', cls: 'ghost' }], onMount) {
+  setSidebarOpen(false);
   const bg = document.createElement('div'); bg.className = 'modalbg';
   bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2><div>${body}</div><div class="actions"></div></div>`;
   const kd = e => { if (e.key === 'Escape') close(); };
@@ -209,9 +211,9 @@ const ic = (k, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" f
 const chIcon = (c, size = 18) => ic(c.special === 'suggestions' || c.special === 'videos' ? 'hash' : c.is_private || c.locked ? 'lock' : 'hash', size);
 const logoMark = `<img src="logo.svg" width="38" height="38" alt="" style="border-radius:10px">`;
 const menuBtn = () => `<button class="ib menu" id="mb" aria-label="Open sidebar">${ic('menu')}</button>`;
-const toggleSide = () => $('#app').classList.toggle('open');
-const closeSide = () => $('#app')?.classList.remove('open');
-const bindMenu = () => { const b = $('#mb'); if (b) b.onclick = toggleSide; };
+const toggleSide = () => setSidebarOpen(!$('#app')?.classList.contains('open'));
+const closeSide = () => setSidebarOpen(false);
+const bindMenu = () => { const b = $('#mb'); if (b) b.onclick = toggleSide; syncSidebar(); };
 const stamp = d => { const x = new Date(d), n = new Date(), y = new Date(n - 864e5); return (x.toDateString() === n.toDateString() ? 'Today at ' : x.toDateString() === y.toDateString() ? 'Yesterday at ' : x.toLocaleDateString() + ' ') + hhmm(d); };
 const stText = { online: 'Online', idle: 'Idle', playing: 'Playing in Orbit Games', dnd: 'Do not disturb', offline: 'Offline' };
 const vname = n => n.length <= 3 ? n.toUpperCase() : n[0].toUpperCase() + n.slice(1);
@@ -974,7 +976,7 @@ function renderSide() {
   const inFun = ['unblocked', 'gamer', 'shop', 'gamble', 'orbitcraft'].includes(S.view), funOpen = S.funOpen ?? inFun;
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Explore</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Explore"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
-  side.innerHTML = `<div class="brand"><div class="bwrap"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"></div></div>
+  side.innerHTML = `<div class="brand"><div class="bwrap"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"></div><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
   <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>

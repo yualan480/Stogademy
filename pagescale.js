@@ -16,10 +16,9 @@
   function calc() {
     try {
       if (window.top !== window.self) return 1;
-      var o = parseFloat(localStorage.getItem('stg_pagescale'));
-      if (o >= 0.4 && o <= 1) return o;
     } catch (e) { if (window.top !== window.self) return 1; }
     if (matchMedia('(pointer:coarse)').matches || !matchMedia('(min-width:801px)').matches) return 1;
+    try { var o = parseFloat(localStorage.getItem('stg_pagescale')); if (o >= 0.4 && o <= 1) return o; } catch (e) { /* storage unavailable */ }
     /* browser zoom = window width (not affected by zoom) / page width (shrinks as you zoom in) */
     var oi = window.outerWidth / window.innerWidth;
     if (!(oi > 0.2 && oi < 6)) return 1;
