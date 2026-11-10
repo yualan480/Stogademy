@@ -2,3 +2,4 @@ Electron Dash WebGL build: https://github.com/1000unblockedgames/ElectronDash
 Revision: 6f4efe864f1364b0d37f6288a8f2aa592c0c66ba
 Unity 2019.4.24f1 native game bundle and platform hooks retained.
 Orbit supplies its local loading/player shell and omits hosting-site analytics/promotional scripts.
+Orbit provides a local touch-to-keyboard adapter in touch-controls.js for movement and jumping on phones.

@@ -64,3 +64,15 @@ body { overscroll-behavior-x: none; }
  .ub-page .ub-card-play{opacity:1;transform:none;width:42px;height:42px}
 }
 @media(max-width:360px){.ub-card-body{padding:10px}.ub-card-body b{font-size:13px}.ub-category{left:7px;bottom:7px;font-size:9px}}
+
+@media(max-width:800px),(pointer:coarse) and (max-height:500px){
+ .app .composer .box{flex-wrap:wrap;gap:4px}
+ .app .composer .box::before{content:"";order:1;flex:0 0 100%;height:0}
+ .app .composer #in{order:2;flex:1 1 calc(100% - 52px);width:calc(100% - 52px)}
+ .app .composer #snd{order:3;flex:none}
+ .app .fmtbar{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+ .app .fmtbar button{min-width:44px;min-height:44px;flex:none}
+ .app .side .nav,.app .side .brand,.app .side .me{flex-shrink:0}
+ .app .side .brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--side)}
+ #morseKey{touch-action:pan-y pinch-zoom;min-height:56px;min-width:190px}
+}

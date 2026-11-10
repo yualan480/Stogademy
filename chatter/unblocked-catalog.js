@@ -9,9 +9,9 @@ export const UNBLOCKED_GAMES=[{
 },{
  id:'electron-dash',title:'Electron Dash',category:'Action',players:'Single player',
  description:'Race through a neon tunnel, dodge hazards, and leap across gaps.',
- image:'../games/electron-dash/cover.png',src:'../games/electron-dash/index.html',
+ image:'../games/electron-dash/cover.png',src:'../games/electron-dash/index.html?v=2',
  tags:['electron','dash','runner','neon','tunnel','jump'],
- controls:'A/D or Left/Right to move. W, Up Arrow, or Space to jump.'
+ controls:'Use the on-screen arrow and Jump buttons on phones. Keyboard: A/D or Left/Right to move; W, Up Arrow, or Space to jump.'
 },{
  id:'moto-x3m',title:'Moto X3M',category:'Racing',players:'Single player',
  description:'Race across wild stunt tracks, clear the obstacles, and stick the landing.',

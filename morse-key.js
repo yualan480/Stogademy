@@ -4,7 +4,7 @@
 (function(){
   var key=document.getElementById('morseKey');if(!key)return;
   var out=document.getElementById('morseOut'),DASH=220,LETTER=900,RESET=3500;
-  var buf='',downAt=0,held=false,tLetter=0,tReset=0,ac=null,osc=null,gain=null;
+  var buf='',downAt=0,held=false,activePointer=null,tLetter=0,tReset=0,ac=null,osc=null,gain=null;
   function show(){out.textContent=buf.replace(/ /g,'  ')||'tap · hold'}
   function tone(on){
     try{
@@ -23,9 +23,9 @@
     if(held)return;held=true;downAt=Date.now();clearTimeout(tLetter);clearTimeout(tReset);
     key.classList.add('down');tone(true);
   }
-  function up(){
-    if(!held)return;held=false;key.classList.remove('down');tone(false);
-    buf+=(Date.now()-downAt)>=DASH?'-':'.';if(buf.length>40)buf=buf.slice(-40);show();
+  function scheduleEnd(){
+    clearTimeout(tLetter);clearTimeout(tReset);
+    if(!buf.trim())return;
     tLetter=setTimeout(function(){
       buf=buf.replace(/ +$/,'')+' ';
       var src=buf.trim();
@@ -35,12 +35,25 @@
     },LETTER);
     tReset=setTimeout(function(){buf='';show()},RESET);
   }
-  key.addEventListener('pointerdown',function(e){if(e.button>0)return;e.preventDefault();try{key.setPointerCapture(e.pointerId)}catch(x){}down()});
-  key.addEventListener('pointerup',up);
-  key.addEventListener('pointercancel',up);
+  function up(){
+    if(!held)return;held=false;activePointer=null;key.classList.remove('down');tone(false);
+    buf+=(Date.now()-downAt)>=DASH?'-':'.';if(buf.length>40)buf=buf.slice(-40);show();scheduleEnd();
+  }
+  function cancel(){
+    if(!held)return;held=false;activePointer=null;key.classList.remove('down');tone(false);scheduleEnd();
+  }
+  key.addEventListener('pointerdown',function(e){
+    if(e.button>0||held)return;e.preventDefault();activePointer=e.pointerId;
+    try{key.setPointerCapture(e.pointerId)}catch(x){}down();
+  });
+  key.addEventListener('pointerup',function(e){if(e.pointerId===activePointer)up()});
+  key.addEventListener('pointercancel',function(e){if(e.pointerId===activePointer)cancel()});
+  key.addEventListener('lostpointercapture',function(e){if(e.pointerId===activePointer)cancel()});
   key.addEventListener('keydown',function(e){if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();down()}});
-  key.addEventListener('keyup',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();up()}});
-  key.addEventListener('blur',function(){if(held)up()});
+  key.addEventListener('keyup',function(e){if((e.key===' '||e.key==='Enter')&&activePointer===null){e.preventDefault();up()}});
+  key.addEventListener('blur',cancel);
+  addEventListener('blur',cancel);
+  document.addEventListener('visibilitychange',function(){if(document.hidden){cancel();clearTimeout(tLetter);clearTimeout(tReset);buf='';show()}});
   key.addEventListener('contextmenu',function(e){e.preventDefault()});
   // Keyboard: on the home page, just type . and - with no spaces. The code is only stored as a hash (stogademy.js),
   // so each recent run of keys is tried split into two letters until one matches.

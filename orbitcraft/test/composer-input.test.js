@@ -1,0 +1,3 @@
+import test from'node:test';import assert from'node:assert/strict';import{shouldSendOnEnter}from'../../chatter/composer-input.js';
+test('phone Return adds a line; explicit shortcut and desktop Return send',()=>{assert.equal(shouldSendOnEnter({key:'Enter'},true),false);assert.equal(shouldSendOnEnter({key:'Enter',ctrlKey:true},true),true);assert.equal(shouldSendOnEnter({key:'Enter'},false),true);assert.equal(shouldSendOnEnter({key:'Enter',shiftKey:true},false),false);});
+test('input composition never sends a message',()=>{assert.equal(shouldSendOnEnter({key:'Enter',isComposing:true},false),false);assert.equal(shouldSendOnEnter({key:'Enter',keyCode:229},false),false);});
