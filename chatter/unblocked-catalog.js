@@ -43,6 +43,12 @@ export const UNBLOCKED_GAMES=[{
  tags:['pokemon','pokémon','showdown','battle','teams','strategy','multiplayer'],
  controls:'Choose a name, then Battle! for matchmaking or Find a user to challenge a friend.'
 },{
+ id:'random-trivia',title:'Random Trivia',category:'Quiz',players:'Single player',
+ description:'Test your knowledge with ten random multiple-choice questions across a mix of topics.',
+ image:'../games/random-trivia/cover.svg',src:'../games/random-trivia/index.html',
+ tags:['random','trivia','quiz','questions','knowledge'],
+ controls:'Choose one answer per question, then press Next. Finish ten questions to see your score; restart for another random round.'
+},{
  id:'retro-bowl',title:'Retro Bowl',category:'Sports',players:'Single player',
  description:'Manage your football team, call the plays, and chase a championship in pixel-art football.',
  image:'../games/retro-bowl/cover.svg',src:'../games/retro-bowl/index.html',

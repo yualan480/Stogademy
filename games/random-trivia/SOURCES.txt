@@ -1,0 +1,8 @@
+Random Trivia is adapted from OpenTrivia by XnonXte.
+Source: https://github.com/XnonXte/OpenTrivia/tree/d128cf0220020a19e68c78ef78fb40afe6c5c50e
+Revision: d128cf0220020a19e68c78ef78fb40afe6c5c50e
+Code license: MIT; original LICENSE.txt retained.
+Orbit changes: local question bank, ten-question random rounds, loading/retry feedback, duplicate-click protection, safe decoded text, question/category/score display, responsive theme and cover.
+Question bank: https://opentdb.com/api.php?amount=50&type=multiple
+Retrieved November 10, 2026. Open Trivia Database questions licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
+Data published by Open Trivia Database / PixelTail Games and contributors. Question data remains under CC BY-SA 4.0; code remains under MIT.

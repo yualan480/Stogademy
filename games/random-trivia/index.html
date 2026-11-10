@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="OpenTrivia Game"
+      description="Plays a Trivia Game in your browser!"
+    />
+    <title>Random Trivia · Orbit</title>
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <div class="top-heading"></div>
+    <div class="container">
+      <h1 id="title">Random Trivia</h1>
+      <p id="start-paragraph" class="para">
+        Ten random questions. Four choices. How many can you get right?
+      </p>
+      <p id="end-message" class="para hide">
+        Congratulations! You have completed this trivia with
+        <span id="correct-guess"></span> correct guess(es) and
+        <span id="wrong-guess"></span> wrong guess(es)! Click restart to start
+        the trivia again.
+      </p>
+      <p id="status" class="para" role="status" aria-live="polite"></p>
+      <p id="progress" class="para"></p>
+      <article>
+        <div id="question-container" class="hide">
+          <p id="category" class="para"></p><h2 id="question" tabindex="-1"></h2>
+          <div id="answer-buttons" class="btn-grid">
+            <button class="btn" type="button"></button>
+            <button class="btn" type="button"></button>
+            <button class="btn" type="button"></button>
+            <button class="btn" type="button"></button>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="start-btn" class="start-btn btn" type="button">
+            Start Trivia!
+          </button>
+          <button id="next-btn" class="next-btn btn hide" type="button">
+            Next
+          </button>
+        </div>
+      </article>
+      <footer>
+        <h3 id="footer-heading">&copy; XnonXte 2023</h3>
+        <p class="para">Adapted from OpenTrivia · MIT License.<br>Questions: Open Trivia Database · CC BY-SA 4.0.</p>
+      </footer>
+    </div>
+  </body>
+</html>
