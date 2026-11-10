@@ -15,7 +15,7 @@ export const UNBLOCKED_GAMES=[{
 },{
  id:'yohoho',title:'Yohoho.io',category:'Action',players:'Single player',
  description:'Battle pirates, collect doubloons, and be the last pirate standing.',
- image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html',
+ image:'../games/yohoho/cover.jpg',src:'https://yohoho.io/',
  tags:['pirate','battle','royale','yohoho','io','action'],
  controls:'Move with your mouse, WASD, or arrow keys. Click or press Space to attack; hold to charge a dash.'
 }];

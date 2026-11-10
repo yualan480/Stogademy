@@ -1,4 +1,4 @@
-import {initUnblockedGames} from './unblocked-games.js?v=3';
+import {initUnblockedGames} from './unblocked-games.js?v=4';
 import { initGuides } from './guides.js?v=2';
 import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');

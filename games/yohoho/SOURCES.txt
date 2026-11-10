@@ -1,3 +1,4 @@
-Yohoho.io by Exodragon. Original game credits retained.
-Requested URL https://yohoho4.github.io/ points to a missing endpoint (404).
-Working source: https://yohoho.io/ . Orbit hosts game assets locally, omits advertising and external promotional frames, and blocks external navigation.
+Yohoho.io by Exodragon.
+Game hosted by its publisher at https://yohoho.io/ and embedded inside Orbit.
+Gallery cover: https://yohoho.io/img/banner1200x630.jpg
+The user-supplied https://yohoho4.github.io/ links to a missing endpoint.
