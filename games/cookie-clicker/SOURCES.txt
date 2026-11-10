@@ -2,3 +2,4 @@ Cookie Clicker by Orteil and Opti / DashNet. Original credits retained.
 Source supplied by user: https://github.com/plasma4/cookieclicker
 Revision: 88bfa8be850c76db8beb81597cb6ab72783b0c48
 Orbit adds gallery cover, first-party hosting, in-page navigation restrictions and save-on-leave hooks in orbit-host.js.
+Orbit sets the native LOCAL flag for its first-party hosted desktop and touch pages.

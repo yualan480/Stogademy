@@ -1,4 +1,4 @@
-import{UNBLOCKED_GAMES}from'./unblocked-catalog.js?v=4';
+import{UNBLOCKED_GAMES}from'./unblocked-catalog.js?v=5';
 export function initUnblockedGames({menuBtn,bindMenu,ic,onPlaying=()=>{}}){
  let root=null,query='',category='All games',current=null;
  const $=q=>root?.querySelector(q),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

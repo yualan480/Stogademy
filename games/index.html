@@ -3569,50 +3569,6 @@
       }
 
       // let a looping animation finish its current cycle (so it settles back to rest instead of jumping)
-      function settle(anim) {
-        if (!anim) return;
-        const it = anim.effect.getComputedTiming().currentIteration || 0;
-        anim.effect.updateTiming({ iterations: it + 1 });
-      }
-
-      // a spray of little square sparks, like the connector just made contact
-      function burst(x, y) {
-        if (reduce) return;
-        const colors = ['#ffd166', '#ff6b8b', '#66d9f7', '#7fe08b', '#ffffff'];
-        for (let i = 0; i < 18; i++) {
-          const size = 4 + Math.floor(Math.random() * 5);
-          const p = document.createElement('i');
-          p.setAttribute('aria-hidden', 'true');
-          p.style.cssText = 'position:fixed;left:0;top:0;z-index:36;pointer-events:none;width:' + size + 'px;height:' + size + 'px;background:' + colors[i % colors.length];
-          document.body.appendChild(p);
-          const ang = Math.PI * (1.08 + Math.random() * 0.84);          // fan out upward
-          const d = 50 + Math.random() * 90;
-          const ex = x + Math.cos(ang) * d, ey = y + Math.sin(ang) * d;
-          p.animate([
-            { transform: 'translate(' + x + 'px, ' + y + 'px) scale(1)', opacity: 1, offset: 0, easing: 'ease-out' },
-            { transform: 'translate(' + ex + 'px, ' + ey + 'px) scale(1)', opacity: 1, offset: 0.55, easing: 'ease-in' },
-            { transform: 'translate(' + (ex + (ex - x) * 0.25) + 'px, ' + (ey + 60) + 'px) scale(0.2)', opacity: 0, offset: 1 }
-          ], { duration: 550 + Math.random() * 350, fill: 'forwards' }).finished.then(() => p.remove(), () => p.remove());
-        }
-      }
-
-      // a comic-style word that pops up and floats away
-      function popText(text, x, y) {
-        if (reduce) return;
-        const t = document.createElement('div');
-        t.setAttribute('aria-hidden', 'true');
-        t.textContent = text;
-        t.style.cssText = 'position:fixed;left:' + x + 'px;top:' + y + 'px;z-index:36;pointer-events:none;font-family:var(--pixel);font-weight:700;' +
-          'font-size:1.5rem;letter-spacing:0.06em;color:#ffd166;text-shadow:2px 2px 0 #14142a,-2px 2px 0 #14142a,2px -2px 0 #14142a,-2px -2px 0 #14142a;white-space:nowrap';
-        document.body.appendChild(t);
-        t.animate([
-          { transform: 'translate(-50%, 0) scale(0.3) rotate(-8deg)', opacity: 0, offset: 0, easing: 'ease-out' },
-          { transform: 'translate(-50%, -22px) scale(1.35) rotate(-8deg)', opacity: 1, offset: 0.3, easing: 'ease-in-out' },
-          { transform: 'translate(-50%, -34px) scale(1) rotate(-8deg)', opacity: 1, offset: 0.7 },
-          { transform: 'translate(-50%, -60px) scale(1) rotate(-8deg)', opacity: 0, offset: 1 }
-        ], { duration: 900, fill: 'forwards' }).finished.then(() => t.remove(), () => t.remove());
-      }
-
       function buildFlyCart(title, art) {
         const el = document.createElement('div');
         el.className = 'flycart';
@@ -3720,119 +3676,35 @@
         flyEl = buildFlyCart(current.title, current.art);
         document.body.appendChild(flyEl);
 
-        let cr, hx, hy, iy;
-        {
-          // 1. pop it off the shelf: a quick hop, tipping toward you
-          flyEl.style.transform = T(sx, sy, { s: 0.6, r: -8 });
-          Sfx.pickup();
-          await run(flyEl, [
-            { transform: T(sx, sy, { s: 0.6, r: -8 }), opacity: 0, offset: 0, easing: 'ease-out' },
-            { transform: T(sx, sy - 44, { s: 1.3, r: -14, rx: 16 }), opacity: 1, offset: 0.55, easing: 'ease-in-out' },
-            { transform: T(sx, sy - 16, { s: 1.15, r: -8 }), opacity: 1, offset: 1 }
-          ], 250);
-
-          // 2. carry it up to the console, bobbing in the air while the page scrolls
-          const bob = reduce ? null : flyEl.animate(
-            [{ translate: '0 0', rotate: '0deg' }, { translate: '0 -8px', rotate: '3deg' }, { translate: '0 0', rotate: '0deg' }],
-            { duration: 640, iterations: Infinity, easing: 'ease-in-out' });
-          await scrollToConsole();
-
-          // 3. swoop to the slot along a curve, swinging out and back like a pendulum
-          cr = consoleEl.getBoundingClientRect();
-          hx = cr.left + cr.width / 2 - FW / 2;
-          hy = cr.top - FH - 14;
-          settle(bob);
-          Sfx.swoosh(1.05);
-          const x0 = sx, y0 = sy - 16, ddx = hx - x0, ddy = hy - y0;
-          await run(flyEl, [
-            { transform: T(x0, y0, { s: 1.15, r: -8 }), offset: 0, easing: 'ease-in-out' },
-            { transform: T(x0 + ddx * 0.3, y0 + ddy * 0.5 - 70, { s: 1.32, r: 16, ry: -22 }), offset: 0.4, easing: 'ease-in-out' },
-            { transform: T(x0 + ddx * 0.85, y0 + ddy * 0.9 - 24, { s: 1.12, r: -7, ry: 12 }), offset: 0.75, easing: 'ease-out' },
-            { transform: T(hx, hy), offset: 1 }
-          ], 650);
-
-          // 3b. the slot glows and the cartridge wiggles around, lining itself up
-          consoleEl.classList.add('awaiting');
-          if (!reduce) {
-            Sfx.tick(0.09, 0); Sfx.tick(0.2, 1); Sfx.tick(0.32, 2);   // little clicks as it lines up
-            await run(flyEl, [
-              { transform: T(hx, hy), offset: 0 },
-              { transform: T(hx - 10, hy - 6, { r: -6, s: 1.04 }), offset: 0.22 },
-              { transform: T(hx + 9, hy - 2, { r: 5, s: 1.04 }), offset: 0.5 },
-              { transform: T(hx - 4, hy - 4, { r: -2 }), offset: 0.75 },
-              { transform: T(hx, hy), offset: 1 }
-            ], 400, 'ease-in-out');
-          }
-          await sleep(80);
-        }
-
-        // 4. plug it in: wind up, drop onto the connector, bounce off it, wiggle it home,
-        //    then shove it in the last bit (the console body covers the part that goes inside)
-        iy = cr.top - 46;
-        const D = 900;
-        const P = (f, o) => T(hx, hy + (iy - hy) * f, o);
-        {
-          const dur = (reduce ? 600 : D) / 1000;
-          Sfx.thud(dur * 0.38);                    // lands on the connector
-          Sfx.tick(dur * 0.48, 3);                 // bounces off it
-          Sfx.scrape(dur * 0.62, dur * 0.22);      // scrapes in
-          Sfx.click(dur * 0.92, 0.5);              // the first half of the click
-        }
-        if (!reduce) {
-          const bump = (at, px) => consoleEl.animate(
-            [{ transform: 'translateY(0)' }, { transform: 'translateY(' + px + 'px)' }, { transform: 'translateY(0)' }],
-            { duration: 170, delay: at, easing: 'ease-out' });
-          bump(D * 0.38, 3);    // it lands on the connector
-          bump(D * 0.86, 2);    // the final shove
-        }
+        // A short, direct sequence: carry to the slot, insert once, then reveal the game.
+        flyEl.style.transform = T(sx, sy);
+        Sfx.pickup();
+        await scrollToConsole();
+        const cr = consoleEl.getBoundingClientRect();
+        const hx = cr.left + cr.width / 2 - FW / 2;
+        const hy = cr.top - FH - 14;
+        const iy = cr.top - 46;
+        Sfx.swoosh(1.05);
         await run(flyEl, [
-          { transform: P(0),                  offset: 0,    easing: 'ease-out' },
-          { transform: P(-0.12, { s: 1.07 }), offset: 0.14, easing: 'ease-in' },
-          { transform: P(0.62),               offset: 0.38, easing: 'ease-out' },
-          { transform: P(0.5, { r: 3 }),      offset: 0.48, easing: 'ease-in' },
-          { transform: P(0.66, { r: -2 }),    offset: 0.6,  easing: 'ease-in-out' },
-          { transform: P(0.64),               offset: 0.7,  easing: 'ease-in' },
-          { transform: P(0.88),               offset: 0.86, easing: 'ease-out' },
-          { transform: P(0.84),               offset: 0.92, easing: 'ease-in' },
-          { transform: P(1),                  offset: 1 }
-        ], reduce ? 600 : D);
+          { transform: T(sx, sy), opacity: 1 },
+          { transform: T(hx, hy), opacity: 1 }
+        ], reduce ? 0 : 1050, 'ease-in-out');
 
-        // 5. click: the console and cartridge recoil together, sparks fly out of the slot
-        {
-          flyEl.animate(
-            [{ transform: P(1) }, { transform: P(1.05) }, { transform: P(0.97) }, { transform: P(1) }],
-            { duration: 260, easing: 'ease-out' });
-          consoleEl.animate(
-            [{ transform: 'translateY(0)' }, { transform: 'translateY(8px)' }, { transform: 'translateY(-3px)' }, { transform: 'translateY(0)' }],
-            { duration: 260, easing: 'ease-out' });
-          consoleEl.classList.remove('awaiting');
-          Sfx.click(0, 1);                          // the full click
-          Sfx.spark(0.05);
-          burst(hx + FW / 2, cr.top + 2);
-          popText('CLICK!', hx + FW / 2, iy - 10);
-          await sleep(180);
-        }
+        consoleEl.classList.add('awaiting');
+        await run(flyEl, [
+          { transform: T(hx, hy) },
+          { transform: T(hx, iy) }
+        ], reduce ? 0 : 650, 'ease-in-out');
+        consoleEl.classList.remove('awaiting');
+        Sfx.click(0, 1);
 
-        // a short rumble while the console wakes up
-        const rumble = ms => {
-          if (reduce) return;
-          const xs = [0, -3, 3, -3, 2, -2, 1, 0];
-          consoleEl.animate(xs.map(d => ({ transform: 'translateX(' + d + 'px)' })), { duration: ms, easing: 'linear' });
-          flyEl.animate(xs.map(d => ({ transform: T(hx + d, iy) })), { duration: ms, easing: 'linear' });
-        };
-
-        // 6. the console powers on and loads the game
         lcd.classList.add('powering');
         consoleEl.classList.add('powering');
         Sfx.powerOn();
-        Sfx.rumble(0.25);
-        rumble(250);
-        await sleep(250);
         showLoading(current.title);
-        Sfx.loadTicks();
         const screen = mountGameScreen(current);
-        // Loading proceeds in parallel; a slow resource must not lengthen the insertion animation.
-        await sleep(Math.max(0, launchDuration - (performance.now() - launchStarted) - 1350));
+        // Keep normal fade/zoom pacing; loading never extends the five-second sequence.
+        await sleep(Math.max(0, launchDuration - (performance.now() - launchStarted) - 2850));
 
         // 7. the game appears inside the screen, then we zoom into it
         screen.prepare();
@@ -3918,7 +3790,7 @@
           ready,
           async show() {
             box.style.willChange = 'opacity';
-            const a = box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: 'ease-in-out', fill: 'forwards' });
+            const a = box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-in-out', fill: 'forwards' });
             await a.finished;
             box.style.opacity = '1';
             box.style.willChange = '';
@@ -3945,7 +3817,7 @@
             endCalm = calmResize();
           },
           async zoom() {
-            const opts = { duration: 1000, easing: 'cubic-bezier(0.65, 0, 0.25, 1)', fill: 'forwards' };
+            const opts = { duration: 2200, easing: 'cubic-bezier(0.65, 0, 0.25, 1)', fill: 'forwards' };
 
             document.body.classList.add('zooming');
             lcd.classList.add('zoomed');

@@ -2,8 +2,8 @@
 export const UNBLOCKED_GAMES=[{
  id:'cookie-clicker',title:'Cookie Clicker',category:'Clicker',players:'Single player',
  description:'Bake cookies, buy buildings, and grow your own cookie empire.',
- image:'../games/cookie-clicker/cover.png',src:'../games/cookie-clicker/index.html',
- mobileSrc:'../games/cookie-clicker/mobile.html',restartLabel:'Reload',
+ image:'../games/cookie-clicker/cover.png',src:'../games/cookie-clicker/index.html?v=2',
+ mobileSrc:'../games/cookie-clicker/mobile.html?v=2',restartLabel:'Reload',
  tags:['cookies','baking','idle','incremental','clicker','upgrades'],
  controls:'Click the big cookie and buy buildings. The game autosaves; use Options → Save before leaving.'
 },{
@@ -15,7 +15,7 @@ export const UNBLOCKED_GAMES=[{
 },{
  id:'yohoho',title:'Yohoho.io',category:'Action',players:'Single player',
  description:'Battle pirates, collect doubloons, and be the last pirate standing.',
- image:'../games/yohoho/cover.jpg',src:'https://yohoho.io/',
+ image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html?v=2',
  tags:['pirate','battle','royale','yohoho','io','action'],
  controls:'Move with your mouse, WASD, or arrow keys. Click or press Space to attack; hold to charge a dash.'
 }];
