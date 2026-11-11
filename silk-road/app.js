@@ -103,8 +103,10 @@ import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
     const route=button.dataset.route;document.querySelectorAll('.route-tabs button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
     mapHost.dataset.route=route;atlas.sea.style.opacity=route==='land'?'.08':'.8';atlas.roadBase.style.opacity=route==='sea'?'.1':'.25';atlas.progress.style.opacity=route==='sea'?'.12':'1';
   });
-  document.documentElement.dataset.theme='light';
-  try{localStorage.setItem('silk-road-theme','light');}catch{}
+  const themeButton=$('theme-toggle');
+  function updateThemeButton(){const dark=document.documentElement.dataset.theme==='dark';themeButton.textContent=dark?'☀':'☾';themeButton.setAttribute('aria-label',dark?'Switch to light mode':'Switch to dark mode');themeButton.setAttribute('aria-pressed',String(dark));}
+  updateThemeButton();
+  themeButton.onclick=()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=theme;try{localStorage.setItem('silk-road-theme',theme);}catch{}updateThemeButton();};
   const menu=$('menuBtn'),nav=$('history-nav');
   menu.onclick=()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));nav.classList.toggle('open',open);};
   nav.querySelectorAll('a').forEach(link=>link.onclick=()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false');});
@@ -123,7 +125,7 @@ import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
   function openRoute(){
     const view=location.hash==='#/chat'?'chat':location.hash==='#/games'?'games':null;
     if(view&&!unlocked()){history.replaceState(null,'',location.pathname+location.search);return openRoute();}
-    $('home').hidden=!!view;$('orbx').hidden=!view;document.body.classList.toggle('in-orbit',!!view);
+    $('home').hidden=!!view;document.body.classList.toggle('in-orbit',!!view);
     for(const name of ['chat','games']){
       const frame=$('f-'+name);frame.hidden=name!==view;
       if(name===view&&!frame.getAttribute('src')){
@@ -142,7 +144,7 @@ import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
     try{localStorage.setItem('stg_ok','1');}catch{message('Allow site storage to open this destination.');return false;}
     location.hash='#/chat';openRoute();return true;
   };
-  $('orbx').onclick=()=>{try{localStorage.setItem('stg_ok','0');}catch{}location.hash='#top';openRoute();};
+  window.SilkRoadHome=()=>{try{localStorage.setItem('stg_ok','0');}catch{}location.hash='#top';openRoute();};
   // Preserve an OAuth return for Orbit without loading the retired study dashboard.
   if(unlocked()&&(location.hash.startsWith('#access_token=')||new URLSearchParams(location.search).has('code'))){
     try{sessionStorage.setItem('stg_fwd',JSON.stringify({v:'chat',u:location.search+location.hash}));history.replaceState(null,'',location.pathname+'#/chat');}catch{}

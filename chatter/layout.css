@@ -1,0 +1,8 @@
+/* Keep search and actions in separate, measurable layout columns. */
+.top.otop{position:relative;inset:auto;height:auto;min-height:76px;padding:16px 24px;display:flex;flex-wrap:wrap;gap:16px;flex-shrink:0}
+.top.otop .osearchw{position:relative;inset:auto;transform:none;width:auto;max-width:none;flex:1 1 280px;min-width:160px}
+.top.otop .osearch{width:100%;margin:0;min-width:0}
+.otop-actions{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+.top.otop .otop-actions>.otb{display:grid;position:relative;inset:auto;width:44px;height:44px;flex:0 0 44px}
+.main>.panel.orbithome{padding-top:24px}
+@media(max-width:760px){.top.otop{padding:12px;gap:12px}.top.otop .osearchw{flex-basis:200px}.otop-actions{gap:6px}.top.otop .osearch input{font-size:16px}}

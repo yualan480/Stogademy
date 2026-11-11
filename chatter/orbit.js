@@ -234,16 +234,16 @@ export function initOrbit(c) {
     ];
     const inN = (S.incoming || []).length, oq0 = main.querySelector('#oq'), oqVal = oq0 ? oq0.value : '', oqFocus = !!oq0 && document.activeElement === oq0;
     const enterMs = Math.round(performance.now() - O.homeAt), enter = enterMs < 1500;   // fade-in only when you arrive, not on every live refresh
-    main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><span class="grow"></span>
+    main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><div class="otop-actions">
       <button class="otb osnd" type="button" aria-pressed="true" aria-label="Turn Orbit sound off" title="Sound on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="sw" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sw" d="M18.5 5.5a9 9 0 0 1 0 13"/><path class="sx" d="m16 9 5 6M21 9l-5 6"/></svg></button>
       <button class="otb omus" type="button" aria-pressed="true" aria-label="Turn Orbit music off" title="Music on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="mx" d="M3 3l18 18"/></svg></button>
       <button class="otb" data-o="go" data-k="friends" aria-label="Friends${inN ? ' (' + inN + ' requests)' : ''}">${ic('friends', 20)}${inN ? '<i class="otbdot"></i>' : ''}</button>
       <button class="otb" data-o="go" data-k="dm" aria-label="Messages${dms ? ' (' + dms + ' unread)' : ''}">${ic('bell', 20)}${dms ? '<i class="otbdot"></i>' : ''}</button>
       <button class="otb oguide" type="button" data-o="guide" aria-label="Choose your guide" title="Choose your guide — Elara or Stellan">${ic('sparkle', 20)}</button>
-      <button class="otb oav" data-x="me" aria-label="Your profile">${av(S.me)}</button></div>
+      <button class="otb oav" data-x="me" aria-label="Your profile">${av(S.me)}</button></div></div>
     <div class="panel orbithome${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">
       <canvas class="ostars" aria-hidden="true"></canvas>
-      <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p><div class="ohbtns">${top !== self ? `<button class="obtn" data-ob="back">${ic('arrow', 16)}<span>Back to Stogademy</span></button>` : ''}</div></section>
+      <section class="ohero"><div class="ologo"><img class="ohero-logo" src="orbit-logo-planet.png" alt=""><i class="op op-a"></i><i class="op op-b"></i></div><h1 class="owt"><img class="owm" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></h1><p class="otag">Stay in the Loop.</p><div class="ohbtns">${top !== self ? `<button class="obtn" data-ob="back">${ic('arrow', 16)}<span>Back to Silk Road</span></button>` : ''}</div></section>
       ${annCard(a0)}
       <section class="oquick"><h3>${ic('sparkle', 20)} Quick links</h3><div class="qlinks">${links.map(([k, i, t, s]) => `<button class="qlink" data-o="go" data-k="${k}">${ic(i, 24)}<span class="t"><b>${t}</b><small>${esc(s)}</small></span>${ic('arrow', 16)}</button>`).join('')}</div></section>
       <p class="omore"><span></span>More Connections <i>·</i> More Moments <i>·</i> One Orbit<span></span></p>
@@ -257,7 +257,7 @@ export function initOrbit(c) {
     mountFloaters(main.querySelector('.orbithome'), c.collectibles ? c.collectibles() : []);   // your collectibles float across the page; click one to hear it
     playHomeVideo(vid);
     main.querySelectorAll('[data-ob]').forEach(b => b.onclick = () => {
-      try { top.document.getElementById('orbx').click(); } catch { try { top.location.href = '../'; } catch {} }   // same exit the corner × uses: closes Orbit and returns to Stogademy
+      try { if(typeof top.SilkRoadHome==='function')top.SilkRoadHome();else top.location.href='../'; } catch { try { top.location.href = '../'; } catch {} }   // Return to the history page.
     });
     main.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => c.openChan(b.dataset.ch));
     c.bindSearch(main.querySelector('#oq'), main.querySelector('#ores'));
