@@ -1,3 +1,4 @@
+import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=1';
 import {startGoogleSignIn} from './oauth.js?v=1';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
@@ -317,9 +318,10 @@ const loadHcaptcha = () => hcLoad ||= new Promise((ok, no) => {
 function authView(mode = 'login') {
   const t = { login: 'Welcome back', signup: 'Create your account', reset: 'Reset your password' }[mode];
   root.innerHTML = `<div class="authwrap"><form class="card" id="af" novalidate>${logo}<p class="muted" style="margin:.2rem 0 0">Conestoga 2030</p><h1>${t}</h1>
-  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with school Google account</button><p class="muted" style="text-align:center;font-size:12px">or use your email and password</p>' : ''}
+  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with school Google account</button><p class="muted" style="text-align:center;font-size:12px">School Google login blocked? Use your school email and password below.</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
-  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email (like 30yua@tesdk12.net). Your name is set from it automatically.</p>' : ''}
+  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Verify your school email to join without Google. Enter your first and last names; these are self-reported, not school-verified.</p>' : ''}
+  ${mode === 'signup' ? '<label for="signup-first">First name</label><input id="signup-first" autocomplete="given-name" maxlength="20" required><label for="signup-last">Last name</label><input id="signup-last" autocomplete="family-name" maxlength="30" required>' : ''}
   ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
   ${HCAPTCHA_SITE_KEY ? '<div id="cf" class="cf-wrap" aria-label="Security check"></div>' : ''}
   <p class="err" id="er" role="alert"></p><button class="btn" id="go">${{ login: 'Log in', signup: 'Create account', reset: 'Send reset link' }[mode]}</button>
@@ -357,11 +359,13 @@ function authView(mode = 'login') {
         const { error } = await sb.auth.signInWithPassword({ email, password: pw, options: { captchaToken } }); if (error) throw error;
       } else {
         if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
-        const chk = await sb.rpc('signup_email_problem', { p_email: email });   // no confirmation email, so check the address against the approved list first
+        const details = schoolSignupDetails(email, $('#signup-first').value, $('#signup-last').value);
+        await requireEmailConfirmation(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        const chk = await sb.rpc('signup_email_problem', { p_email: email });
         if (!chk.error && chk.data) throw new Error(chk.data);
-        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { device_id: deviceId() }, emailRedirectTo: location.origin + location.pathname, captchaToken } });
+        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { ...details.metadata, device_id: deviceId() }, emailRedirectTo: new URL('/', location.origin).href, captchaToken } });
         if (error) throw error;
-        if (!data.session) { er.style.color = 'var(--ok)'; er.textContent = 'Check your email to confirm your account, then log in.'; }
+        if (!data.session) { er.style.color = 'var(--ok)'; er.textContent = 'Check your school inbox (and spam folder) for a confirmation link. Confirm your email, then return here to log in. If an account already exists, log in or reset your password.'; }
       }
     } catch (x) { er.style.color = ''; er.textContent = x.message || 'Something went wrong. Check your connection and try again.'; }
     cfReset(); go.disabled = false;
