@@ -3,7 +3,7 @@ export function schoolSignupDetails(email, first, last) {
   email = String(email || '').trim().toLowerCase();
   first = String(first || '').trim().replace(/\s+/gu, ' ');
   last = String(last || '').trim().replace(/\s+/gu, ' ');
-  if (!/^[0-9]{2}[a-z]{2,}[0-9]*@tesdk12\.net$/.test(email)) throw new Error('Use your school email, like 30yua@tesdk12.net.');
+  if (!/^30[a-z]{2,}[0-9]*@tesdk12\.net$/.test(email)) throw new Error('Use your school email starting with 30 and ending with @tesdk12.net, like 30yua@tesdk12.net.');
   const valid = name => /^[\p{L}\p{M}][\p{L}\p{M} .’'\-]*$/u.test(name);
   if (!valid(first) || !valid(last)) throw new Error('Enter your first and last names using letters, spaces, apostrophes or hyphens.');
   if (first.length > 20 || last.length > 30 || (first + ' ' + last).length > 32) throw new Error('Use at most 20 characters for your first name and 32 characters for your full name.');

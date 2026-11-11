@@ -1,6 +1,6 @@
 # School email signup
 
-The form collects first and last names as self-reported information. A confirmed school email verifies mailbox access, not a legal name. Existing accounts are unchanged.
+The form collects first and last names as self-reported information. A confirmed school email verifies mailbox access, not a legal name. New accounts must use an address starting with `30` and ending with `@tesdk12.net`. Existing accounts are unchanged.
 
 1. In Supabase → Authentication → Sign In / Providers → Email, enable **Confirm email** and email signup. This is required: the form refuses new signups while automatic confirmation is enabled.
 2. In Authentication → URL Configuration, set Site URL to `https://silkroadhistoryproject.onrender.com` and allow `https://silkroadhistoryproject.onrender.com/` as a redirect URL.

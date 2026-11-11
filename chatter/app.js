@@ -1,4 +1,4 @@
-import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=1';
+import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=2';
 import {startGoogleSignIn} from './oauth.js?v=1';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
@@ -320,7 +320,7 @@ function authView(mode = 'login') {
   root.innerHTML = `<div class="authwrap"><form class="card" id="af" novalidate>${logo}<p class="muted" style="margin:.2rem 0 0">Conestoga 2030</p><h1>${t}</h1>
   ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with school Google account</button><p class="muted" style="text-align:center;font-size:12px">School Google login blocked? Use your school email and password below.</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
-  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Verify your school email to join without Google. Enter your first and last names; these are self-reported, not school-verified.</p>' : ''}
+  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Enter your first and last names; these are self-reported, not school-verified.</p>' : ''}
   ${mode === 'signup' ? '<label for="signup-first">First name</label><input id="signup-first" autocomplete="given-name" maxlength="20" required><label for="signup-last">Last name</label><input id="signup-last" autocomplete="family-name" maxlength="30" required>' : ''}
   ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
   ${HCAPTCHA_SITE_KEY ? '<div id="cf" class="cf-wrap" aria-label="Security check"></div>' : ''}
@@ -348,6 +348,7 @@ function authView(mode = 'login') {
     const email = $('#em').value.trim().toLowerCase(), pw = $('#pw')?.value || '';
     if (!/^\S+@\S+\.\S+$/.test(email)) return er.textContent = 'Enter a valid email address.';
     if (!/^[0-9]{2}[a-z]{2,}[0-9]*@tesdk12\.net$/.test(email)) return er.textContent = 'Use your school email, like 30yua@tesdk12.net.';
+    if (mode === 'signup' && !/^30[a-z]{2,}[0-9]*@tesdk12\.net$/.test(email)) return er.textContent = 'Use your school email starting with 30 and ending with @tesdk12.net.';
     if (HCAPTCHA_SITE_KEY && !cfToken) return er.textContent = $('#cf iframe') ? 'Tick the "I am human" box above first, then press the button again.' : MISSING;
     go.disabled = true;
     const captchaToken = cfToken || undefined;

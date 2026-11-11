@@ -7,6 +7,9 @@ declare e text := lower(coalesce(new.email, '')); lp text; m text[]; d uuid; ex 
         chk jsonb; ren boolean; uname text; fn text; ln text;
         oauth boolean := coalesce(new.raw_app_meta_data->>'provider', 'email') <> 'email';   -- Google/Microsoft sign-in
 begin
+  if e !~ '^30[a-z]{2,}[0-9]*@tesdk12\.net$' then
+    raise exception 'Use your school email starting with 30 and ending with @tesdk12.net.';
+  end if;
   chk := public.mod_signup_check(e, oauth);
   if chk->>'problem' is not null then raise exception '%', chk->>'problem'; end if;
   ren := coalesce((chk->>'rename')::boolean, false);
