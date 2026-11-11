@@ -9,6 +9,9 @@ declare e text := lower(coalesce(new.email, '')); lp text; m text[]; d uuid; ex 
         full_name text; personal_google boolean := coalesce(new.raw_app_meta_data->>'provider', '') = 'google' and e ~ '^[^@[:space:]]+@gmail\.com$';
         oauth boolean := coalesce(new.raw_app_meta_data->>'provider', 'email') <> 'email';   -- Google/Microsoft sign-in
 begin
+  if oauth and not personal_google then
+    raise exception 'Use a personal @gmail.com account with Continue with Google. For school email, use email and password.';
+  end if;
   if not personal_google and e !~ '^30[a-z]{2,}[0-9]*@tesdk12\.net$' then
     raise exception 'Use your school email starting with 30 and ending with @tesdk12.net.';
   end if;

@@ -8,7 +8,7 @@ The form derives the first initial and surname from the school email (30yua → 
 4. Configure production SMTP in Supabase for student signup delivery. The default mail service has recipient restrictions and rate limits; test a real school mailbox and its spam folder.
 5. Test a new allowed school email: submit email/password/CAPTCHA, receive the email, confirm, then sign in. Before confirmation, password login must fail. Confirm the profile uses the email-derived first initial and surname. Test an invalid school address is rejected.
 
-The website code cannot enable email confirmation, configure SMTP or run SQL using its public API key. Those dashboard steps require project-owner access. Google sign-in remains available for accounts whose institution approves it.
+The website code cannot enable email confirmation, configure SMTP or run SQL using its public API key. Those dashboard steps require project-owner access. The Google button is for personal Gmail accounts; school accounts use email and password.
 
 ## Personal Gmail through Google
 
@@ -19,3 +19,5 @@ In Google Cloud → Google Auth Platform, set the audience to External and publi
 ## Current name format
 
 Run `chatter/migration-email-derived-names.sql` last. It removes the server requirement for typed names and derives the first initial and surname from school email addresses, including numeric suffixes. It preserves personal Gmail sign-in using Google profile names and does not rename existing locked accounts. New school signup has no first/last-name fields.
+
+The latest `migration-email-derived-names.sql` also restricts new OAuth accounts to personal `@gmail.com` addresses. Rerun it after updating to enforce this on the server.

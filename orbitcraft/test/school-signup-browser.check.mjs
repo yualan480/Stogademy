@@ -13,6 +13,7 @@ try {
    window.root=document.getElementById('root');window.$=s=>document.querySelector(s);window.logo='Orbit';window.HCAPTCHA_SITE_KEY='';window.boundEmail=()=>'';window.authNotice='';window.loadMaint=async()=>{};window.authMaintNote=()=>{};window.deviceId=()=> 'device';window.CONFIG={};window.requireEmailConfirmation=async()=>{};window.schoolSignupDetails=eval('('+details+')');window.sb={rpc:async()=>({data:null}),auth:{signUp:async args=>{window.submitted=args;return {data:{session:null}};}}};
    eval(view+';authView("signup");');
   },{view,details:schoolSignupDetails.toString()});
+  assert.equal(await page.locator('#google-signin').textContent(),'Continue with personal Gmail');assert.equal(await page.locator('#google-signin + p').textContent(),'OR');
   await page.locator('#em').fill('30yua@tesdk12.net');assert.equal(await page.locator('#signup-first,#signup-last').count(),0);await page.locator('#pw').fill('testing-password');await page.locator('#go').click();
   await page.waitForFunction(()=>window.submitted);assert.equal(await page.evaluate(()=>submitted.options.data.full_name),'A Yu');assert.match(await page.locator('#er').textContent(),/confirmation link/);assert.match(await page.locator('#af').textContent(),/first initial and last name/);await page.close();
  }

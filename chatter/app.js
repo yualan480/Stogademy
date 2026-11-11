@@ -318,7 +318,7 @@ const loadHcaptcha = () => hcLoad ||= new Promise((ok, no) => {
 function authView(mode = 'login') {
   const t = { login: 'Welcome back', signup: 'Create your account', reset: 'Reset your password' }[mode];
   root.innerHTML = `<div class="authwrap"><form class="card" id="af" novalidate>${logo}<p class="muted" style="margin:.2rem 0 0">Conestoga 2030</p><h1>${t}</h1>
-  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with Google</button><p class="muted" style="text-align:center;font-size:12px">Use a personal Gmail or school Google account. Your Google profile name becomes your Orbit name. For school email/password accounts, use the form below.</p>' : ''}
+  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with personal Gmail</button><p class="muted" style="text-align:center;font-size:12px">OR</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
   ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Your name is generated from your email as a first initial and last name—for example, 30yua@tesdk12.net becomes A Yu.</p>' : ''}
   ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
