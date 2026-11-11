@@ -1,4 +1,4 @@
-import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=2';
+import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=3';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
@@ -320,8 +320,7 @@ function authView(mode = 'login') {
   root.innerHTML = `<div class="authwrap"><form class="card" id="af" novalidate>${logo}<p class="muted" style="margin:.2rem 0 0">Conestoga 2030</p><h1>${t}</h1>
   ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with Google</button><p class="muted" style="text-align:center;font-size:12px">Use a personal Gmail or school Google account. Your Google profile name becomes your Orbit name. For school email/password accounts, use the form below.</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
-  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Enter your first and last names; these are self-reported, not school-verified.</p>' : ''}
-  ${mode === 'signup' ? '<label for="signup-first">First name</label><input id="signup-first" autocomplete="given-name" maxlength="20" required><label for="signup-last">Last name</label><input id="signup-last" autocomplete="family-name" maxlength="30" required>' : ''}
+  ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Your name is generated from your email as a first initial and last name—for example, 30yua@tesdk12.net becomes A Yu.</p>' : ''}
   ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
   ${HCAPTCHA_SITE_KEY ? '<div id="cf" class="cf-wrap" aria-label="Security check"></div>' : ''}
   <p class="err" id="er" role="alert"></p><button class="btn" id="go">${{ login: 'Log in', signup: 'Create account', reset: 'Send reset link' }[mode]}</button>
@@ -360,7 +359,7 @@ function authView(mode = 'login') {
         const { error } = await sb.auth.signInWithPassword({ email, password: pw, options: { captchaToken } }); if (error) throw error;
       } else {
         if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
-        const details = schoolSignupDetails(email, $('#signup-first').value, $('#signup-last').value);
+        const details = schoolSignupDetails(email);
         await requireEmailConfirmation(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
         const chk = await sb.rpc('signup_email_problem', { p_email: email });
         if (!chk.error && chk.data) throw new Error(chk.data);
