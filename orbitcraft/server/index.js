@@ -27,7 +27,7 @@ const server=http.createServer(async(req,res)=>{
   else if(path==='/orbitcraft/vendor/three.core.js')path='/orbitcraft/node_modules/three/build/three.core.js';
   else if(!/^\/games\/pokemon-showdown\/data\/[a-z0-9/_-]+\.js$/.test(path)&&path.split('/').some(p=>p.startsWith('.')||['node_modules','server','test','data','cloudflare'].includes(p))){res.writeHead(404);return res.end();}
   let file=resolve(root,'.'+path);
-  if(!file.startsWith(root+'/')){res.writeHead(403);return res.end();}
+  if(file!==root&&!file.startsWith(root+'/')){res.writeHead(403);return res.end();}
   try{if((await stat(file)).isDirectory())file=resolve(file,'index.html');const body=await readFile(file);res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream','X-Content-Type-Options':'nosniff'});res.end(body);}catch{res.writeHead(404);res.end('Not found');}
 });
 const wss=new WebSocketServer({noServer:true,maxPayload:12288,perMessageDeflate:false});
