@@ -9,3 +9,9 @@ The form collects first and last names as self-reported information. A confirmed
 5. Test a new allowed school email: submit name/password/CAPTCHA, receive the email, confirm, then sign in. Before confirmation, password login must fail. Confirm the profile uses the entered name. Test a personal email and blank names are rejected.
 
 The website code cannot enable email confirmation, configure SMTP or run SQL using its public API key. Those dashboard steps require project-owner access. Google sign-in remains available for accounts whose institution approves it.
+
+## Personal Gmail through Google
+
+Run `chatter/migration-personal-google-signup.sql` after the school-email migration to allow any verified `@gmail.com` account using Continue with Google. Names come from the Google profile, not the Gmail address; they are not proof of legal identity. Gmail password signup is not enabled. School roster checks still apply to school signups. Existing device rules remain in force.
+
+In Google Cloud → Google Auth Platform, set the audience to External and publish the app for general access (testing mode allows only added test users). Request only basic openid/email/profile permissions. Keep the authorized Supabase callback URL from the existing Google provider setup. Test with a personal Google account, then verify its Orbit profile name. School administrator restrictions still apply to managed school Google accounts.

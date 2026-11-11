@@ -1,5 +1,5 @@
 import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=2';
-import {startGoogleSignIn} from './oauth.js?v=1';
+import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
 import {initUnblockedGames} from './unblocked-games.js?v=18';
@@ -318,7 +318,7 @@ const loadHcaptcha = () => hcLoad ||= new Promise((ok, no) => {
 function authView(mode = 'login') {
   const t = { login: 'Welcome back', signup: 'Create your account', reset: 'Reset your password' }[mode];
   root.innerHTML = `<div class="authwrap"><form class="card" id="af" novalidate>${logo}<p class="muted" style="margin:.2rem 0 0">Conestoga 2030</p><h1>${t}</h1>
-  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with school Google account</button><p class="muted" style="text-align:center;font-size:12px">School Google login blocked? Use your school email and password below.</p>' : ''}
+  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with Google</button><p class="muted" style="text-align:center;font-size:12px">Use a personal Gmail or school Google account. Your Google profile name becomes your Orbit name. For school email/password accounts, use the form below.</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
   ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Enter your first and last names; these are self-reported, not school-verified.</p>' : ''}
   ${mode === 'signup' ? '<label for="signup-first">First name</label><input id="signup-first" autocomplete="given-name" maxlength="20" required><label for="signup-last">Last name</label><input id="signup-last" autocomplete="family-name" maxlength="30" required>' : ''}
