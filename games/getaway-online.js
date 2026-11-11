@@ -146,7 +146,7 @@
   var phase = 'idle';            // idle | menu | connect | lobby | play
   var mode = '';                 // during a match: 'host' (runs + streams the game) or 'guest' (watches + sends buttons)
   var mySeat = 0;                // 0 = Player 1 (host), 1 = Player 2 (guest)
-  var rttNow = 0, linked = false;
+  var rttNow = 0, linked = false, startRetry = 0, streamStarted = false;
   var heldMine = CONTROL_INDICES.map(function(){return false;});                       // my assigned keys, held or not
   var seatHeld = SEAT_KEYS.map(function(keys){return keys.map(function(){return false;});});   // each seat's assigned keys, as pressed IN THE GAME
   var mouseHeld = false;
@@ -276,7 +276,7 @@
     });
     return out.sort(function (a, b) { return ((a.ts || 0) - (b.ts || 0)) || (a.id < b.id ? -1 : 1); });
   }
-  var meta = function () { return { id: myId, name: myName(), avatar: myAvatar(), ts: myTs, st: myState }; };
+  var meta = function () { return { id: myId, name: myName(), avatar: myAvatar(), ts: myTs, st: myState, peer: myState === 'play' && oppInfo ? oppInfo.id : '' }; };
   function setMyState(s) { myState = s; if (room && tracked) room.track(meta()); }
 
   function renderLobby() {
@@ -305,7 +305,7 @@
     if (idx === -1) return;
     if (idx >= 2 && phase === 'lobby') { if(roomPublic){quickPlay();return;} leaveWith('Room full', 'That room already has 2 players.'); return; }
     isHost = all[0].id === myId;
-    if (phase === 'lobby') { renderLobby(); return; }
+    if (phase === 'lobby') { if(!isHost && all[0].st==='play' && all[0].peer===myId){enterPlay(1);return;} renderLobby(); return; }
     if (phase === 'play' && oppInfo && !all.some(function (m) { return m.id === oppInfo.id; })) endOnline('Your opponent left the match.');
   }
 
@@ -502,7 +502,7 @@
   }
   function newPC() {
     closePC();
-    var conn = new RTCPeerConnection(ICE); pc = conn;
+    var conn = new RTCPeerConnection(ICE); pc = conn; armLinkTimeout();
     conn.onicecandidate = function (e) {
       if (!e.candidate || conn !== pc) return;
       try { console.log('[getaway] local ICE', e.candidate.type || e.candidate.candidate.split(' ')[7]); } catch (x) { /* ignore */ }
@@ -697,6 +697,7 @@
     var lv = txt('button', '', 'Leave'); lv.type = 'button'; lv.addEventListener('click', function () { endOnline(''); });
     hud.appendChild(lv);
   }
+  function armLinkTimeout(){clearTimeout(linkT);linkT=setTimeout(function(){linkT=0;if(phase==='play'&&!linked)endOnline('The room connected, but the video link could not start. Try another network or browser; peer-to-peer video may be unavailable.');},20000);}
   function enterPlay(seat) {
     clearTimeout(autoT); autoT = 0;streamProfile=1;healthyTicks=congestedTicks=0;
     inputSeq=0;lastRemoteSeq=-1;lastRemoteAt=lastControlSent=0;
@@ -708,13 +709,12 @@
     tap.hidden = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     updateTapLabels();
     try { window.focus(); } catch (e) { /* ignore */ }
-    clearTimeout(linkT);
-    linkT = setTimeout(function () { linkT = 0; if (phase === 'play' && !linked) endOnline('Could not connect to the other player\u2019s game. Try again; your network may block peer-to-peer video.'); }, 20000);
+    armLinkTimeout();
     if (mode === 'host') {
       toast('Match on! You run the game and stream it to your opponent. You are Player 1: '+SEAT_LABEL[0]+'. Keep this tab in front.', 8000);
-      startHostStream();
+      streamStarted=false;clearInterval(startRetry);startRetry=setInterval(function(){if(phase==='play'&&mode==='host'&&!streamStarted)sendRoom('start',{});},800);
     } else {
-      startControlTicker();toast('Connecting to the host\u2019s game... You are Player 2: '+SEAT_LABEL[1]+'.', 6000);
+      sendRoom('ready',{});startControlTicker();toast('Connecting to the host\u2019s game... You are Player 2: '+SEAT_LABEL[1]+'.', 6000);
     }
   }
   function hostStart() {
@@ -724,10 +724,12 @@
     sendRoom('start', {});
     enterPlay(0);
   }
-  function onStart() { if (phase === 'lobby' && !isHost) enterPlay(1); }
+  function onStart() { if (phase === 'lobby' && !isHost) enterPlay(1); else if(phase==='play'&&mode==='guest')sendRoom('ready',{}); }
+  function onReady(){if(phase!=='play'||mode!=='host'||streamStarted)return;streamStarted=true;clearInterval(startRetry);startRetry=0;startHostStream();}
 
 
   function resetLocal() {
+    clearInterval(startRetry);startRetry=0;streamStarted=false;
     clearTimeout(autoT); autoT = 0; closePC(); mode = ''; rttNow = 0;
     releaseAll();
     oppInfo = null; isHost = false; tracked = false; myState = 'lobby'; roomCode = ''; roomPublic = false;
@@ -752,7 +754,7 @@
   function connecting(title, text) { phase = 'connect'; cTitle.textContent = title; cText.textContent = text; showPanel('connect'); renderBtn(); }
 
   /* ================= matchmaking ================= */
-  var HANDLED = { start: onStart, rtc: onRtc, gin: onRemoteMsg };
+  var HANDLED = { start: onStart, ready: onReady, rtc: onRtc, gin: onRemoteMsg };
   // 'ok', 'busy' (a match is running), 'full', 'empty' (nobody there), 'taken' or 'fail'
   async function joinRoom(name, opts, token) {
     var ch = rt.channel(name, myId); room = ch; tracked = false;
@@ -774,9 +776,9 @@
     if (token !== joinToken) return bail('fail');
     var all = members(), idx = all.findIndex(function (m) { return m.id === myId; });
     if (idx === -1 || idx >= 2) return bail('full');
-    if (all.some(function (m) { return m.st === 'play'; })) return bail('busy');
+    if (all.some(function (m) { return m.st === 'play' && m.peer !== myId; })) return bail('busy');
     isHost = all[0].id === myId; roomPublic = !!opts.pub; roomCode = opts.code || '';
-    phase = 'lobby'; renderLobby(); showPanel('lobby'); renderBtn();
+    phase = 'lobby'; renderLobby(); showPanel('lobby'); renderBtn(); onPresence();
     return 'ok';
   }
   async function startNet(title, text) {

@@ -3005,6 +3005,7 @@ function toId() {
 
 			if (data.cantconnect) {
 				buf += '<p class="error">Couldn\'t connect to server!</p>';
+				if (Config.orbitDirectWebSocket) buf += '<p>Online battles need access to Pokémon Showdown’s battle server. A network filter or server outage can prevent this connection.</p><p>Retry, try another connection, or ask your network administrator to allow <strong>sim3.psim.us</strong> over HTTPS and WebSockets. Work offline opens the teambuilder without online battles.</p>';
 				if (window.wiiu && document.location.protocol === 'https:') {
 					buf += '<p class="error">The Wii U does not support secure connections.</p>';
 					buf += '<p class="buttonbar"><button name="tryhttp" class="button autofocus"><strong>Connect insecurely</button> <button name="close" class="button">Work offline</button></p>';
