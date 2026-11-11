@@ -1,15 +1,19 @@
 {
   "id": "./",
-  "name": "Stogademy",
-  "short_name": "Stogademy",
-  "description": "Graphing calculator, flashcards, notes, AP practice and a planner.",
+  "name": "Silk Road",
+  "short_name": "Silk Road",
+  "description": "A history project exploring the routes, goods and ideas of the Silk Roads.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#050a38",
-  "theme_color": "#050a38",
+  "background_color": "#f6f2e9",
+  "theme_color": "#f6f2e9",
   "icons": [
-    { "src": "stogademy-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "stogademy-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    {
+      "src": "silk-road/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }

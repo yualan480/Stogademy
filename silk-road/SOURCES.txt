@@ -1,0 +1,4 @@
+Map outlines: Natural Earth 1:110m Admin 0 Countries, public domain.
+https://www.naturalearthdata.com/about/terms-of-use/
+Retrieved from https://github.com/nvkelso/natural-earth-vector
+Routes are schematic examples of changing networks, rather than surveyed ancient itineraries. Modern boundaries are geographic reference only.
