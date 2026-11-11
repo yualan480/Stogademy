@@ -13,7 +13,7 @@ import { authenticate } from './auth.js';
 import { welcome,sender,receive } from './protocol.js';
 if(process.env.HTTPS_PROXY) setGlobalDispatcher(new EnvHttpProxyAgent());
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-const host=process.env.HOST||'127.0.0.1',port=Number(process.env.PORT||8787),dev=process.env.ORBITCRAFT_DEV==='1';
+const host=process.env.HOST||(process.env.RENDER==='true'?'0.0.0.0':'127.0.0.1'),port=Number(process.env.PORT||8787),dev=process.env.ORBITCRAFT_DEV==='1';
 if(dev && host!=='127.0.0.1' && host!=='localhost')throw new Error('Development guest mode must bind to localhost.');
 const store=openStore(process.env.ORBITCRAFT_DB||resolve(root,'orbitcraft/data/world.sqlite'));
 const game=new Dimensions(store);

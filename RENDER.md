@@ -11,7 +11,7 @@ For a Render **Web Service** connected to this repository, use:
 | Health Check Path | `/orbitcraft/health` |
 | Environment variable | `NODE_VERSION=24` |
 
-Save the settings and select **Manual Deploy → Deploy latest commit**. The root install automatically installs the server's production dependencies in `orbitcraft/`. The launcher uses Render's `PORT` and listens on `0.0.0.0`.
+Save the settings and select **Manual Deploy → Deploy latest commit**. The root install automatically installs the server's production dependencies in `orbitcraft/`. The launcher uses Render's `PORT` and listens on `0.0.0.0`. The package start command `npm --prefix orbitcraft start` also detects Render's built-in `RENDER=true` environment and defaults to `0.0.0.0`. An explicit `HOST` setting overrides that default.
 
 Alternatively, create a Render Blueprint from the included `render.yaml`.
 
