@@ -103,10 +103,8 @@ import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
     const route=button.dataset.route;document.querySelectorAll('.route-tabs button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
     mapHost.dataset.route=route;atlas.sea.style.opacity=route==='land'?'.08':'.8';atlas.roadBase.style.opacity=route==='sea'?'.1':'.25';atlas.progress.style.opacity=route==='sea'?'.12':'1';
   });
-  const themeButton=$('theme-toggle');
-  function theme(value){document.documentElement.dataset.theme=value;document.querySelector('meta[name="theme-color"]').content=value==='dark'?'#201820':'#f5ebd9';themeButton.setAttribute('aria-pressed',String(value==='dark'));themeButton.setAttribute('aria-label',value==='dark'?'Switch to light mode':'Switch to dark mode');try{localStorage.setItem('silk-road-theme',value);}catch{}}
-  let initial='light';try{initial=localStorage.getItem('silk-road-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');}catch{}theme(initial);
-  themeButton.onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+  document.documentElement.dataset.theme='light';
+  try{localStorage.setItem('silk-road-theme','light');}catch{}
   const menu=$('menuBtn'),nav=$('history-nav');
   menu.onclick=()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));nav.classList.toggle('open',open);};
   nav.querySelectorAll('a').forEach(link=>link.onclick=()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false');});

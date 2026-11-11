@@ -6,3 +6,5 @@ Routes are schematic examples of changing networks, rather than surveyed ancient
 Timeline interaction and animated-caravan design reference supplied by the site owner in silkroadhistoryprojectexample.html. The new maps use the geographic outlines above, rather than the example’s schematic water shapes.
 Typography: Bricolage Grotesque and Newsreader from Google Fonts, SIL Open Font License. License files retained under fonts/. Fonts hosted locally in WOFF2 format.
 Timeline facts draw on the linked UNESCO Silk Roads overview, UNESCO Mogao Caves page and Encyclopaedia Britannica Silk Road overview. Route highlights illustrate related places; they do not claim that the full network existed unchanged in every era.
+
+Website logo asset prepared from the camel-and-sunset logo reference supplied by the site owner.

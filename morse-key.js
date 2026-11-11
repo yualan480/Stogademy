@@ -2,10 +2,10 @@
 // Home page telegraph key (footer). Quick tap = dot, hold = dash. A pause ends a letter.
 // What is keyed is handed to window.StgUnlock (stogademy.js), which opens Orbit for the right Morse code.
 (function(){
-  var key=document.getElementById('morseKey');if(!key)return;
+  var key=document.getElementById('morseKey');
   var out=document.getElementById('morseOut'),DASH=220,LETTER=900,RESET=3500;
   var buf='',downAt=0,held=false,activePointer=null,tLetter=0,tReset=0,ac=null,osc=null,gain=null;
-  function show(){out.textContent=buf.replace(/ /g,'  ')||'tap · hold'}
+  function show(){if(out)out.textContent=buf.replace(/ /g,'  ')||'tap · hold'}
   function tone(on){
     try{
       if(on){
@@ -42,6 +42,7 @@
   function cancel(){
     if(!held)return;held=false;activePointer=null;key.classList.remove('down');tone(false);scheduleEnd();
   }
+  if(key){
   key.addEventListener('pointerdown',function(e){
     if(e.button>0||held)return;e.preventDefault();activePointer=e.pointerId;
     try{key.setPointerCapture(e.pointerId)}catch(x){}down();
@@ -55,6 +56,7 @@
   addEventListener('blur',cancel);
   document.addEventListener('visibilitychange',function(){if(document.hidden){cancel();clearTimeout(tLetter);clearTimeout(tReset);buf='';show()}});
   key.addEventListener('contextmenu',function(e){e.preventDefault()});
+  }
   // Keyboard: on the home page, just type . and - with no spaces. The code is only stored as a hash (stogademy.js),
   // so each recent run of keys is tried split into two letters until one matches.
   var kb='',kt=0;
