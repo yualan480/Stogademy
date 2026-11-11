@@ -1,40 +1,35 @@
-import {createServer} from 'node:http';
-import {readFile} from 'node:fs/promises';
-import {fileURLToPath} from 'node:url';
-import {createHash} from 'node:crypto';
-import {chromium} from '@playwright/test';
-import assert from 'node:assert/strict';
-const root=fileURLToPath(new URL('../../',import.meta.url));
-const types={html:'text/html',js:'application/javascript',css:'text/css',svg:'image/svg+xml',webmanifest:'application/manifest+json'};
-const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',types[path.split('.').pop()]||'text/html');res.end(path==='/chatter/'||path==='/games/'?'<html><body><h1>Orbit session frame</h1></body></html>':await readFile(root+(path==='/'?'index.html':path.slice(1))));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');
-await new Promise(r=>server.on('listening',r));
-const hash='472c5b7ed9a012becc4e8aff30acdef07744e73e30e22fa60fa021d6fe1487a3';
-const symbols=['.-','-...','-.-.','-..','.','..-.','--.','....','..','.---','-.-','.-..','--','-.','---','.--.','--.-','.-.','...','-','..-','...-','.--','-..-','-.--','--..','-----','.----','..---','...--','....-','.....','-....','--...','---..','----.'];
-let code;for(const a of symbols)for(const b of symbols){const candidate=a+' '+b;if(createHash('sha256').update(candidate).digest('hex')===hash)code=candidate;}
-assert.ok(code,'Existing Morse sequence must remain valid');
+import {createServer} from 'node:http';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';import {chromium} from '@playwright/test';import assert from 'node:assert/strict';
+const root=fileURLToPath(new URL('../../',import.meta.url)),types={html:'text/html',js:'application/javascript',css:'text/css',svg:'image/svg+xml',woff2:'font/woff2',webmanifest:'application/manifest+json'};
+const server=createServer(async(req,res)=>{try{const path=new URL(req.url,'http://local').pathname;res.setHeader('Content-Type',types[path.split('.').pop()]||'text/html');res.end(path==='/chatter/'||path==='/games/'?'<html><body><h1>Orbit session frame</h1></body></html>':await readFile(root+(path==='/'?'index.html':path.slice(1))));}catch{res.statusCode=404;res.end();}}).listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));
+const symbols=['.-','-...','-.-.','-..','.','..-.','--.','....','..','.---','-.-','.-..','--','-.','---','.--.','--.-','.-.','...','-','..-','...-','.--','-..-','-.--','--..','-----','.----','..---','...--','....-','.....','-....','--...','---..','----.'];let code;for(const a of symbols)for(const b of symbols){const c=a+' '+b;if(createHash('sha256').update(c).digest('hex')==='472c5b7ed9a012becc4e8aff30acdef07744e73e30e22fa60fa021d6fe1487a3')code=c;}assert.ok(code);
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
 try{
  const base='http://127.0.0.1:'+server.address().port;
  for(const viewport of[{width:1440,height:1000},{width:390,height:844},{width:320,height:568},{width:844,height:390}]){
-  const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'/');
-  assert.match(await page.title(),/Silk Road/);assert.equal(await page.locator('#f-chat').getAttribute('src'),null);assert.equal(await page.getByRole('heading',{name:'A thousand paths. One connected world.'}).isVisible(),true);
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.getByRole('button',{name:'Explore Samarkand',exact:true}).click();assert.equal(await page.locator('#city-name').textContent(),'Samarkand');
-  await page.getByRole('button',{name:'Next city'}).click();assert.equal(await page.locator('#city-name').textContent(),'Baghdad');
-  await page.getByRole('button',{name:'Maritime',exact:true}).click();assert.equal(await page.locator('#route-map').getAttribute('data-route'),'sea');
-  if(viewport.width<=560){await page.getByRole('button',{name:'Menu',exact:false}).click();await page.getByRole('navigation').getByRole('link',{name:'Through time'}).click();assert.equal(await page.locator('#menuBtn').getAttribute('aria-expanded'),'false');}
-  await page.goto(base+'/#/chat');assert.equal(await page.locator('#home').isVisible(),true);assert.equal(await page.locator('#f-chat').getAttribute('src'),null);
-  assert.equal(await page.evaluate(()=>StgUnlock('... --- ...')),false);
-  assert.equal(await page.evaluate(code=>StgUnlock(code),code),true);
-  await page.frameLocator('#f-chat').getByRole('heading',{name:'Orbit session frame'}).waitFor();
-  assert.equal(await page.evaluate(()=>localStorage.getItem('stg_ok')),'1');assert.equal(await page.locator('#home').isVisible(),false);
-  await page.getByRole('button',{name:'Return to Silk Road'}).click();assert.equal(await page.locator('#home').isVisible(),true);assert.equal(await page.locator('#f-chat').getAttribute('src'),null);
-  await page.goto(base+'/');await page.screenshot({path:'/tmp/silk-road-'+viewport.width+'x'+viewport.height+'.png',fullPage:true});assert.deepEqual(errors,[]);await page.close();
+  const page=await browser.newPage({viewport,colorScheme:'light'}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base+'/');await page.locator('#atlas-map svg').waitFor();await page.evaluate(()=>document.fonts.ready);
+  assert.match(await page.title(),/History in Motion/);assert.equal(await page.locator('.chapter').count(),9);assert.equal(await page.locator('#atlas-map .map-city').count(),9);assert.equal(await page.locator('#f-chat').getAttribute('src'),null);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'/tmp/silk-road-motion-hero-'+viewport.width+'.png',animations:'disabled'});
+  await page.locator('#chapter-jumps button').nth(5).click();await page.waitForFunction(()=>document.querySelector('#active-year').textContent==='1271 CE');await page.waitForTimeout(800);
+  assert.equal(await page.locator('#era-5').getAttribute('aria-current'),'step');assert.equal(await page.locator('#story-map .map-city.is-hot').count(),2);
+  const sticky=await page.locator('.story-map-column').boundingBox();assert.ok(sticky.y>=0&&sticky.y<120,'Timeline map should remain visible');assert.ok(sticky.y+sticky.height<=viewport.height+10,'Sticky map must fit the viewport');
+  const trace=await page.locator('#story-map .map-road-progress').evaluate(e=>Number(e.style.strokeDashoffset));assert.ok(trace>0);
+  await page.screenshot({path:'/tmp/silk-road-motion-story-'+viewport.width+'.png',animations:'disabled'});
+  await page.locator('#chapter-jumps button').nth(8).click();await page.waitForFunction(()=>document.querySelector('#active-year').textContent==='1877');
+  assert.ok(await page.locator('#story-map .map-road-progress').evaluate(e=>Number(e.style.strokeDashoffset))<trace);
+  const atlas=page.locator('#atlas-map');await atlas.getByRole('button',{name:'Explore Samarkand',exact:true}).click();assert.equal(await page.locator('#city-name').textContent(),'Samarkand');
+  await page.getByRole('button',{name:'Next city',exact:true}).click();assert.equal(await page.locator('#city-name').textContent(),'Merv');
+  await page.getByRole('button',{name:'Zoom map in'}).click();assert.equal(await atlas.getAttribute('data-zoom'),'1.5');const before=await atlas.locator('svg').getAttribute('viewBox');await atlas.focus();await page.keyboard.press('ArrowRight');assert.notEqual(await atlas.locator('svg').getAttribute('viewBox'),before);
+  await page.getByRole('button',{name:'Reset map view'}).click();assert.equal(await atlas.getAttribute('data-zoom'),'1');
+  await page.getByRole('button',{name:'Maritime',exact:true}).click();assert.equal(await atlas.getAttribute('data-route'),'sea');
+  await page.getByRole('button',{name:'Play caravan',exact:false}).click();await page.waitForTimeout(250);assert.equal(await page.locator('#caravan-tour').getAttribute('aria-pressed'),'true');await page.locator('#caravan-tour').click();assert.equal(await page.locator('#caravan-tour').getAttribute('aria-pressed'),'false');
+  await page.getByRole('button',{name:'Switch to dark mode'}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.reload();await page.locator('#atlas-map svg').waitFor();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await page.getByRole('button',{name:'Switch to light mode'}).click();
+  if(viewport.width<=560){await page.getByRole('button',{name:'Menu',exact:false}).click();await page.getByRole('navigation').getByRole('link',{name:'Atlas',exact:true}).click();assert.equal(await page.locator('#menuBtn').getAttribute('aria-expanded'),'false');}
+  await page.goto(base+'/#/chat');assert.equal(await page.locator('#home').isVisible(),true);await page.waitForFunction(()=>typeof window.StgUnlock==='function');assert.equal(await page.evaluate(()=>StgUnlock('... --- ...')),false);assert.equal(await page.evaluate(c=>StgUnlock(c),code),true);await page.frameLocator('#f-chat').getByRole('heading',{name:'Orbit session frame'}).waitFor();await page.getByRole('button',{name:'Return to Silk Road'}).click();assert.equal(await page.locator('#home').isVisible(),true);assert.equal(await page.locator('#f-chat').getAttribute('src'),null);
+  assert.deepEqual(errors,[]);await page.close();
  }
- const callback=await browser.newPage();await callback.goto(base+'/');await callback.evaluate(()=>localStorage.setItem('stg_ok','1'));await callback.goto(base+'/?code=example-callback');await callback.frameLocator('#f-chat').getByRole('heading',{name:'Orbit session frame'}).waitFor();assert.equal(await callback.locator('#f-chat').getAttribute('src'),'chatter/?code=example-callback');assert.equal(await callback.evaluate(()=>location.search),'');await callback.close();
- const page=await browser.newPage({viewport:{width:390,height:844}});
- await page.goto(base+'/');await page.evaluate(()=>{window.originalUnlock=StgUnlock;window.keyed=[];window.StgUnlock=s=>{keyed.push(s);return false;};});
- const key=page.locator('#morseKey');await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await page.waitForTimeout(60);await page.mouse.up();await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>keyed[0]),'.');
- await page.mouse.down();await page.waitForTimeout(300);await page.mouse.up();await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>keyed.at(-1)),'. -');
- console.log('PASS Silk Road: responsive history page, map cities/routes, phone navigation, unchanged Morse unlock, unauthorized entry blocked, Orbit iframe and return, real dot/dash pointer input.');
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});await page.goto(base+'/');await page.locator('#atlas-map svg').waitFor();await page.evaluate(()=>document.fonts.ready);assert.equal(await page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running').length),0);
+ await page.getByRole('button',{name:'Zoom map in'}).click();const map=page.locator('#atlas-map'),box=await map.boundingBox(),view=await map.locator('svg').getAttribute('viewBox'),cdp=await page.context().newCDPSession(page);const touch={x:box.x+box.width*.7,y:box.y+box.height*.85};await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[touch]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:touch.x-35,y:touch.y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.notEqual(await map.locator('svg').getAttribute('viewBox'),view);assert.equal(await map.evaluate(e=>e.classList.contains('is-panning')),false);
+ await page.evaluate(()=>{window.keyed=[];window.StgUnlock=s=>{keyed.push(s);return false;};});const key=page.locator('#morseKey');await key.scrollIntoViewIfNeeded();const r=await key.boundingBox();await page.mouse.move(r.x+r.width/2,r.y+r.height/2);await page.mouse.down();await page.waitForTimeout(60);await page.mouse.up();await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>keyed[0]),'.');await page.mouse.down();await page.waitForTimeout(300);await page.mouse.up();await page.waitForTimeout(1000);assert.equal(await page.evaluate(()=>keyed.at(-1)),'. -');
+ const callback=await browser.newPage();await callback.goto(base+'/');await callback.evaluate(()=>localStorage.setItem('stg_ok','1'));await callback.goto(base+'/?code=example-callback');await callback.frameLocator('#f-chat').getByRole('heading',{name:'Orbit session frame'}).waitFor();assert.equal(await callback.locator('#f-chat').getAttribute('src'),'chatter/?code=example-callback');
+ console.log('PASS Silk Road motion redesign: nine scroll-linked chapters, sticky maps at four sizes, active dates/cities and route drawing, atlas selection/zoom/keyboard pan/routes/tour, persistent theme, reduced motion, unchanged Morse and OAuth return.');
 }finally{await browser.close();server.close();}
