@@ -324,10 +324,31 @@ function authView(mode = 'login') {
   ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" placeholder="Enter your password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
   ${HCAPTCHA_SITE_KEY ? '<div id="cf" class="cf-wrap" aria-label="Security check"></div>' : ''}
   <p class="err" id="er" role="alert"></p><button class="btn" id="go">${{ login: 'Log in', signup: 'Create account', reset: 'Send reset link' }[mode]}</button>
+  ${mode === 'signup' ? '<p class="auth-switch">Need approval? <button type="button" class="linkbtn" id="request-access">Request access</button></p>' : ''}
   <p class="auth-switch">${mode === 'login' ? `New to Orbit? <button type="button" class="linkbtn" data-m="signup">Create an account</button>` : `<button type="button" class="linkbtn" data-m="login">Back to log in</button>`}</p></form></div>`;
   const googleButton=$('#google-signin');
   if(googleButton)googleButton.onclick=async()=>{googleButton.disabled=true;try{await startGoogleSignIn(sb,location.origin,url=>window.top.location.assign(url));}catch(error){$('#er').textContent=error.message||'Google sign-in failed. Please try again.';googleButton.disabled=false;}};
   root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => authView(b.dataset.m));
+  const accessButton = $('#request-access');
+  if (accessButton) accessButton.onclick = async () => {
+    const er = $('#er'), email = $('#em').value.trim().toLowerCase();
+    er.style.color = '';
+    if (!/^30[a-z]{2,}[0-9]*@tesdk12\.net$/.test(email)) {
+      er.textContent = 'Enter a valid school email above to request access.'; return;
+    }
+    if (HCAPTCHA_SITE_KEY && !cfToken) {
+      er.textContent = 'Complete the security check before requesting access.'; return;
+    }
+    accessButton.disabled = true;
+    try {
+      const { data, error } = await sb.rpc('request_school_signup', { p_email: email });
+      if (error) throw error;
+      er.style.color = 'var(--ok)';
+      er.textContent = data || 'Your request was submitted.';
+    } catch (x) {
+      er.textContent = x.message || 'Could not submit your request.';
+    } finally { accessButton.disabled = false; cfReset(); }
+  };
   const bound = boundEmail();
   if (bound && mode === 'login') $('#em').value = bound;
   if (authNotice) { $('#er').textContent = authNotice; authNotice = ''; }
@@ -2025,7 +2046,7 @@ function adminDashboard(tab) {
   if (!canAdmin()) return;
   modal('Admin dashboard', '<div id="ad"></div>', [{ label: 'Close', cls: 'ghost' }], bg => { bg.firstElementChild.classList.add('wide'); S.dash = { bg, tab: tab || 'overview', q: '', rs: 'open' }; renderDash(); });
 }
-const dashTabs = () => [['overview', 'Overview', true], ['users', 'Users', can('view_users')], ['channels', 'Channels', can('manage_channels') || can('lock_channels') || can('slow_mode')], ['roles', 'Roles', isOwner()], ['reports', 'Reports' + (S.reportCount && can('view_reports') ? ` (${S.reportCount})` : ''), can('view_reports')], ['moderation', 'Moderation', can('view_reports') || can('manage_moderation')], ['audit', 'Audit log', can('view_audit')], ['rates', 'Rate requests', sugAdmin()], ['games', 'Games admin', isOwner()], ['server', 'Server', isOwner()]].filter(t => t[2]);
+const dashTabs = () => [['overview', 'Overview', true], ['users', 'Users', can('view_users')], ['channels', 'Channels', can('manage_channels') || can('lock_channels') || can('slow_mode')], ['roles', 'Roles', isOwner()], ['reports', 'Reports' + (S.reportCount && can('view_reports') ? ` (${S.reportCount})` : ''), can('view_reports')], ['moderation', 'Moderation', can('view_reports') || can('manage_moderation')], ['audit', 'Audit log', can('view_audit')], ['rates', 'Rate requests', sugAdmin()], ['games', 'Games admin', isOwner()], ['signup_requests', 'Sign Up Requests', isOwner()], ['server', 'Server', isOwner()]].filter(t => t[2]);
 async function renderDash() {
   const d = S.dash; if (!d?.bg.isConnected) return; const el = $('#ad', d.bg); if (!el) return;
   const tabs = dashTabs(); if (!tabs.some(t => t[0] === d.tab)) d.tab = 'overview'; const mine = d.tab;
@@ -2311,6 +2332,29 @@ DASH.rates = async () => {
 DASH.games = async () => [`<p class="muted" style="margin-top:0">The Orbit Games admin panel: games on/off, featured and new badges, scores and MVP, users and bans, game chat, suggestions and bug reports, announcements, site settings (including the recording limit), logs and staff roles.</p>
   <p><a class="btn" href="../games/admin.html" target="_blank" rel="noopener">Open Orbit Games admin</a></p>
   <p class="muted">It opens in a new tab. You are already signed in to Orbit; the panel also asks for the staff Google account the games database knows.</p>`];
+DASH.signup_requests = async () => {
+  const { data, error } = await sb.rpc('admin_list_signup_requests');
+  if (error) return errBox(error);
+  const rows = data || [];
+  const pending = rows.filter(r => r.status === 'pending').length;
+  return [`<p class="muted">Review school account requests here. Approving an email lets the student finish registration and verify their inbox. No account or password is created by a request.</p>
+    <p><b>${pending} pending</b> · ${rows.length} requests shown</p>
+    <div class="list">${rows.map(r => `<div class="row drow" style="cursor:default;align-items:center">
+      <span class="t"><b>${esc(r.email)}</b><small>Requested ${esc(stamp(r.requested_at))} · ${esc(r.status)}</small></span>
+      ${r.status === 'pending' ? `<div class="inline-actions"><button type="button" class="btn sm" data-approval="yes" data-email="${esc(r.email)}">Approve</button><button type="button" class="btn ghost sm" data-approval="no" data-email="${esc(r.email)}">Reject</button></div>` : ''}
+    </div>`).join('') || '<p class="muted">No signup requests yet.</p>'}</div>
+    <button type="button" class="btn ghost sm" id="refresh-signups">Refresh</button>`, el => {
+      $('#refresh-signups', el).onclick = () => renderDash();
+      el.querySelectorAll('[data-approval]').forEach(b => b.onclick = () => {
+        const approve = b.dataset.approval === 'yes', email = b.dataset.email;
+        confirmBox(approve ? 'Approve this signup?' : 'Reject this signup?', email + (approve ? ' will be allowed to create an account.' : ' will not be allowed to create an account.'), approve ? 'Approve' : 'Reject', async () => {
+          const { error } = await sb.rpc('admin_review_signup_request', { p_email: email, p_approve: approve });
+          if (error) { toast(error.message, true); return false; }
+          toast(approve ? 'Signup approved' : 'Signup rejected'); renderDash();
+        });
+      });
+    }];
+};
 DASH.server = async () => {
   const sv = S.sv; await loadMaint();
   const on = maint.on, ro = maint.ready ? await sb.rpc('admin_get_allowed_emails') : { error: true }, emails = ro.data || [];
