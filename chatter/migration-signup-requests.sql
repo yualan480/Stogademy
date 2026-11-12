@@ -62,40 +62,14 @@ end $$;
 revoke execute on function public.admin_review_signup_request(text,boolean) from public,anon;
 grant execute on function public.admin_review_signup_request(text,boolean) to authenticated;
 
--- No account may be created without an explicit approval, even if the roster is empty.
+-- Enforce approval in the database, including when the roster is empty.
 create or replace function public.signup_request_guard() returns trigger
 language plpgsql security definer set search_path=public as $$
 declare e text:=lower(trim(coalesce(new.email,'')));
 begin
-  -- Preserve existing verified personal-Google registration flow.
-  -- School email/password registrations go through the approval queue.
+  -- Preserve the existing personal Gmail OAuth flow.
   if coalesce(new.raw_app_meta_data->>'provider','') = 'google'
-     and e ~ '^[^@[:space:]]+@gmail\\.com
-    raise exception 'Your signup request must be approved before creating an account.';
-  end if;
-  return new;
-end $$;
-revoke execute on function public.signup_request_guard() from public,anon,authenticated;
-drop trigger if exists signup_request_approval_guard on auth.users;
-create trigger signup_request_approval_guard before insert on auth.users
-  for each row execute function public.signup_request_guard();
-
--- Keep the pre-signup UI in sync with the server-side guard.
-create or replace function public.signup_email_problem(p_email text) returns text
-language plpgsql stable security definer set search_path=public as $$
-declare e text:=lower(trim(coalesce(p_email,'')));
-begin
-  if e !~ '^30[a-z]{2,}[0-9]*@tesdk12\.net$' then
-    return 'Use your school email starting with 30 and ending with @tesdk12.net.';
-  end if;
-  if public.lock_exempt(e) then return null; end if;
-  if not exists(select 1 from public.allowed_emails where email=e) then
-    return 'Approval required. Select Request access below to send a signup request.';
-  end if;
-  return null;
-end $$;
-grant execute on function public.signup_email_problem(text) to anon,authenticated;
- then return new; end if;
+     and e like '%@gmail.com' then return new; end if;
   if public.lock_exempt(e) then return new; end if;
   if not exists(select 1 from public.allowed_emails where email=e) then
     raise exception 'Your signup request must be approved before creating an account.';
@@ -107,12 +81,12 @@ drop trigger if exists signup_request_approval_guard on auth.users;
 create trigger signup_request_approval_guard before insert on auth.users
   for each row execute function public.signup_request_guard();
 
--- Keep the pre-signup UI in sync with the server-side guard.
+-- Mirror the database restriction on the school-email signup screen.
 create or replace function public.signup_email_problem(p_email text) returns text
 language plpgsql stable security definer set search_path=public as $$
 declare e text:=lower(trim(coalesce(p_email,'')));
 begin
-  if e !~ '^30[a-z]{2,}[0-9]*@tesdk12\.net$' then
+  if e !~ '^30[a-z]{2,}[0-9]*@tesdk12\\.net$' then
     return 'Use your school email starting with 30 and ending with @tesdk12.net.';
   end if;
   if public.lock_exempt(e) then return null; end if;
