@@ -162,4 +162,21 @@ export const UNBLOCKED_GAMES=[{
   "timing"
  ],
  "controls": "Hold Space, the mouse button, or the touch screen to drift right; release to steer left."
+},
+{
+ "id": "drive-mad",
+ "title": "Drive Mad",
+ "category": "Racing",
+ "players": "Single player",
+ "description": "Balance your truck over tricky obstacles and reach the finish without flipping.",
+ "image": "../games/drive-mad/webapp/cover.jpg",
+ "src": "../games/drive-mad/index.html?v=1",
+ "tags": [
+  "drive",
+  "mad",
+  "truck",
+  "balance",
+  "physics"
+ ],
+ "controls": "Use arrow keys or WASD to drive and balance. Touch players can use the game’s on-screen controls."
 }];
