@@ -379,14 +379,26 @@ function authView(mode = 'login') {
       } else if (mode === 'login') {
         const { error } = await sb.auth.signInWithPassword({ email, password: pw, options: { captchaToken } }); if (error) throw error;
       } else {
-        if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
-        const details = schoolSignupDetails(email);
-        await requireEmailConfirmation(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        // A first signup attempt also submits an approval request. A password is
+        // never sent to or stored in the request table: the student chooses it
+        // again after a moderator approves the email.
         const chk = await sb.rpc('signup_email_problem', { p_email: email });
-        if (!chk.error && chk.data) throw new Error(chk.data);
-        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { ...details.metadata, device_id: deviceId() }, emailRedirectTo: new URL('/', location.origin).href, captchaToken } });
-        if (error) throw error;
-        if (!data.session) { er.style.color = 'var(--ok)'; er.textContent = 'Check your school inbox (and spam folder) for a confirmation link. Confirm your email, then return here to log in. If an account already exists, log in or reset your password.'; }
+        if (chk.error) throw chk.error;
+        if (chk.data) {
+          if (!chk.data.startsWith('Approval required.')) throw new Error(chk.data);
+          const request = await sb.rpc('request_school_signup', { p_email: email });
+          if (request.error) throw request.error;
+          er.style.color = 'var(--ok)';
+          er.textContent = (request.data || 'Your signup request was submitted.') +
+            ' Your password was not saved. Once approved, return to Create account to finish signing up.';
+        } else {
+          if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
+          const details = schoolSignupDetails(email);
+          await requireEmailConfirmation(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+          const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { ...details.metadata, device_id: deviceId() }, emailRedirectTo: new URL('/', location.origin).href, captchaToken } });
+          if (error) throw error;
+          if (!data.session) { er.style.color = 'var(--ok)'; er.textContent = 'Check your school inbox (and spam folder) for a confirmation link. Confirm your email, then return here to log in. If an account already exists, log in or reset your password.'; }
+        }
       }
     } catch (x) { er.style.color = ''; er.textContent = x.message || 'Something went wrong. Check your connection and try again.'; }
     cfReset(); go.disabled = false;
