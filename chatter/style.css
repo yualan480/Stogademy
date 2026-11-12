@@ -1317,8 +1317,8 @@ html:not(.force-motion) :is(.odhalo,.odring,.odcore,.odshine::after){}
 .msg.tut .tby{cursor:pointer;text-decoration:underline}
 .tutwait{padding:40px 0;text-align:center;color:var(--muted)}
 
-/* ───────── "Playing" status (orange dot while in Orbit Games) ───────── */
-.av i.playing{background:#ff8a1f;box-shadow:0 0 6px #ff8a1fbb}
+/* ───────── "Playing in Orbit Games" status (blue activity dot) ───────── */
+.av i.playing{background:#3b82f6;box-shadow:0 0 6px #3b82f6bb}
 :where(.av i.playing){border-radius:var(--round,10px)}
 
 /* ───────── Tutorials page (add videos, no chat) ───────── */
