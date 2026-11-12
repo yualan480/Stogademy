@@ -94,4 +94,21 @@ export const UNBLOCKED_GAMES=[{
   "trains"
  ],
  "controls": "Arrow keys or swipe to switch lanes, jump, and roll. Follow the in-game tutorial."
+},
+{
+ "id": "geometry-dash",
+ "title": "Geometry Dash",
+ "category": "Arcade",
+ "players": "Single player",
+ "description": "A fan-made browser edition: jump to the rhythm and dodge spikes through fast platforming levels.",
+ "image": "../games/geometry-dash/icon.png",
+ "src": "../games/geometry-dash/index.html?v=1",
+ "tags": [
+  "geometry",
+  "dash",
+  "rhythm",
+  "jump",
+  "platformer"
+ ],
+ "controls": "Click, tap, or press Space to jump. Follow the in-game menu to choose a level."
 }];
