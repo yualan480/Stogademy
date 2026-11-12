@@ -1,13 +1,13 @@
 import {isLadder} from './shapes.js';
 import {createShieldMesh,poseFirstPersonShield,posePlayerShield} from './shield-visuals.js';
 import {changedSections,mergeSections,faceShades} from './mesh-work.js';
-import {createRecipeBook} from './recipe-book.js?v=20261109-shields46';
-import {PoseHistory,RemoteMotion,reconciliationError,correctionStep} from './prediction.js?v=20261109-shields46';
-import {createSkinChooser} from './skins-ui.js?v=20261109-shields46';
-import {createSignEditor} from './signs-ui.js?v=20261109-shields46';
-import {addSignText} from './sign-visuals.js?v=20261109-shields46';
+import {createRecipeBook} from './recipe-book.js?v=20261112-physics47';
+import {PoseHistory,RemoteMotion,reconciliationError,correctionStep} from './prediction.js?v=20261112-physics47';
+import {createSkinChooser} from './skins-ui.js?v=20261112-physics47';
+import {createSignEditor} from './signs-ui.js?v=20261112-physics47';
+import {addSignText} from './sign-visuals.js?v=20261112-physics47';
 import {createPearlVisuals} from './pearl-visuals.js?v=20261104-pearl31';
-import {createDrawnBow,createArrowVisuals} from './bow-visuals.js?v=20261109-shields46';
+import {createDrawnBow,createArrowVisuals} from './bow-visuals.js?v=20261112-physics47';
 import {createDamageTilt} from './damage-camera.js?v=20261104-mobs25';
 import {createLocatorBar,playerColor} from './locator.js?v=20261104-locator22';
 import {createSounds} from './sounds.js?v=20261104-audio20';
@@ -16,17 +16,17 @@ import {createXPVisuals} from './experience-visuals.js?v=20261104-audio20';
 import {isTorch,isPlant,isStair,isSpike,blockBoxes} from './shapes.js';
 import {markHit,tintAndFall,sleepPose} from './entity-effects.js?v=20261104-audio20';
 import {wantedChunks,inRange,renderDistance as clampRenderDistance,SIMULATION_DISTANCE} from './chunks.js?v=20261104-audio20';
-import {createKeybinds} from './keybinds.js?v=20261109-shields46';
+import {createKeybinds} from './keybinds.js?v=20261112-physics47';
 import {createPauseMenu} from './pause-menu.js?v=20261104-audio20';
-import {furnitureModel} from './block-models.js?v=20261109-shields46';
+import {furnitureModel} from './block-models.js?v=20261112-physics47';
 import {createShortcuts} from './game-shortcuts.js?v=20261104-audio20';
 import { ITEMS,itemName,isBlock } from './items.js';
-import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261109-shields46';
+import { createSurvivalView,applyEquipment } from './survival-ui.js?v=20261112-physics47';
 import * as THREE from './vendor/three.module.js';
-import { BLOCKS,SLOTS,CHUNK,HEIGHT,MIN_Y,CHUNK_HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,eyeHeight,raycast,solid,collides } from './world.js?v=20261109-shields46';
-import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261109-shields46';
-import { createPlayerModel } from './players.js?v=20261109-shields46';
-import { createTextures, createAtmosphere, createHeldBlock, itemSpriteGeometry, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261109-shields46';
+import { BLOCKS,SLOTS,CHUNK,HEIGHT,MIN_Y,CHUNK_HEIGHT,SIZE,chunkIndex,inside,resourceBlock,terrain,step,stepBoat,eyeHeight,raycast,solid,collides } from './world.js?v=20261112-physics47';
+import { createResourceEffects,blockGeometry } from './mining-visuals.js?v=20261112-physics47';
+import { createPlayerModel } from './players.js?v=20261112-physics47';
+import { createTextures, createAtmosphere, createHeldBlock, itemSpriteGeometry, TILE_COUNT, tileFor, terrainDetail } from './visuals.js?v=20261112-physics47';
 import { SUPABASE_URL,SUPABASE_ANON_KEY } from '../chatter/config.js';
 const $=id=>document.getElementById(id), canvas=$('world');
 const bindings=createKeybinds();const sounds=createSounds();
@@ -330,7 +330,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-prev
  if(me&&connected){
   held.setSkin(survival.state.skin);leftHeld.setSkin(survival.state.skin);me.survival=survival.state;locator.update(me,locatorTargets,now);
   if(now-torchLightAt>250){torchLightAt=now;const nearest=[...[...torchPositions.values()].flat(),...[...furnaceStates.values()].filter(f=>f.lit).map(f=>({x:f.x+.5+f.facing.x*.65,y:f.y+.6,z:f.z+.5+f.facing.z*.65}))].filter(t=>Math.hypot(t.x-me.x,t.y-me.y,t.z-me.z)<16).sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y,a.z-me.z)-Math.hypot(b.x-me.x,b.y-me.y,b.z-me.z));torchLights.forEach((light,i)=>{light.intensity=nearest[i]?2.4:0;if(nearest[i])light.position.set(nearest[i].x,nearest[i].y,nearest[i].z);});}
-  if(controls()&&survival.state.health>0&&!survival.state.sleeping){for(let remaining=dt;remaining>0;remaining-=1/120)(survival.state.boat?stepBoat:step)(me,{...input,sprint:input.sprint&&survival.state.hunger>6},Math.min(remaining,1/120),get);}
+  if(survival.state.health>0&&!survival.state.sleeping){const movingInput=controls()?{...input,sprint:input.sprint&&survival.state.hunger>6}:{};for(let remaining=dt;remaining>0;remaining-=1/120)(survival.state.boat?stepBoat:step)(me,movingInput,Math.min(remaining,1/120),get);}
   const adjustment=correctionStep(correction,dt);for(const axis of ['x','y','z']){const next={...me,[axis]:me[axis]+adjustment[axis]};if(!collides(next,get)){me[axis]=next[axis];correction[axis]-=adjustment[axis];}else correction[axis]=0;}
   movementHistory.record(performance.now(),me);
   camera.position.set(me.x,me.y+eyeHeight(me),me.z);camera.rotation.set(me.pitch,me.yaw,0,'YXZ');
