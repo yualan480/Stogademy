@@ -128,4 +128,21 @@ export const UNBLOCKED_GAMES=[{
   "sandbox"
  ],
  "controls": "Keyboard and mouse: WASD to move, Space to jump, E for inventory, and Escape to pause. Worlds save in this browser; export backups before clearing browser data."
+},
+{
+ "id": "monkey-mart",
+ "title": "Monkey Mart",
+ "category": "Simulation",
+ "players": "Single player",
+ "description": "Harvest produce, stock shelves, and grow your own monkey-run supermarket.",
+ "image": "../games/monkey-mart/unnamed.png",
+ "src": "../games/monkey-mart/index.html?v=1",
+ "tags": [
+  "monkey",
+  "mart",
+  "shop",
+  "supermarket",
+  "management"
+ ],
+ "controls": "Move with WASD or arrow keys, or use the game’s touch controls. Stand near produce and shelves to harvest and stock automatically."
 }];

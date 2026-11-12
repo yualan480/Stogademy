@@ -17,7 +17,7 @@ const host=process.env.HOST||(process.env.RENDER==='true'?'0.0.0.0':'127.0.0.1')
 if(dev && host!=='127.0.0.1' && host!=='localhost')throw new Error('Development guest mode must bind to localhost.');
 const store=openStore(process.env.ORBITCRAFT_DB||resolve(root,'orbitcraft/data/world.sqlite'));
 const game=new Dimensions(store);
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.wasm':'application/wasm','.webp':'image/webp','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.wav':'audio/wav','.mp4':'video/mp4','.webmanifest':'application/manifest+json','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://local');
   if(url.pathname==='/pokemon-showdown/action'){const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>8192){res.writeHead(413);return res.end();}parts.push(part);}const request=new Request('http://'+req.headers.host+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(parts)}:{})});const result=await showdownGuestAuth(request);res.writeHead(result.status,Object.fromEntries(result.headers));return res.end(await result.text());}
