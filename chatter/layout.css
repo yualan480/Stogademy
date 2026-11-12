@@ -14,13 +14,13 @@
  .side .brand{padding:16px 16px 10px}.side .blogo{width:206px;max-width:100%}
  .side .nav{gap:1px;padding:3px 10px 8px}.side .nav-i{padding:7px 10px;font-size:13px;gap:10px;min-height:33px}.side .nav-i svg{width:17px;height:17px;flex:none}
  .side .ch{font-size:14px;padding:7px 10px}.side .me{padding:10px}.side .me .t b{font-size:14px}.side .me .t small{font-size:12px}
- .top.otop{min-height:70px;padding:12px 24px;gap:14px}.top.otop .osearch{height:44px;padding:0 18px}.top.otop .osearch input{font-size:14px}.otop-actions{gap:10px}
- .main>.panel.orbithome{min-height:0;flex:1 1 auto;padding:24px 24px 16px;overflow-y:auto}
- .orbithome .ohero{flex:none;padding:8px 12px 36px}
- .orbithome .ologo,.orbithome .ohero-logo{width:clamp(165px,14vw,230px)}
+ .top.otop{min-height:64px;padding:10px 24px;gap:14px}.top.otop .osearch{height:44px;padding:0 18px}.top.otop .osearch input{font-size:14px}.otop-actions{gap:10px}
+ .main>.panel.orbithome{min-height:0;flex:1 1 auto;padding:20px 24px 16px;overflow-y:auto}
+ .orbithome .ohero{flex:none;padding:8px 12px 28px}
+ .orbithome .ologo,.orbithome .ohero-logo{width:clamp(160px,12vw,210px)}
  .orbithome .owm{width:clamp(190px,16vw,250px)}
  .orbithome .otag{font-size:18px;letter-spacing:.4em;margin-top:12px}
- .orbithome .ohbtns{margin-top:28px}.app .orbithome .obtn{font-size:14px;padding:12px 24px;border-radius:14px;min-height:44px}
+ .orbithome .ohbtns{margin-top:24px}.app .orbithome .obtn{font-size:14px;padding:12px 24px;border-radius:14px;min-height:44px}
  .orbithome .oann,.orbithome .oquick{width:min(935px,100%);flex:none}
  .orbithome .oann{margin-top:12px;padding:16px 18px}.oann-t>b{font-size:20px}.oann-body{font-size:14px}
  .orbithome .oquick{padding:14px 16px 16px}.oquick h3{font-size:14px;margin:0 0 12px}.orbithome .qlinks{gap:12px}.orbithome .qlink{padding:14px;min-height:100px}.orbithome .qlink b{font-size:13px}.orbithome .qlink small{font-size:11px}
