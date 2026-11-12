@@ -213,4 +213,22 @@ export const UNBLOCKED_GAMES=[{
   "flash"
  ],
  "controls": "Click Play through the original intro, then use WASD or arrow keys to move and jump. Runs locally through Ruffle; keyboard recommended."
+},
+{
+ "id": "suika",
+ "title": "Suika Game",
+ "category": "Puzzle",
+ "players": "Single player",
+ "description": "A GitHub-based Suika clone: drop matching fruits, merge bigger ones, and aim for a watermelon.",
+ "image": "../games/suika/fruit_game.jpg",
+ "src": "../games/suika/index.html?v=1",
+ "tags": [
+  "suika",
+  "watermelon",
+  "fruit",
+  "merge",
+  "puzzle",
+  "physics"
+ ],
+ "controls": "Click or tap inside the container to drop fruit. Match two of the same fruit to merge them. New game restarts; your best score saves in this browser."
 }];

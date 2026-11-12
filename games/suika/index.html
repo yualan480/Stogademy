@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover">
+    <title>Suika Game · Orbit</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="col info">
+            <h2 class="title">Score:</h2>
+            <h2 id="score"></h2>
+            <h2 class="title">Max Score:</h2>
+            <h2 id="max-score"></h2><button id="new-game" type="button">New game</button><p class="credit">Browser edition by sergiss.<br>MIT licensed · GitHub source retained.</p>
+        </div>
+        <canvas id="app" aria-label="Fruit merging game. Click or tap to drop fruit." tabindex="0"></canvas>
+        <div class="col next">
+            <h2 class="title">Next:</h2>
+            <canvas id="fruit-info" aria-label="Next fruit"></canvas><p class="hint">Drop matching fruits together to merge them. Keep the pile below the top!</p>
+        </div>
+    </div>
+
+    <script src="js/script.js" type="module"></script>
+</body>
+
+</html>
