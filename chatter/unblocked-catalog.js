@@ -179,4 +179,21 @@ export const UNBLOCKED_GAMES=[{
   "physics"
  ],
  "controls": "Use arrow keys or WASD to drive and balance. Touch players can use the game’s on-screen controls."
+},
+{
+ "id": "slope-unblocked",
+ "title": "Slope",
+ "category": "Arcade",
+ "players": "Single player",
+ "description": "Steer a rolling ball down an endless neon slope and stay on the track.",
+ "image": "../games/slope-unblocked/slope4.jpeg",
+ "src": "../games/slope-unblocked/index.html?v=1",
+ "tags": [
+  "slope",
+  "ball",
+  "neon",
+  "runner",
+  "arcade"
+ ],
+ "controls": "Use Left/Right or A/D to steer. Click Play in the game menu. Keyboard recommended."
 }];
