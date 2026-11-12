@@ -78,4 +78,20 @@ export const UNBLOCKED_GAMES=[{
  image:'../games/yohoho/cover.jpg',src:'../games/yohoho/index.html?v=2',
  tags:['pirate','battle','royale','yohoho','io','action'],
  controls:'Move with your mouse, WASD, or arrow keys. Click or press Space to attack; hold to charge a dash.'
+},
+{
+ "id": "subway-surfers",
+ "title": "Subway Surfers",
+ "category": "Action",
+ "players": "Single player",
+ "description": "Dodge subway trains, collect coins, and keep the chase going.",
+ "image": "../games/subway-surfers/NewYorkIcon.png",
+ "src": "../games/subway-surfers/index.html?v=1",
+ "tags": [
+  "subway",
+  "surfers",
+  "runner",
+  "trains"
+ ],
+ "controls": "Arrow keys or swipe to switch lanes, jump, and roll. Follow the in-game tutorial."
 }];
