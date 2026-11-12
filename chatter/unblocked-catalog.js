@@ -111,4 +111,21 @@ export const UNBLOCKED_GAMES=[{
   "platformer"
  ],
  "controls": "Click, tap, or press Space to jump. Follow the in-game menu to choose a level."
+},
+{
+ "id": "eaglercraft",
+ "title": "Eaglercraft",
+ "category": "Adventure",
+ "players": "Single player / server client",
+ "description": "Eaglercraft 1.5.2 browser client with local singleplayer worlds. Multiplayer requires a compatible server.",
+ "image": "../games/eaglercraft/cover.svg",
+ "src": "../games/eaglercraft/index.html?v=1",
+ "tags": [
+  "eaglercraft",
+  "blocks",
+  "building",
+  "survival",
+  "sandbox"
+ ],
+ "controls": "Keyboard and mouse: WASD to move, Space to jump, E for inventory, and Escape to pause. Worlds save in this browser; export backups before clearing browser data."
 }];

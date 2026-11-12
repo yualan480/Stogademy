@@ -1,0 +1,1 @@
+Eaglercraft 1.5.2 by lax1dude, imported from https://github.com/lDEVinux/eaglercraft/tree/b2f8bf93839f1827ec4d350c6024addc1d2e71a2/stable-download/web . License retained. Placeholder multiplayer server removed; singleplayer runs locally. No multiplayer server is supplied by Orbit.
