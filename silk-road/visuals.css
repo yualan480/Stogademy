@@ -36,3 +36,5 @@
  .story-section{padding-top:90px}.atlas-section{padding-top:80px;padding-bottom:96px}
  .section-heading{margin-bottom:40px}.field-notes{padding-top:60px}
 }
+
+.motion-paused .camel-train,.motion-paused .camel-train use,.motion-paused .desert-sun,.journey-preview-photo.motion-paused>img{animation-play-state:paused}

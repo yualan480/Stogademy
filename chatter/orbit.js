@@ -2,8 +2,8 @@
    Home page, announcements, events + calendar, whiteboards, AI (assistant, summaries, conversation starters), formatting toolbar.
    app.js hands over what this needs through initOrbit(ctx) and calls the hooks that come back. */
 
-import { startStars, startLogo } from './fx.js?v=2';
-import { createBackdrop } from './orbit-bg.js';
+import { startStars, startLogo } from './fx.js?v=3';
+import { createBackdrop } from './orbit-bg.js?v=3';
 import { ambient, cycleTime } from './ambient.js?v=6';
 import { createDrift } from './orbit-drift.js?v=1';
 import { mountFloaters } from './collectible-float.js?v=1';

@@ -8,7 +8,7 @@ import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
-import { initOrbit } from './orbit.js?v=14';
+import { initOrbit } from './orbit.js?v=15';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -20,7 +20,7 @@ const NO_AR = { decorate() {}, start() {}, stop() {}, load() {} };
 const NO_GB = { handles: v => v === 'gamble', render: m => { m.innerHTML = '<div class="empty"><h2>Orbit Casino is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, onNav() {}, stop() {} };
 const NO_TN = { handles: v => v === 'tournaments' || v === 'tournament', render: m => { m.innerHTML = '<div class="empty"><h2>Tournaments are unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, onNav() {}, stop() {}, load: async () => {} };
 const NO_SHOP = { render: m => { m.innerHTML = '<div class="empty"><h2>The shop is unavailable</h2><p>Reload the page. If this keeps happening, tell a staff member.</p></div>'; }, load: async () => {}, avAttr: () => '', glyphOf: () => '', coHtml: () => '', applyOwn() {}, refreshCos: async () => {} };
-import { attachFx, afterMain, pageSwap, clickRipple } from './fx.js?v=2';
+import { attachFx, afterMain, pageSwap, clickRipple } from './fx.js?v=3';
 import { leaderboardHtml, startLeaderboardFx } from './leaderboard.js?v=5';
 const { SUPABASE_URL, SUPABASE_ANON_KEY, OAUTH_PROVIDERS } = CONFIG, HCAPTCHA_SITE_KEY = CONFIG.HCAPTCHA_SITE_KEY || '';
 const GAMER_URL = 'https://gamer1.unblocker4school.workers.dev/';
@@ -317,14 +317,14 @@ const loadHcaptcha = () => hcLoad ||= new Promise((ok, no) => {
 /* ───────── auth screens ───────── */
 function authView(mode = 'login') {
   const t = { login: 'Welcome back', signup: 'Create your account', reset: 'Reset your password' }[mode];
-  root.innerHTML = `<div class="authwrap"><form class="card" id="af" novalidate>${logo}<p class="muted" style="margin:.2rem 0 0">Conestoga 2030</p><h1>${t}</h1>
-  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin" style="margin:1rem 0">Continue with personal Gmail</button><p class="muted" style="text-align:center;font-size:12px">OR</p>' : ''}
+  root.innerHTML = `<div class="authwrap auth-shell"><div class="auth-orbits" aria-hidden="true"><i></i><i></i><i></i></div><form class="card auth-card" id="af" novalidate>${logo}<p class="auth-school">Conestoga 2030</p><h1>${t}</h1><p class="auth-subtitle">${mode === 'login' ? 'Log in to pick up where you left off.' : mode === 'signup' ? 'Your next connection starts here.' : 'We’ll help you get back into Orbit.'}</p>
+  ${mode !== 'reset' ? '<button type="button" class="btn ghost" id="google-signin">Continue with personal Gmail</button><p class="auth-divider">OR</p>' : ''}
   <label for="em">Email</label><input id="em" type="email" autocomplete="email" placeholder="30yua@tesdk12.net" required>
   ${mode === 'signup' ? '<p class="muted" style="font-size:12px;margin:.5rem 0 0">Use your school email starting with 30 and ending with @tesdk12.net to join without Google. Your name is generated from your email as a first initial and last name—for example, 30yua@tesdk12.net becomes A Yu.</p>' : ''}
-  ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
+  ${mode !== 'reset' ? `<label for="pw">Password</label><input id="pw" type="password" placeholder="Enter your password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" minlength="8">` : ''}
   ${HCAPTCHA_SITE_KEY ? '<div id="cf" class="cf-wrap" aria-label="Security check"></div>' : ''}
   <p class="err" id="er" role="alert"></p><button class="btn" id="go">${{ login: 'Log in', signup: 'Create account', reset: 'Send reset link' }[mode]}</button>
-  <p style="text-align:center;margin:1rem 0 0">${mode === 'login' ? `<button type="button" class="linkbtn" data-m="signup">Create an account</button>` : `<button type="button" class="linkbtn" data-m="login">Back to log in</button>`}</p></form></div>`;
+  <p class="auth-switch">${mode === 'login' ? `New to Orbit? <button type="button" class="linkbtn" data-m="signup">Create an account</button>` : `<button type="button" class="linkbtn" data-m="login">Back to log in</button>`}</p></form></div>`;
   const googleButton=$('#google-signin');
   if(googleButton)googleButton.onclick=async()=>{googleButton.disabled=true;try{await startGoogleSignIn(sb,location.origin,url=>window.top.location.assign(url));}catch(error){$('#er').textContent=error.message||'Google sign-in failed. Please try again.';googleButton.disabled=false;}};
   root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => authView(b.dataset.m));
@@ -337,7 +337,7 @@ function authView(mode = 'login') {
   const WRONG = 'The security check is set up wrong (site key or allowed domain). Tell the site owner.';
   const MISSING = 'The "I am human" box did not load. Either your network is blocking hcaptcha.com, or this website address is not added to the site in the hCaptcha dashboard. Reload the page; if the box is still missing, tell the site owner.';
   if (HCAPTCHA_SITE_KEY) setTimeout(() => { const box = $('#cf'); if (box && !box.querySelector('iframe')) { const m = document.createElement('p'); m.className = 'err'; m.textContent = MISSING; box.append(m); } }, 6000);
-  if (HCAPTCHA_SITE_KEY) loadHcaptcha().then(hc => { if (!$('#cf')) return; cfId = hc.render($('#cf'), { sitekey: HCAPTCHA_SITE_KEY, theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark', size: innerWidth < 380 ? 'compact' : 'normal',
+  if (HCAPTCHA_SITE_KEY) loadHcaptcha().then(hc => { if (!$('#cf')) return; cfId = hc.render($('#cf'), { sitekey: HCAPTCHA_SITE_KEY, theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark', size: $('#cf').clientWidth < 304 ? 'compact' : 'normal',
     callback: t => { cfToken = t; }, 'expired-callback': () => { cfToken = ''; }, 'chalexpired-callback': () => { cfToken = ''; },
     'error-callback': code => { cfToken = ''; cfErr(code === 'invalid-data' || code === 'internal-error' ? WRONG : code === 'network-error' ? 'Could not reach the security check. Check your connection, then reload.' : 'The security check had a problem. Reload the page and try again.'); } }); })
     .catch(e => cfErr(e?.message === 'load' ? 'Could not load the security check. Check your connection, or try a different network, then reload.' : 'The security check could not start (' + (e?.message || 'unknown error') + '). Tell the site owner.'));

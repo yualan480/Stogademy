@@ -12,7 +12,7 @@
 export const PERIOD = 2.74;                         // the sound loop length (ambient.js and orbit.js sync to this)
 const LOOP = PERIOD * 18;                           // one full picture cycle = eighteen sound loops, 49.32s (slow, calm motion)
 const TAU = Math.PI * 2;
-const MAX_PX = 4.6e6;                               // keeps big / hi-dpi screens smooth
+const MAX_PX = 2.5e6;                               // keeps big / hi-dpi screens smooth
 const IW = 1672, IH = 941;                          // size of the picture; every coordinate below is in picture pixels
 const IMG = 'orbit-space.jpg?v=2';
 
@@ -129,7 +129,7 @@ export function createBackdrop() {
 
   function layout() {
     const cw = cv.clientWidth, ch = cv.clientHeight; if (!cw || !ch) return false;
-    S = Math.min(window.devicePixelRatio || 1, 2); if (cw * ch * S * S > MAX_PX) S = Math.max(.75, Math.sqrt(MAX_PX / (cw * ch)));
+    S = Math.min(window.devicePixelRatio || 1, 1.5); if (cw * ch * S * S > MAX_PX) S = Math.max(.75, Math.sqrt(MAX_PX / (cw * ch)));
     const w = Math.round(cw * S), h = Math.round(ch * S);
     if (w === W && h === H && base) return true;
     W = cv.width = w; H = cv.height = h; mx = Math.round(W * .035); my = Math.round(H * .035);
@@ -277,7 +277,7 @@ export function createBackdrop() {
   const time = () => playing ? (((now() - clock0) / 1000 + off) % LOOP) : off % LOOP;
   const tick = () => {
     raf = 0; if (!playing || !cv.isConnected) return;
-    const n = now(); if (lastT) { const dt = Math.min(n - lastT, 100); avg = avg * .95 + dt * .05; if (!lite && ++nfr > 120 && avg > 40) lite = true; } lastT = n;   // steady slowness (not a one-off hiccup) switches to the lighter look
+    const n = now(); if(document.hidden || lastT && n-lastT<1000/30){raf=requestAnimationFrame(tick);return;} if (lastT) { const dt = Math.min(n - lastT, 100); avg = avg * .95 + dt * .05; if (!lite && ++nfr > 120 && avg > 40) lite = true; } lastT = n;   // steady slowness (not a one-off hiccup) switches to the lighter look
     draw(time()); raf = requestAnimationFrame(tick);
   };
   Object.defineProperties(cv, {

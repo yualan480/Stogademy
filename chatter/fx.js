@@ -102,15 +102,15 @@ function makeStars() {
 }
 export function startStars(cv) {
   if (!cv) return;
-  SF.stars ||= makeStars(); SF.cv = cv;
+  SF.ro?.disconnect(); SF.stars ||= makeStars(); SF.cv = cv;
   cancelAnimationFrame(SF.raf);
   const ctx = cv.getContext('2d');
-  const fit = () => { const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); cv.width = Math.max(1, Math.round(r.width * d)); cv.height = Math.max(1, Math.round(r.height * d)); ctx.setTransform(d, 0, 0, d, 0, 0); cv._w = r.width; cv._h = r.height; };
-  fit(); const ro = new ResizeObserver(() => { fit(); frame(performance.now(), true); }); ro.observe(cv);
+  const fit = () => { const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 1.5, Math.sqrt(2500000 / Math.max(1,r.width*r.height))); cv.width = Math.max(1, Math.round(r.width * d)); cv.height = Math.max(1, Math.round(r.height * d)); ctx.setTransform(d, 0, 0, d, 0, 0); cv._w = r.width; cv._h = r.height; };
+  fit(); const ro = new ResizeObserver(() => { fit(); frame(performance.now(), true); }); ro.observe(cv); SF.ro = ro;
   const col = { white: '255,255,255', cool: '170,205,255', warm: '255,225,190' };
   function frame(now, still) {
     if (!cv.isConnected) { ro.disconnect(); return; }
-    if (!still && now - SF.last < 30) { SF.raf = requestAnimationFrame(frame); return; }   // ~30 fps is plenty for slow drifting stars and halves the work
+    if (!still && (document.hidden || now - SF.last < 33)) { SF.raf = requestAnimationFrame(frame); return; }   // ~30 fps is plenty for slow drifting stars and halves the work
     const dt = Math.min(0.1, (now - (SF.last || now)) / 1000); SF.last = now;
     const W = cv._w, H = cv._h; ctx.clearRect(0, 0, W, H);
     const t = (now - SF.t0) / 1000; let lastHue = '';
@@ -147,17 +147,18 @@ const ringPt = t => ({ x: RING.cx + RING.a * Math.cos(t) * Math.cos(RING.th) - R
 const nearestT = (x, y) => { let best = 0, bd = 1e9; for (let i = 0; i < 720; i++) { const t = i / 720 * 6.2832, p = ringPt(t), d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd) { bd = d; best = t; } } return best; };
 const PLANETS = [{ t0: nearestT(523, 71), w: 0.36, size: 72 / IMG_W }, { t0: nearestT(113, 332), w: 0.5, size: 40 / IMG_W }];
 const smooth = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
-let logoRaf = 0; const LOGO_T0 = performance.now();
+let logoRaf = 0, logoRO = null; const LOGO_T0 = performance.now();
 export function startLogo(wrap) {
   if (!wrap) return;
-  cancelAnimationFrame(logoRaf);
+  cancelAnimationFrame(logoRaf); logoRO?.disconnect();
   const els = [...wrap.querySelectorAll('.op')];
   let wpx = wrap.clientWidth || 300;
-  const ro = new ResizeObserver(() => { wpx = wrap.clientWidth || wpx; sizeAll(); }); ro.observe(wrap);
+  const ro = new ResizeObserver(() => { wpx = wrap.clientWidth || wpx; sizeAll(); }); ro.observe(wrap); logoRO = ro;
   const sizeAll = () => els.forEach((el, i) => { el.style.width = (PLANETS[i].size * wpx).toFixed(1) + 'px'; });
   sizeAll();
   function frame(now) {
     if (!wrap.isConnected) { ro.disconnect(); return; }
+    if(document.hidden){if(!reduce())logoRaf=requestAnimationFrame(frame);return;}
     const t = (now - LOGO_T0) / 1000, hpx = wpx * IMG_H / IMG_W;
     els.forEach((el, i) => {
       const P = PLANETS[i], a = P.t0 + (reduce() ? 0 : P.w * t), p = ringPt(a), depth = Math.sin(a);
@@ -168,7 +169,6 @@ export function startLogo(wrap) {
     if (!reduce()) logoRaf = requestAnimationFrame(frame);
   }
   frame(performance.now());
-  if (!reduce()) logoRaf = requestAnimationFrame(frame);
 }
 
 /* ───────── click ripple: a soft ring spreads from wherever you click or tap ───────── */

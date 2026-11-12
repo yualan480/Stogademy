@@ -17,3 +17,6 @@ if(dialog){
  dialog.querySelector('.photo-close').addEventListener('click',()=>dialog.close());
  dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
 }
+
+// Stop decorative animation work when its section is outside the viewport.
+if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('motion-paused',!entry.isIntersecting)));document.querySelectorAll('.hero,.journey-preview-photo').forEach(el=>observer.observe(el));}
