@@ -1,3 +1,4 @@
+import {openOrbitWindow} from './orbit-window.js?v=1';
 import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
 (() => {
   const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
@@ -122,9 +123,21 @@ import {LAND_PATHS,SEA_ROUTE,CITIES,CHAPTERS} from './map-data.js?v=1';
   function unlocked(){try{return localStorage.getItem('stg_ok')==='1';}catch{return false;}}
   let messageTimer=0;
   function message(text){$('orbit-message').textContent=text;$('orbit-message').hidden=false;clearTimeout(messageTimer);messageTimer=setTimeout(()=>$('orbit-message').hidden=true,5000);}
+  let blankAttempted=false;
+  window.OpenOrbitTab=()=>{
+    if(!unlocked())return false;
+    if(!openOrbitWindow(new URL('/',location.href).href)){message('Your browser blocked the new tab. Orbit is still available here.');return false;}
+    history.replaceState(null,'',location.pathname+'#top');openRoute();return true;
+  };
   function openRoute(){
     const view=location.hash==='#/chat'?'chat':location.hash==='#/games'?'games':null;
     if(view&&!unlocked()){history.replaceState(null,'',location.pathname+location.search);return openRoute();}
+    if(view==='chat'&&top===self&&!blankAttempted){
+      blankAttempted=true;
+      // Keep OAuth callbacks in their original tab so the code/session reaches Orbit.
+      let callback=false;try{callback=!!sessionStorage.getItem('stg_fwd');}catch{}
+      if(!callback&&window.OpenOrbitTab())return;
+    }
     $('home').hidden=!!view;document.body.classList.toggle('in-orbit',!!view);
     for(const name of ['chat','games']){
       const frame=$('f-'+name);frame.hidden=name!==view;
