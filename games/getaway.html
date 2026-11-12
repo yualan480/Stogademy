@@ -112,7 +112,9 @@
       }
 
       // UnityLoader.js can sit in a few places depending on how the build was packaged; try each in turn
-      var LOADERS = ['Build/UnityLoader.js', 'UnityLoader.js', 'js/UnityLoader.js', 'js/v2/UnityLoader.js',
+      window.config = window.config || {};
+      window.config.cachedDecompressedFileSizes = window.config.cachedDecompressedFileSizes || {};
+      var LOADERS = ['Build/UnityLoader.js?v=20261112-progress48', 'UnityLoader.js', 'js/UnityLoader.js', 'js/v2/UnityLoader.js',
                      'Build/UnityLoader.2019.2.js', 'UnityLoader.2019.2.js', 'js/UnityLoader.2019.2.js', 'js/v2/UnityLoader.2019.2.js'];
       function tryLoader(i) {
         if (i >= LOADERS.length) {
