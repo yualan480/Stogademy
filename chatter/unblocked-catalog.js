@@ -145,4 +145,21 @@ export const UNBLOCKED_GAMES=[{
   "management"
  ],
  "controls": "Move with WASD or arrow keys, or use the game’s touch controls. Stand near produce and shelves to harvest and stock automatically."
+},
+{
+ "id": "drift-boss",
+ "title": "Drift Boss",
+ "category": "Racing",
+ "players": "Single player",
+ "description": "Time every drift to stay on a twisting road and beat your best distance.",
+ "image": "../games/drift-boss/icon.png",
+ "src": "../games/drift-boss/index.html?v=1",
+ "tags": [
+  "drift",
+  "boss",
+  "car",
+  "racing",
+  "timing"
+ ],
+ "controls": "Hold Space, the mouse button, or the touch screen to drift right; release to steer left."
 }];
