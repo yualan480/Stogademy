@@ -8,3 +8,8 @@ Typography: Bricolage Grotesque and Newsreader from Google Fonts, SIL Open Font 
 Timeline facts draw on the linked UNESCO Silk Roads overview, UNESCO Mogao Caves page and Encyclopaedia Britannica Silk Road overview. Route highlights illustrate related places; they do not claim that the full network existed unchanged in every era.
 
 Website logo asset prepared from the camel-and-sunset logo reference supplied by the site owner.
+
+Web photographs (downloaded locally and resized/compressed as WebP):
+Registan Square: Gustavo Jeronimo, derivative work MrPanyGoff. CC BY 2.0 https://creativecommons.org/licenses/by/2.0/ . Source https://commons.wikimedia.org/wiki/File:RegistanSquare_Samarkand.jpg .
+Mogao Caves: 慕尼黑啤酒. CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0/ . Source https://commons.wikimedia.org/wiki/File:Jiucenglou_of_Mogao_Caves.jpg . The resized WebP is shared under the same license.
+Photographs show modern views of historic places, not reconstructions of ancient trading journeys.
