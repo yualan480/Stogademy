@@ -23,3 +23,16 @@
 @media(max-width:820px){.journey-preview{gap:24px;grid-template-columns:1fr;margin-top:20px}.journey-preview-copy{max-width:560px}.journey-preview-photo>img{height:320px}.place-grid{gap:20px}.place-open>img{height:260px}.place-card figcaption{padding:22px}.journey-ribbon{justify-content:center}.journey-ribbon i:last-of-type{display:none}}
 @media(max-width:560px){.journey-preview-photo{border-top-left-radius:70px}.journey-preview-photo>img{height:270px}.field-notes{padding-top:48px}.place-grid{grid-template-columns:1fr}.place-open>img{height:260px}.journey-ribbon{gap:16px;font-size:23px}.journey-ribbon i{font-size:18px}.photo-viewer-caption{padding:18px}.photo-viewer-caption h2{font-size:26px}}
 @media(prefers-reduced-motion:reduce){.visual-reveal{opacity:1;transform:none}.photo-route{display:none}.journey-preview-photo>img{animation:none;scale:1}.place-card:hover,.place-open:hover>img,.journey-preview-photo:hover>img{transform:none}}
+/* A slightly tighter desktop canvas, without browser zoom or smaller phone text. */
+@media(min-width:821px){
+ :root{--head:72px}
+ .wrap{max-width:1360px;padding-left:40px;padding-right:40px}
+ .hero{min-height:auto;padding-top:44px}
+ .hero h1{font-size:clamp(110px,17vw,250px);margin:26px 0}
+ .hero-bottom{margin-bottom:24px;gap:26px}.hero-bottom p{font-size:21px}
+ .journey-preview{gap:36px;margin:24px 0 36px}
+ .journey-preview-copy h2{font-size:clamp(32px,3.3vw,48px)}
+ .journey-preview-photo>img{height:330px}
+ .story-section{padding-top:90px}.atlas-section{padding-top:80px;padding-bottom:96px}
+ .section-heading{margin-bottom:40px}.field-notes{padding-top:60px}
+}
