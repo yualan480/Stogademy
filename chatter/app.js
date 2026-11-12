@@ -1810,7 +1810,7 @@ const ROLE_LABEL = { support: 'Support Specialist' }, roleName = r => ROLE_LABEL
 const roleOptions = cur => ['admin', 'moderator', 'support', 'member'].map(r => `<option value="${r}" ${cur === r ? 'selected' : ''}>${esc(roleName(r))}</option>`).join('');
 const PERMS = [['delete_messages', 'Delete any message'], ['timeout', 'Timeout members'], ['kick', 'Kick members'], ['ban', 'Ban and unban members'], ['pin_messages', 'Pin messages'], ['lock_channels', 'Lock channels'], ['slow_mode', 'Set slow mode'], ['manage_channels', 'Create, edit, reorder and delete channels'], ['view_users', 'See the user list'], ['view_reports', 'See reports'], ['resolve_reports', 'Resolve reports'], ['view_audit', 'See the audit log'], ['manage_moderation', 'Configure moderation (banned words, allowed words, settings)'], ['support_tickets', 'Handle support tickets (reply, notes, status, escalate)']];
 const DASH_PERMS = ['view_users', 'manage_channels', 'lock_channels', 'slow_mode', 'view_reports', 'view_audit', 'manage_moderation'];
-const canAdmin = () => isOwner() || DASH_PERMS.some(p => can(p));
+const canAdmin = () => isStaff() || DASH_PERMS.some(p => can(p));
 const svIcon = (sv, cls = '') => `<span class="sico ${cls}" style="background:${esc(sv.icon_color)}">${esc(sv.icon_text || sv.name[0].toUpperCase())}</span>`;
 const fmtSecs = s => s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm' : Math.round(s / 3600) + 'h';
 const tmoUntil = m => m?.timeout_until && new Date(m.timeout_until) > new Date() ? new Date(m.timeout_until) : null;
@@ -2046,7 +2046,7 @@ function adminDashboard(tab) {
   if (!canAdmin()) return;
   modal('Admin dashboard', '<div id="ad"></div>', [{ label: 'Close', cls: 'ghost' }], bg => { bg.firstElementChild.classList.add('wide'); S.dash = { bg, tab: tab || 'overview', q: '', rs: 'open' }; renderDash(); });
 }
-const dashTabs = () => [['overview', 'Overview', true], ['users', 'Users', can('view_users')], ['channels', 'Channels', can('manage_channels') || can('lock_channels') || can('slow_mode')], ['roles', 'Roles', isOwner()], ['reports', 'Reports' + (S.reportCount && can('view_reports') ? ` (${S.reportCount})` : ''), can('view_reports')], ['moderation', 'Moderation', can('view_reports') || can('manage_moderation')], ['audit', 'Audit log', can('view_audit')], ['rates', 'Rate requests', sugAdmin()], ['games', 'Games admin', isOwner()], ['signup_requests', 'Sign Up Requests', isOwner()], ['server', 'Server', isOwner()]].filter(t => t[2]);
+const dashTabs = () => [['overview', 'Overview', true], ['users', 'Users', can('view_users')], ['channels', 'Channels', can('manage_channels') || can('lock_channels') || can('slow_mode')], ['roles', 'Roles', isOwner()], ['reports', 'Reports' + (S.reportCount && can('view_reports') ? ` (${S.reportCount})` : ''), can('view_reports')], ['moderation', 'Moderation', can('view_reports') || can('manage_moderation')], ['audit', 'Audit log', can('view_audit')], ['rates', 'Rate requests', sugAdmin()], ['games', 'Games admin', isOwner()], ['signup_requests', 'Sign Up Requests', isStaff()], ['server', 'Server', isOwner()]].filter(t => t[2]);
 async function renderDash() {
   const d = S.dash; if (!d?.bg.isConnected) return; const el = $('#ad', d.bg); if (!el) return;
   const tabs = dashTabs(); if (!tabs.some(t => t[0] === d.tab)) d.tab = 'overview'; const mine = d.tab;
