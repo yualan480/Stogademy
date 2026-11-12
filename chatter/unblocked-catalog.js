@@ -196,4 +196,21 @@ export const UNBLOCKED_GAMES=[{
   "arcade"
  ],
  "controls": "Use Left/Right or A/D to steer. Click Play in the game menu. Keyboard recommended."
+},
+{
+ "id": "vex",
+ "title": "Vex",
+ "category": "Action",
+ "players": "Single player",
+ "description": "Guide a stick figure through spike-filled obstacle courses in the original Vex platformer.",
+ "image": "../games/vex/icon.png",
+ "src": "../games/vex/index.html?v=1",
+ "tags": [
+  "vex",
+  "stickman",
+  "platformer",
+  "obstacles",
+  "flash"
+ ],
+ "controls": "Click Play through the original intro, then use WASD or arrow keys to move and jump. Runs locally through Ruffle; keyboard recommended."
 }];
