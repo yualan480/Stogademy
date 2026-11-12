@@ -1,5 +1,5 @@
 'use strict';
-// Home page telegraph key (footer). Quick tap = dot, hold = dash. A pause ends a letter.
+// Phone-friendly Morse dialog and optional physical key. Quick tap = dot, hold = dash. A pause ends a letter.
 // What is keyed is handed to window.StgUnlock (stogademy.js), which opens Orbit for the right Morse code.
 (function(){
   var key=document.getElementById('morseKey');
@@ -30,14 +30,16 @@
       buf=buf.replace(/ +$/,'')+' ';
       var src=buf.trim();
       Promise.resolve(window.StgUnlock&&window.StgUnlock(src)).then(function(ok){
-        if(ok){buf='';show();key.classList.add('ok');setTimeout(function(){key.classList.remove('ok')},900)}
+        if(ok){buf='';show();closePanel();if(key){key.classList.add('ok');setTimeout(function(){key.classList.remove('ok')},900)}}
       }).catch(function(){});
     },LETTER);
     tReset=setTimeout(function(){buf='';show()},RESET);
   }
+  function feed(symbol){buf+=symbol;if(buf.length>40)buf=buf.slice(-40);show();scheduleEnd();kb+=symbol;if(kb.length>16)kb=kb.slice(-16);clearTimeout(kt);kt=setTimeout(function(){kb=''},RESET);tryKeys();}
+  function closePanel(){document.getElementById('morsePanel')?.close();}
   function up(){
     if(!held)return;held=false;activePointer=null;key.classList.remove('down');tone(false);
-    buf+=(Date.now()-downAt)>=DASH?'-':'.';if(buf.length>40)buf=buf.slice(-40);show();scheduleEnd();
+    feed((Date.now()-downAt)>=DASH?'-':'.');
   }
   function cancel(){
     if(!held)return;held=false;activePointer=null;key.classList.remove('down');tone(false);scheduleEnd();
@@ -67,7 +69,7 @@
       for(var k=1;k<L;k++)jobs.push(w.slice(0,k)+' '+w.slice(k));
     }
     return Promise.all(jobs.map(function(c){return Promise.resolve(window.StgUnlock&&window.StgUnlock(c)).catch(function(){return false})}))
-      .then(function(r){if(r.some(Boolean))kb=''});
+      .then(function(r){if(r.some(Boolean)){kb='';buf='';show();closePanel();}});
   }
   addEventListener('keydown',function(e){
     if(e.ctrlKey||e.metaKey||e.altKey||e.repeat||e.target===key)return;
@@ -79,5 +81,11 @@
     clearTimeout(kt);kt=setTimeout(function(){kb=''},RESET);
     tryKeys();
   });
+  var panel=document.getElementById('morsePanel'),open=document.getElementById('morse-open');
+  if(open&&panel)open.addEventListener('click',function(){panel.showModal()});
+  document.getElementById('morse-close')?.addEventListener('click',closePanel);
+  document.querySelectorAll('[data-morse-symbol]').forEach(function(button){button.addEventListener('click',function(){feed(button.dataset.morseSymbol)})});
+  document.getElementById('morse-clear')?.addEventListener('click',function(){cancel();clearTimeout(tLetter);clearTimeout(tReset);clearTimeout(kt);buf='';kb='';show();});
+  panel?.addEventListener('close',function(){cancel();clearTimeout(tLetter);clearTimeout(tReset);clearTimeout(kt);buf='';kb='';show();});
   show();
 })();

@@ -1,6 +1,6 @@
 # Remove cartridge round reward caps
 
-The draft removes the 100,000-Orbit preview clamp and prepares a replacement
+The frontend removes the 100,000-Orbit preview clamp and prepares a replacement
 for the Supabase function that capped rewards at 20,000 (or 100,000 on some
 installations). Rewards now use the full rounded score × the owner's current
 payout percentage. The preview uses integer-permille arithmetic to match SQL,
@@ -35,4 +35,8 @@ local PostgreSQL database to verify rewards above 20k, 100k and 1m, including a
 1-billion reward at the largest existing validated score/rate. It checks exact
 rounding, malformed input, anonymous access, cooldowns, repeated round refs,
 owner-defined rates, unchanged unrelated ledger limits and safe reruns.
-No live database update or site deployment was performed.
+The migration is verified locally. A Supabase project administrator must apply it to the live database; a Render deployment cannot apply SQL.
+
+Direct SQL file: https://raw.githubusercontent.com/yualan480/Stogademy/main/chatter/migration-game-payouts-uncapped.sql
+
+Copy the entire file into a new SQL Editor query, from `begin;` to `commit;`. The current game-rate-table setup also installs this uncapped function.
