@@ -86,7 +86,7 @@ create or replace function public.signup_email_problem(p_email text) returns tex
 language plpgsql stable security definer set search_path=public as $$
 declare e text:=lower(trim(coalesce(p_email,'')));
 begin
-  if e !~ '^30[a-z]{2,}[0-9]*@tesdk12\\.net$' then
+  if e !~ '^30[a-z]{2,}[0-9]*@tesdk12\.net$' then
     return 'Use your school email starting with 30 and ending with @tesdk12.net.';
   end if;
   if public.lock_exempt(e) then return null; end if;
