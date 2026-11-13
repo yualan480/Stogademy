@@ -2,10 +2,10 @@
    Home page, announcements, events + calendar, whiteboards, AI (assistant, summaries, conversation starters), formatting toolbar.
    app.js hands over what this needs through initOrbit(ctx) and calls the hooks that come back. */
 
-import { startStars, startLogo } from './fx.js?v=4';
+import { startStars, startLogo } from './fx.js?v=5';
 import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
-import { createDrift } from './orbit-drift.js?v=2';
+import { createDrift } from './orbit-drift.js?v=3';
 import { mountFloaters } from './collectible-float.js?v=2';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -215,6 +215,10 @@ export function initOrbit(c) {
     };
     if (v.readyState >= 1) go(); else v.addEventListener('loadedmetadata', go, { once: true });
   }
+  // A reduced-motion user can opt back into Orbit animations without reloading.
+  window.addEventListener('orbit-motion', () => {
+    if (O.vid?.isConnected && document.querySelector('.orbithome')) playHomeVideo(O.vid);
+  });
   /* the announcement on Home: big and above Quick links. Owner, admins and moderators can add a new one or edit this one. */
   function annCard(a) {
     const can = staff(), body = a ? (a.body || '') : (O.loaded ? 'Your world. Connected.' : '');
