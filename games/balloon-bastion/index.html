@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07132f">
+  <title>Balloon Bastion · Orbit Unblocked Games</title>
+  <style>
+    :root{font:15px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:#eaf3ff;background:#07132f;color-scheme:dark}
+    *{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 80% -30%,#304fa955,transparent 55%),#07132f}
+    button{font:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.4}button:focus-visible{outline:3px solid #8cecff;outline-offset:2px}
+    .shell{max-width:1510px;margin:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+    .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:11px;margin-right:auto}
+    .brand-icon{width:45px;height:45px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#173574,#442987);box-shadow:inset 0 1px #9bbaff66}
+    .brand-icon svg{width:33px;height:33px}.brand h1{font-size:22px;line-height:1.1;margin:0;letter-spacing:-.8px}.brand small{font-size:10px;letter-spacing:2px;color:#8cb1de;font-weight:800}
+    .stats{display:flex;gap:8px;flex-wrap:wrap}.stat{min-width:88px;padding:9px 13px;border:1px solid #375795;background:#0b214ddd;border-radius:13px}
+    .stat span{display:block;color:#9db7d9;font-size:10px;text-transform:uppercase;letter-spacing:1.3px;font-weight:800}.stat strong{display:block;font-size:21px;line-height:1.15;font-variant-numeric:tabular-nums}
+    .stat.cash strong{color:#ffe187}.stat.lives strong{color:#ff9eb5}.stat.wave strong{color:#9df7e7}
+    .content{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:14px;align-items:start}
+    .arena{min-width:0;border-radius:20px;border:1px solid #4770b4;overflow:hidden;background:#0a2448;box-shadow:0 20px 55px #0008,0 0 40px #193c8033}
+    .board{position:relative;background:#092948;line-height:0}
+    canvas{width:100%;aspect-ratio:8/5;height:auto;display:block;touch-action:none;cursor:crosshair}
+    .tip{position:absolute;top:16px;left:16px;max-width:min(390px,calc(100% - 32px));font-size:12px;line-height:1.4;padding:10px 13px;border-radius:10px;border:1px solid #70b7db77;background:#071b3bdc;color:#e5f7ff;pointer-events:none;transition:opacity .2s}
+    .tip[hidden]{display:none}.toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 18px;background:#051735e8;border:1px solid #7fb5ee;border-radius:12px;font-size:13px;line-height:1.3;pointer-events:none;opacity:0;transition:opacity .2s;max-width:90%;text-align:center;white-space:normal}.toast.on{opacity:1}
+    .overlay{position:absolute;inset:0;display:grid;place-items:center;line-height:1.4;background:#040d27b8;backdrop-filter:blur(4px)}.overlay[hidden]{display:none}
+    .end-card{text-align:center;padding:26px 32px;border-radius:22px;border:1px solid #74b9e9;background:#092353;box-shadow:0 30px 80px #0009}.end-card h2{font-size:34px;margin:0 0 8px}.end-card p{color:#adcae9;margin:0 0 18px}
+    .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:13px;background:#071b3a;border-top:1px solid #315589}
+    .primary,.secondary{min-height:42px;border:1px solid #5d95df;border-radius:11px;padding:10px 15px;font-weight:800;background:linear-gradient(120deg,#2368d3,#614fdc);color:#fff}
+    .primary:hover:not(:disabled),.secondary:hover:not(:disabled){filter:brightness(1.13)}.secondary{background:#0c2b5b;border-color:#41649e}
+    .toolbar .status{font-size:12px;color:#a9c2e4;flex:1;min-width:160px}.toolbar .status b{color:#e1f5ff}
+    .sidebar{display:flex;flex-direction:column;gap:13px}.panel{background:linear-gradient(150deg,#112d5d,#0a1c3e);border:1px solid #3d6198;border-radius:18px;padding:17px;box-shadow:inset 0 1px #b7d0ff1a}
+    .panel h2{font-size:14px;margin:0 0 6px;letter-spacing:.4px}.panel .sub{color:#a1bde3;font-size:12px;margin:0 0 13px}
+    .tower-list{display:grid;gap:9px}.tower-btn{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:10px;border:1px solid #456897;background:#0c2651;border-radius:12px;color:#eaf4ff}
+    .tower-btn:hover{background:#14376e}.tower-btn.active{background:#1a3c78;border-color:#96e7ff;box-shadow:0 0 0 2px #5ecbfd22}
+    .tower-glyph{height:39px;width:39px;border-radius:11px;display:grid;place-items:center;flex:none;font-weight:900;font-size:22px;color:#07122c;box-shadow:inset 0 -5px #0003}
+    .tower-btn .details{display:grid;gap:2px;flex:1;min-width:0}.tower-btn b{font-size:13px}.tower-btn small{color:#9fb9df;font-size:11px}.tower-btn .cost{font-size:12px;font-weight:800;color:#ffe187}
+    .selection{border:1px dashed #4773a9;border-radius:12px;padding:12px;font-size:12px;color:#a7c8e7;min-height:105px}
+    .selection b{color:#fff}.selection .button-row{display:flex;gap:8px;margin-top:12px}.selection .button-row button{flex:1;padding:9px 7px;border-radius:9px;border:1px solid #628bd1;background:#1a3f79;color:#fff;font-size:12px;font-weight:700}
+    .selection .button-row button.danger{border-color:#c66886;background:#6b234c}
+    .how{font-size:12px;color:#b4c9e6}.how p{margin:8px 0 0}.how kbd{display:inline-block;padding:1px 5px;border:1px solid #617ba9;border-radius:4px;background:#10294f;font:inherit;color:#fff}
+    .footer{color:#7f9bc2;font-size:11px;text-align:center;padding-bottom:6px}.footer b{color:#b1d8fa}
+    @media(max-width:1050px){.content{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:1.3fr 1fr;align-items:start}.how{grid-column:1/-1}.tower-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:640px){.shell{padding:9px;gap:9px}.brand h1{font-size:17px}.brand-icon{height:39px;width:39px}.stats{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.stat{min-width:0;padding:7px 8px}.stat span{font-size:9px;letter-spacing:.5px}.stat strong{font-size:17px}.arena{border-radius:13px}.tip{font-size:10px;top:8px;left:8px;padding:7px 9px}.toolbar{gap:7px;padding:9px}.primary,.secondary{min-height:38px;padding:8px 11px;font-size:12px}.toolbar .status{min-width:100%;order:-1}.sidebar{display:flex;gap:9px}.panel{padding:12px;border-radius:13px}.tower-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.tower-btn{padding:8px 7px;gap:7px}.tower-glyph{width:31px;height:31px;font-size:18px}.tower-btn small{font-size:10px}.end-card{padding:15px}.end-card h2{font-size:24px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="brand"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M24 5c-10 11-14 21-14 29a14 14 0 0028 0C38 26 34 16 24 5Z" fill="#62dfff"/><path d="M20 14c-6 11-8 17-7 23" stroke="#e6ffff" stroke-width="4" stroke-linecap="round" opacity=".75"/><path d="M24 45v-7" stroke="#d5efff" stroke-width="3"/></svg></span><div><small>ORBIT ARCADE · ORIGINAL</small><h1>Balloon Bastion</h1></div></div>
+      <div class="stats" aria-label="Game statistics"><div class="stat wave"><span>Wave</span><strong id="wave-num">0</strong></div><div class="stat lives"><span>Lives</span><strong id="lives-num">20</strong></div><div class="stat cash"><span>Coins</span><strong id="cash-num">650</strong></div><div class="stat"><span>Score</span><strong id="score-num">0</strong></div></div>
+    </header>
+    <div class="content">
+      <section class="arena" aria-label="Balloon Bastion game board">
+        <div class="board">
+          <canvas id="field" width="960" height="600" aria-label="Tower defense map: choose a tower and tap the ground to build. Balloon enemies follow the glowing trail."></canvas>
+          <div class="tip" id="tip">Choose a tower, then click or tap open ground to build it. Keep the balloons from reaching the portal!</div>
+          <div class="toast" id="toast" role="status" aria-live="polite"></div>
+          <div class="overlay" id="end-screen" hidden><div class="end-card"><h2>Defenses down!</h2><p id="end-score"></p><button class="primary" id="again">Play again</button></div></div>
+        </div>
+        <div class="toolbar"><span class="status" id="status"><b>Build your defense.</b> The first wave is ready.</span><button class="primary" id="send-wave">▶ Start wave 1</button><button class="secondary" id="pause">Pause</button><button class="secondary" id="speed">1× Speed</button><button class="secondary" id="reset" title="Start a fresh game">↻ Restart</button></div>
+      </section>
+      <aside class="sidebar">
+        <section class="panel"><h2>Build your defense</h2><p class="sub">Select a tower, then place it off the trail.</p><div class="tower-list" id="tower-list"></div></section>
+        <section class="panel"><h2>Selected tower</h2><div class="selection" id="selection">Select one of your towers on the map to upgrade or sell it.</div></section>
+        <section class="panel how"><h2>How to play</h2><p>Place towers along the path. Pop balloons to earn coins. Finish a wave to collect a survival bonus.</p><p><kbd>1</kbd>–<kbd>4</kbd> choose towers · <kbd>Space</kbd> start wave / pause · <kbd>Esc</kbd> deselect.</p><p>Your progress saves between waves on this device. Best wave: <b id="best-wave">0</b>.</p></section>
+      </aside>
+    </div>
+    <footer class="footer"><b>Balloon Bastion</b> is an original Orbit game, not an official Bloons TD title. All artwork is drawn in code.</footer>
+  </main>
+  <script src="game.js?v=1" defer></script>
+</body>
+</html>
