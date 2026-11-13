@@ -54,7 +54,7 @@ const sfx = {
 
 /* ───────── the coin ───────── */
 export function createDrift({ sb, getOrbits, setOrbits, reloadOrbits, toast }) {
-  let host = null, layer = null, el = null, fly = null, coin = null, raf = 0, last = 0, busy = false, waitTimer = 0, asking = false, lw = 0, lh = 0, lx = 0, ly = 0;
+  let host = null, layer = null, el = null, fly = null, coin = null, raf = 0, last = 0, busy = false, waitTimer = 0, asking = false, lw = 0, lh = 0, lx = 0, ly = 0, measureAt = 0;
 
   function ensureLayers() {
     if (!layer) { layer = document.createElement('div'); layer.className = 'odlayer'; layer.setAttribute('aria-hidden', 'false'); }
@@ -83,28 +83,39 @@ export function createDrift({ sb, getOrbits, setOrbits, reloadOrbits, toast }) {
   }
 
   function frame(ts) {
-    raf = requestAnimationFrame(frame);
+    raf = 0;
+    if (!host || !host.isConnected || document.hidden || !coin || busy) return;
+    if (last && ts - last < 40) { raf = requestAnimationFrame(frame); return; } // 25 fps is smooth for a slow coin
     const dt = Math.min(.1, (ts - (last || ts)) / 1000); last = ts;
-    if (!host || !host.isConnected) return;
-    const r = host.getBoundingClientRect();
-    if (r.width < 80 || r.height < 80) { layer.style.display = 'none'; return; }
-    layer.style.display = '';
-    if (r.left !== lx || r.top !== ly || r.width !== lw || r.height !== lh) {
-      lx = r.left; ly = r.top; lw = r.width; lh = r.height;
-      layer.style.cssText = `left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px`;
+    if (!measureAt || ts - measureAt > 250) { // measure layout four times per second, not every animation frame
+      measureAt = ts;
+      const r = host.getBoundingClientRect();
+      if (r.width < 80 || r.height < 80) { layer.style.display = 'none'; raf = requestAnimationFrame(frame); return; }
+      layer.style.display = '';
+      if (r.left !== lx || r.top !== ly || r.width !== lw || r.height !== lh) {
+        lx = r.left; ly = r.top; lw = r.width; lh = r.height;
+        layer.style.cssText = `left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px`;
+      }
     }
-    if (!coin || busy) return;
-    const v = (lw + 2 * R) / LOOP_S;                 // px per second: the asteroids' pace
-    coin.x += coin.dx * v * dt; coin.y += coin.dy * v * dt;
-    if (coin.x < -R - 4 || coin.x > lw + R + 4 || coin.y < -R - 4 || coin.y > lh + R + 4) enter();   // went through the boundary: come back from a random spot
-    el.style.transform = `translate(${coin.x - R}px,${coin.y - R}px)`;
+    if (reduced()) {
+      el.style.transform = `translate(${lw * .5 - R}px,${lh * .35 - R}px)`;
+    } else {
+      const v = (lw + 2 * R) / LOOP_S;
+      coin.x += coin.dx * v * dt; coin.y += coin.dy * v * dt;
+      if (coin.x < -R - 4 || coin.x > lw + R + 4 || coin.y < -R - 4 || coin.y > lh + R + 4) enter();
+      el.style.transform = `translate(${coin.x - R}px,${coin.y - R}px)`;
+    }
+    raf = requestAnimationFrame(frame);
   }
 
   function spawn() {
     if (coin || !host) return;
     ensureLayers();
     el = makeEl(); layer.appendChild(el);
+    const r = host.getBoundingClientRect(); lx = r.left; ly = r.top; lw = r.width; lh = r.height;
+    layer.style.cssText = `left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px`;
     enter(); el.style.transform = `translate(${coin.x - R}px,${coin.y - R}px)`;
+    if (!raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
     el.classList.add('odin');
     sfx.spawn();
   }
@@ -200,12 +211,16 @@ export function createDrift({ sb, getOrbits, setOrbits, reloadOrbits, toast }) {
     });
   }
 
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && host && coin && !busy && !raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
+  });
+
   return {
     /* called every time the home page is drawn (safe to repeat) */
     attach(main) {
       host = main; ensureLayers();
       if (el && !el.isConnected) layer.appendChild(el);
-      if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
+      if (coin && !raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
       if (!coin && !busy && !waitTimer && !asking) schedule();
     },
     /* called when the person leaves the home page: the coin waits where it is */
