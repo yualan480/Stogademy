@@ -38,10 +38,10 @@ export const UNBLOCKED_GAMES=[{
  controls:'Steer with your mouse or arrow keys. Return to your territory to capture land; keep your trail safe.'
 },{
  id:'pokemon-leafgreen',title:'Pokémon LeafGreen',category:'Adventure',players:'Single player',
- description:'Play your own LeafGreen cartridge file in Orbit’s Game Boy Advance emulator. Game file required.',
- image:'../games/pokemon-leafgreen/cover.svg',src:'../games/pokemon-leafgreen/index.html',
+ description:'Browser-playable Game Boy Advance emulator for your authorized LeafGreen game file. Select it once; this browser can remember it for next time.',
+ image:'../games/pokemon-leafgreen/cover.svg',src:'../games/pokemon-leafgreen/index.html?v=3',
  tags:['pokemon','pokémon','leafgreen','gba','adventure','rpg'],
- controls:'Choose your own LeafGreen .gba file. Use arrows and Z/X, or the on-screen controls. Save in the game menu and export a backup before clearing browser data.'
+ controls:'Requires your own authorized Pokémon LeafGreen .gba file; the ROM is not bundled. Use arrow keys, Z/X, or touch controls. Save in-game and export backups before clearing browser data.'
 },{
  id:'pokemon-showdown',title:'Pokémon Showdown',category:'Strategy',players:'Online multiplayer',
  description:'Build a team, find a battle, or challenge a friend to a Pokémon match.',
