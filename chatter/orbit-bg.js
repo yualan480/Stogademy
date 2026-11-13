@@ -12,7 +12,7 @@
 export const PERIOD = 2.74;                         // the sound loop length (ambient.js and orbit.js sync to this)
 const LOOP = PERIOD * 18;                           // one full picture cycle = eighteen sound loops, 49.32s (slow, calm motion)
 const TAU = Math.PI * 2;
-const MAX_PX = 2.5e6;                               // keeps big / hi-dpi screens smooth
+const MAX_PX = 1.3e6;                              // fewer full-screen pixels per frame                               // keeps big / hi-dpi screens smooth
 const IW = 1672, IH = 941;                          // size of the picture; every coordinate below is in picture pixels
 const IMG = 'orbit-space.jpg?v=2';
 
@@ -81,7 +81,7 @@ export function createBackdrop() {
 
   let W = 0, H = 0, S = 1, sc = 1, ox = 0, oy = 0, mx = 0, my = 0, base = null, fx = null, fxs = .5;
   let pls = [], city = [], nebSpr = {}, rings = [], streaks = [], limbs = [], twinkle = [], flares = [], dust1 = [], dust2 = [], motes = [], rocks = [], crossers = [], pats = [];
-  let playing = false, raf = 0, clock0 = 0, off = 0, ready = false, lite = false, lastT = 0, avg = 16, nfr = 0;   // lite: drops the heaviest extras on slow devices
+  let playing = false, raf = 0, clock0 = 0, off = 0, ready = false, lite = !!((navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4)), lastT = 0, avg = 16, nfr = 0;   // lite: drops the heaviest extras on slow devices
   const img = new Image(); img.decoding = 'async';
   img.onload = () => { ready = true; base = null; if (cv.isConnected && !playing) draw(off % LOOP); };
   img.src = new URL(IMG, import.meta.url).href;
@@ -94,7 +94,7 @@ export function createBackdrop() {
     arm(0, 62, 2, 1); arm(Math.PI / 2, 62, 2, 1); arm(Math.PI / 4, 34, 1.2, .45); arm(-Math.PI / 4, 34, 1.2, .45);
     const q = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, 14); q.addColorStop(0, 'rgba(255,255,255,1)'); q.addColorStop(1, 'rgba(160,190,255,0)'); g.fillStyle = q; g.fillRect(0, 0, n, n); return c; })();
   const cloud = (() => { const n = 512, c = mk(n, n), g = c.getContext('2d'), rnd = prng(5);
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 65; i++) {
       const x = rnd() * n, y = rnd() * n, rx = 24 + rnd() * 70, ry = 4 + rnd() * 16, col = rnd() < .3 ? '175,150,255' : rnd() < .5 ? '140,200,255' : '110,160,255', a = .06 + rnd() * .16;
       for (const o of [-n, 0, n]) for (const o2 of [-n, 0, n]) { g.save(); g.translate(x + o, y + o2); g.scale(1, ry / rx); const q = g.createRadialGradient(0, 0, 0, 0, 0, rx); q.addColorStop(0, `rgba(${col},${a})`); q.addColorStop(1, `rgba(${col},0)`); g.fillStyle = q; g.fillRect(-rx, -rx, rx * 2, rx * 2); g.restore(); }
     }
@@ -129,7 +129,7 @@ export function createBackdrop() {
 
   function layout() {
     const cw = cv.clientWidth, ch = cv.clientHeight; if (!cw || !ch) return false;
-    S = Math.min(window.devicePixelRatio || 1, 1.5); if (cw * ch * S * S > MAX_PX) S = Math.max(.75, Math.sqrt(MAX_PX / (cw * ch)));
+    S = Math.min(window.devicePixelRatio || 1, 1.25); if (cw * ch * S * S > MAX_PX) S = Math.max(.75, Math.sqrt(MAX_PX / (cw * ch)));
     const w = Math.round(cw * S), h = Math.round(ch * S);
     if (w === W && h === H && base) return true;
     W = cv.width = w; H = cv.height = h; mx = Math.round(W * .035); my = Math.round(H * .035);
@@ -277,7 +277,8 @@ export function createBackdrop() {
   const time = () => playing ? (((now() - clock0) / 1000 + off) % LOOP) : off % LOOP;
   const tick = () => {
     raf = 0; if (!playing || !cv.isConnected) return;
-    const n = now(); if(document.hidden || lastT && n-lastT<1000/30){raf=requestAnimationFrame(tick);return;} if (lastT) { const dt = Math.min(n - lastT, 100); avg = avg * .95 + dt * .05; if (!lite && ++nfr > 120 && avg > 40) lite = true; } lastT = n;   // steady slowness (not a one-off hiccup) switches to the lighter look
+    if (document.hidden) return; // Orbit resumes the backdrop on visibilitychange
+    const n = now(); if (lastT && n-lastT < 1000 / (lite ? 15 : 20)) { raf=requestAnimationFrame(tick); return; } if (lastT) { const dt = Math.min(n - lastT, 100); avg = avg * .95 + dt * .05; if (!lite && ++nfr > 120 && avg > 40) lite = true; } lastT = n;   // steady slowness (not a one-off hiccup) switches to the lighter look
     draw(time()); raf = requestAnimationFrame(tick);
   };
   Object.defineProperties(cv, {
@@ -288,7 +289,7 @@ export function createBackdrop() {
     paused: { get: () => !playing },
   });
   cv.play = () => { if (!playing) { playing = true; clock0 = now(); lastT = 0; } if (!raf) raf = requestAnimationFrame(tick); return Promise.resolve(); };
-  cv.pause = () => { if (playing) { off = time(); playing = false; } if (raf) { cancelAnimationFrame(raf); raf = 0; } if (cv.isConnected) draw(off); };
+  cv.pause = () => { if (playing) { off = time(); playing = false; } if (raf) { cancelAnimationFrame(raf); raf = 0; } if (cv.isConnected && !document.hidden) draw(off); };
   new ResizeObserver(() => { if (cv.isConnected) { if (!playing) { base = null; draw(off); } else base = null; } }).observe(cv);
   return cv;
 }
