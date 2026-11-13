@@ -2067,7 +2067,7 @@
             </div>
           </div>
 
-          <div class="console-brand" id="consoleBrand" title="MVP: the player with the most Orbits right now (spending Orbits lowers it)">MVP: ...</div>
+          <div class="console-brand" id="consoleBrand" title="MVP: top-five cartridge placement points (1st 100, 2nd 75, 3rd 50, 4th 25, 5th 10)">MVP: ...</div>
 
           <div class="controls">
             <div class="dpad">
@@ -2604,7 +2604,7 @@
                 <tr data-rate-game="tetris"><td>Tetris</td><td class="amt">5%</td><td class="lim">of your final score</td></tr>
                 <tr data-rate-game="girder"><td>Girder Gorilla</td><td class="amt">5%</td><td class="lim">of your final score</td></tr>
                 <tr><td>Time on Orbit</td><td class="amt">+25</td><td class="lim">Each active minute, up to 3,000 a day</td></tr>
-                <tr class="none"><td>MVP</td><td class="amt">-</td><td class="lim">Goes to whoever has the most Orbits right now; spending Orbits lowers your place</td></tr>
+                <tr class="none"><td>MVP</td><td class="amt">-</td><td class="lim">Based on best placement per cartridge: 1st +100, 2nd +75, 3rd +50, 4th +25, 5th +10 MVP points</td></tr>
               </tbody>
             </table>
             <p class="pz-note">Orbits earned here are added to your Orbit total, the number beside your profile in Orbit. Events, challenges and other community rewards are given by staff in Orbit. Log in to Orbit to earn and spend Orbits.</p>
@@ -2796,7 +2796,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="leaderboard.js?v=20261110-score-retry"></script>
+  <script src="leaderboard.js?v=20261113-mvp-placements"></script>
   <script src="recorder.js"></script>
   <script src="site-config.js?v=20261109-alphabetical"></script>
   <script src="voice.js"></script>
@@ -4199,9 +4199,9 @@
         const played = bests.filter(n => n > 0).length;
         const row = (label, value) => { const r = spEl('div', 'sp-row', undefined, statsPop); spEl('span', '', label, r); return spEl('b', '', value, r); };
         row('Games played', played + ' of ' + SP_GAMES.length);
-        const mvpOut = row('Total score', '...');
+        const mvpOut = row('MVP points', '...');
         const bestOut = row('Best rank', '...');
-        const topOut = row('Top 10 finishes', '...');
+        const topOut = row('Top 5 finishes', '...');
 
         // per game
         spEl('div', 'sp-title', 'Best scores', statsPop);
@@ -4221,21 +4221,23 @@
 
         // online ranks: work out where this player stands in each game's leaderboard
         const me = playerName.toLowerCase();
-        Promise.all(SP_GAMES.map(g => Leaderboard.top(g[0], Infinity).then(rows => rows, () => null))).then(all => {
+        Promise.all([Leaderboard.mvpPoints().catch(() => null), ...SP_GAMES.map(g => Leaderboard.top(g[0], Infinity).then(rows => rows, () => null))]).then(results => {
+          const mvpTotals = results[0], all = results.slice(1);
           if (run !== statsRun) return;
           if (all.every(r => r === null)) { mvpOut.textContent = bestOut.textContent = topOut.textContent = 'offline'; return; }
-          let points = 0, tops = 0, bestPlace = 0, bestGame = '';   // points = total of this player's best scores
+          let points = 0, tops = 0, bestPlace = 0, bestGame = '';   // points = placements across cartridges
           all.forEach((rows, i) => {
             if (!rows) return;
             const mine = rows.find(r => r.name.toLowerCase() === me);
             if (!mine) { rankCells[i].textContent = '-'; return; }
             const place = 1 + rows.filter(r => r.score > mine.score).length;   // equal scores share a place
             rankCells[i].textContent = ordinal(place);
-            points += mine.score;
-            if (place <= 10) tops++;
+            points += [100, 75, 50, 25, 10][place - 1] || 0;
+            if (place <= 5) tops++;
             if (!bestPlace || place < bestPlace) { bestPlace = place; bestGame = SP_GAMES[i][1]; }
           });
-          mvpOut.textContent = points.toLocaleString();
+          const entry = mvpTotals && mvpTotals.find(r => r.key === me);
+          mvpOut.textContent = (mvpTotals ? Number(entry ? entry.total : 0) : points).toLocaleString();
           topOut.textContent = String(tops);
           bestOut.textContent = bestPlace ? ordinal(bestPlace) + ' (' + bestGame + ')' : '-';
         });
@@ -4317,11 +4319,11 @@
     })();
   </script>
   <script>
-    /* ---- the console's MVP: whoever has the most Orbits right now (spending Orbits lowers it) ---- */
+    /* ---- the console's MVP: placement points across cartridges ---- */
     (() => {
       const el = document.getElementById('consoleBrand');
       if (!el) return;
-      const show = v => { el.textContent = 'MVP: ' + (v ? v.name : 'nobody yet'); if (v) el.title = v.name + ' has ' + Number(v.total).toLocaleString() + ' Orbit' + (Number(v.total) === 1 ? '' : 's') + ' right now'; };
+      const show = v => { el.textContent = 'MVP: ' + (v ? v.name : 'nobody yet'); if (v) el.title = v.name + ' has ' + Number(v.total).toLocaleString() + ' MVP placement points'; };
       let tries = 0;
       const load = fresh => {
         if (!window.Leaderboard || !Leaderboard.mvp) { if (tries++ < 8) setTimeout(() => load(fresh), 1500); return; }
@@ -5904,8 +5906,7 @@
       }
 
       /* ---------- profile card ---------- */
-      let mvpCache = { at: 0, rows: [] };
-      async function mvpRows() { if (Date.now() - mvpCache.at < 60000) return mvpCache.rows; const r = await get('player_mvp_points?select=key,total,games&order=total.desc&limit=300'); mvpCache = { at: Date.now(), rows: r }; return r; }
+      async function mvpRows() { return LB.mvpPoints(); }
       async function bestScores(name) {
         const r = await get('scores?select=game,score&name=ilike.' + enc(String(name).replace(/[*%,()]/g, '')) + '&order=score.desc&limit=200');
         const best = new Map(); r.forEach(s => { if (!best.has(s.game)) best.set(s.game, s.score); });
@@ -5941,7 +5942,7 @@
             stats.replaceChildren();
             const k = lower(name), idx = rows.findIndex(r => r.key === k);
             const rk = el('div', 'pf-rank');
-            rk.append(el('b', null, idx >= 0 ? 'Rank #' + (idx + 1) : 'Unranked'), document.createTextNode(idx >= 0 ? ' \u00b7 ' + fmtNum(rows[idx].total) + ' total score \u00b7 ' + rows[idx].games + ' games' : ' \u00b7 no leaderboard spots yet'));
+            rk.append(el('b', null, idx >= 0 ? 'Rank #' + (idx + 1) : 'Unranked'), document.createTextNode(idx >= 0 ? ' \u00b7 ' + fmtNum(rows[idx].total) + ' MVP points \u00b7 ' + rows[idx].games + ' games' : ' \u00b7 no leaderboard spots yet'));
             stats.appendChild(rk);
             best.sort((a, b) => b[1] - a[1]).slice(0, 6).forEach(([g, s]) => { const r = el('div', 'pf-row'); r.append(el('span', null, gname(g)), el('b', null, fmtNum(s))); stats.appendChild(r); });
             if (!best.length) stats.appendChild(el('div', 'pf-none', 'No scores yet.'));
