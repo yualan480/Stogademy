@@ -44,3 +44,9 @@
 @keyframes auth-logo-float{50%{transform:translateY(-3px) rotate(-6deg)}}
 @media(max-width:400px){.auth-shell{padding:20px 12px}.auth-shell .auth-card{padding:26px 18px}.auth-card input{font-size:16px}.auth-card h1{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.auth-card .logo>img:first-child{animation:none}}
+
+/* Orbit logo reloads the page and remains keyboard accessible. */
+.side .brand .bwrap{display:flex;width:max-content;max-width:100%;padding:0;border:0;border-radius:12px;background:transparent;text-decoration:none;cursor:var(--cur-pointer,pointer)}
+.side .brand .bwrap:focus-visible{outline:2px solid #8fe2ff;outline-offset:4px}
+/* Avoid blurring a constantly moving full-screen canvas under large panels. */
+.app:has(.orbithome) .side,.orbithome .oquick,.orbithome .owelcome{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
