@@ -8,7 +8,7 @@ import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
-import { initOrbit } from './orbit.js?v=15';
+import { initOrbit } from './orbit.js?v=16';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
@@ -1017,7 +1017,7 @@ function renderSide() {
   const inFun = ['unblocked', 'gamer', 'shop', 'gamble', 'orbitcraft'].includes(S.view), funOpen = S.funOpen ?? inFun;
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Explore</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Explore"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
-  side.innerHTML = `<div class="brand"><div class="bwrap"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"></div><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
+  side.innerHTML = `<div class="brand"><a class="bwrap" href="./" aria-label="Refresh Orbit" title="Refresh Orbit"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"></a><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
   <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>
