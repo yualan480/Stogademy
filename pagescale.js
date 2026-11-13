@@ -18,15 +18,19 @@
       if (window.top !== window.self) return 1;
     } catch (e) { if (window.top !== window.self) return 1; }
     if (matchMedia('(pointer:coarse)').matches || !matchMedia('(min-width:801px)').matches) return 1;
+    /* Keep Orbit's desktop experience compact, matching the wider dashboard view. */
+    var isOrbit = /^\/chatter(?:\/|$)/.test(window.location.pathname);
+    var defaultScale = isOrbit ? 0.8 : 1;
     try { var o = parseFloat(localStorage.getItem('stg_pagescale')); if (o >= 0.4 && o <= 1) return o; } catch (e) { /* storage unavailable */ }
     /* browser zoom = window width (not affected by zoom) / page width (shrinks as you zoom in) */
     var oi = window.outerWidth / window.innerWidth;
-    if (!(oi > 0.2 && oi < 6)) return 1;
+    if (!(oi > 0.2 && oi < 6)) return defaultScale;
     var steps = [.25, .33, .5, .67, .75, .8, .9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5], bz = 1, best = 9;
     steps.forEach(function (s) { var e = Math.abs(Math.log(oi / s)); if (e < best) { best = e; bz = s; } });
     var sys = (window.devicePixelRatio || 1) / bz;       /* Windows display scaling, e.g. 1.5 for 150% */
-    if (sys < 1.2 || sys > 1.8) return 1;
-    return 1 / (Math.round(sys * 4) / 4);                  /* 125% -> .8, 150% -> .6667, 175% -> .5714 */
+    if (sys < 1.2 || sys > 1.8) return defaultScale;
+    var calibrated = 1 / (Math.round(sys * 4) / 4);
+    return isOrbit ? Math.min(calibrated, 0.8) : calibrated;                  /* 125% -> .8, 150% -> .6667, 175% -> .5714 */
   }
   set(calc());
   var t; addEventListener('resize', function () { clearTimeout(t); t = setTimeout(function () { set(calc()); }, 120); });
