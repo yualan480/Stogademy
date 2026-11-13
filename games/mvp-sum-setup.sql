@@ -1,20 +1,46 @@
--- Run once in the Supabase SQL editor.
--- The MVP is now chosen by TOTAL SCORE: each player's best score in every game, added up
--- (instead of placement points: 100 for 1st, 95 for 2nd ... 55 for 10th).
--- Admin "Adjust MVP" changes (mvp_adjustments) are still added on top. Banned/suspended players are still excluded.
--- Note: this REPLACES the view from admin-setup.sql / slope-setup.sql, so don't re-run those two afterwards.
--- The column is bigint now (sums of big scores can pass the integer limit), so the old view is dropped first.
-drop view if exists public.player_mvp_points;
-create view public.player_mvp_points as
+-- Compatibility setup: keep the old filename safe for anyone re-running it.
+-- The authoritative rule is also in mvp-cartridge-placements.sql.
+-- Orbit Games MVP is earned from a player's best placement in each enabled cartridge.
+-- 1st = 100, 2nd = 75, 3rd = 50, 4th = 25, 5th = 10; all lower places = 0.
+-- Equal best scores share a rank (RANK, matching the cartridge leaderboards).
+-- Historical mvp_adjustments are preserved but no longer affect the MVP.
+-- Keep the view's existing key/name/total/games interface for profile cards.
+create or replace view public.player_mvp_points as
 with best as (
-  select s.game, lower(btrim(s.name)) as k, max(s.score) as score, (array_agg(s.name order by s.created_at desc))[1] as name
-  from scores s
-  where s.game = any (array['blockblast','tetris','game2048','snake','pacman','breakout','minesweeper','flappy','dino','blockout','slope','geodash'])
-    and not exists (select 1 from player_status p where p.name = lower(btrim(s.name)) and p.state in ('banned','suspended') and (p.until is null or p.until > now()))
+  select
+    s.game,
+    lower(btrim(s.name)) as k,
+    max(s.score) as score,
+    (array_agg(btrim(s.name) order by s.created_at desc, s.id desc))[1] as name
+  from public.scores s
+  join public.games_config g on g.id = s.game and g.enabled = true
+  where s.score > 0
+    and btrim(s.name) <> ''
+    and not exists (
+      select 1 from public.player_status p
+      where lower(btrim(p.name)) = lower(btrim(s.name))
+        and p.state in ('banned', 'suspended')
+        and (p.until is null or p.until > now())
+    )
   group by s.game, lower(btrim(s.name))
 ),
-base as (select k, (array_agg(name order by score desc))[1] as name, sum(score)::bigint as total, (count(*) filter (where score > 0))::integer as games from best group by k),
-adj as (select lower(btrim(name)) as k, max(name) as name, sum(delta)::bigint as d from mvp_adjustments group by 1)
-select coalesce(b.k, a.k) as key, coalesce(b.name, a.name) as name, (coalesce(b.total,0)+coalesce(a.d,0))::bigint as total, coalesce(b.games,0)::integer as games
-from base b full join adj a on a.k = b.k;
+placements as (
+  select best.*, rank() over (partition by game order by score desc) as place
+  from best
+)
+select
+  k as key,
+  (array_agg(name order by score desc, game))[1] as name,
+  sum(case place
+    when 1 then 100
+    when 2 then 75
+    when 3 then 50
+    when 4 then 25
+    when 5 then 10
+    else 0
+  end)::bigint as total,
+  count(*)::integer as games
+from placements
+group by k
+having count(*) filter (where place <= 5) > 0;
 grant select on public.player_mvp_points to anon, authenticated;
