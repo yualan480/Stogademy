@@ -97,8 +97,9 @@ export function createDrift({ sb, getOrbits, setOrbits, reloadOrbits, toast }) {
         layer.style.cssText = `left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px`;
       }
     }
-    if (reduced()) {
+    if (reduced()) { // keep the collectible visible but motionless for accessibility
       el.style.transform = `translate(${lw * .5 - R}px,${lh * .35 - R}px)`;
+      return;
     } else {
       const v = (lw + 2 * R) / LOOP_S;
       coin.x += coin.dx * v * dt; coin.y += coin.dy * v * dt;
@@ -115,7 +116,8 @@ export function createDrift({ sb, getOrbits, setOrbits, reloadOrbits, toast }) {
     const r = host.getBoundingClientRect(); lx = r.left; ly = r.top; lw = r.width; lh = r.height;
     layer.style.cssText = `left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px`;
     enter(); el.style.transform = `translate(${coin.x - R}px,${coin.y - R}px)`;
-    if (!raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
+    if (reduced()) el.style.transform = `translate(${lw * .5 - R}px,${lh * .35 - R}px)`;
+    else if (!raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
     el.classList.add('odin');
     sfx.spawn();
   }
@@ -211,16 +213,18 @@ export function createDrift({ sb, getOrbits, setOrbits, reloadOrbits, toast }) {
     });
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && host && coin && !busy && !raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
-  });
+  const resumeDrift = () => {
+    if (!document.hidden && host && coin && !busy && !raf && !reduced()) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
+  };
+  document.addEventListener('visibilitychange', resumeDrift);
+  window.addEventListener('orbit-motion', resumeDrift);
 
   return {
     /* called every time the home page is drawn (safe to repeat) */
     attach(main) {
       host = main; ensureLayers();
       if (el && !el.isConnected) layer.appendChild(el);
-      if (coin && !raf) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
+      if (coin && !raf && !reduced()) { last = 0; measureAt = 0; raf = requestAnimationFrame(frame); }
       if (!coin && !busy && !waitTimer && !asking) schedule();
     },
     /* called when the person leaves the home page: the coin waits where it is */
