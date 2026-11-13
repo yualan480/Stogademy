@@ -117,11 +117,10 @@ const VIEWS={
   <td><div class="row">${btn('gsave',g.id,'Save','pri')}${btn('gdel',g.id,'Remove','dng')}</div></td></tr>`))+
   `<form class="card row" data-f="gadd"><b>Add game</b><input name="id" placeholder="id (e.g. chess)" required><input name="title" placeholder="Title" required><input name="page" placeholder="chess.html" required><button class="pri">Add</button></form>`},
  async scores(){const g=cache.sg||'blockblast',gs=await api('games_config?select=id&order=sort_order');
-  const [r,m]=await Promise.all([api('scores?select=id,name,score,created_at&game=eq.'+g+'&order=score.desc&limit=50'),import('../chatter/config.js').then(c=>fetch(c.SUPABASE_URL+'/rest/v1/rpc/orbit_mvp',{method:'POST',headers:{apikey:c.SUPABASE_ANON_KEY,Authorization:'Bearer '+c.SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_limit:15})}).then(x=>x.ok?x.json():[])).catch(()=>[])]);
+  const [r,m]=await Promise.all([api('scores?select=id,name,score,created_at&game=eq.'+g+'&order=score.desc&limit=50'),api('player_mvp_points?select=name,total,games&order=total.desc,name.asc&limit=25').catch(()=>[])]);
   return `<div class="row"><select data-s="sg">${gs.map(x=>`<option ${x.id===g?'selected':''}>${esc(x.id)}</option>`).join('')}</select>${btn('rs',g,'Reset this leaderboard','dng')}${has('owner')?btn('rall','','Reset ALL leaderboards','dng'):''}</div>`+
   tbl(['#','Player','Score','When',''],r.map((s,i)=>{const nx=r[i+1]?r[i+1].score:0,fl=s.score>=1e6||(nx>0&&s.score>3*nx);return `<tr><td>${i+1}</td><td>${esc(s.name)}</td><td>${s.score}${fl?' <span class="bad">⚠ unusually high</span>':''}</td><td>${when(s.created_at)}</td><td>${btn('delsc',s.id,'Remove','dng')}</td></tr>`}))+
-  `<h3>MVP rankings (Orbits right now)</h3><p class="muted">The MVP is whoever has the most Orbits at the moment. Spending Orbits lowers a player's place. Change someone's Orbits from Orbit (award Orbits).</p>`+tbl(['Player','Orbits'],m.map(x=>`<tr><td>${esc(x.display_name)}</td><td>${Number(x.total).toLocaleString()}</td></tr>`))+
-  `<form class="card row" data-f="mvp"><b>Adjust old total-score MVP</b><input name="name" placeholder="player name" required><input name="delta" type="number" placeholder="+/- points" required><input name="reason" placeholder="reason"><button class="pri">Apply</button></form>`},
+  `<h3>MVP rankings (cartridge placements)</h3><p class="muted">Each player's best score per cartridge earns 100 / 75 / 50 / 25 / 10 points for 1st through 5th. Tied scores share a place. Historical manual adjustments are excluded.</p>`+tbl(['Player','MVP points','Cartridges played'],m.map(x=>`<tr><td>${esc(x.name)}</td><td>${Number(x.total).toLocaleString()}</td><td>${Number(x.games)}</td></tr>`))},
  async pay(){if(!OWN)return '<p class="bad">Only the owner can change payouts.</p>';
   const r=await orbitRpc('get_game_rates'),m=Object.fromEntries(r.map(x=>[x.game,x.permille]));
   const ids=Object.keys(GN).filter(g=>m[g]!=null);
@@ -186,7 +185,6 @@ const F={
  uq:f=>{cache.uq=f.q.value},
  gadd:f=>api('games_config',{m:'POST',pref:'return=minimal',b:{id:f.id.value.trim().toLowerCase(),title:f.title.value,page:f.page.value,sort_order:99}}),
  chadd:f=>api('chat_channels',{m:'POST',pref:'return=minimal',b:{id:f.id.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-'),title:f.title.value.trim(),score_only:f.score_only.checked,staff_only:f.staff_only.checked,sort_order:50}}),
- mvp:f=>sure('Adjust '+f.name.value+' by '+f.delta.value+' MVP points?')&&api('mvp_adjustments',{m:'POST',pref:'return=minimal',b:{name:f.name.value.trim(),delta:+f.delta.value,reason:f.reason.value||null}}),
  ann:f=>api('announcements',{m:'POST',pref:'return=minimal',b:{title:f.title.value,body:f.body.value||null,kind:f.kind.value,pinned:f.pinned.checked,starts_at:f.starts_at.value?new Date(f.starts_at.value).toISOString():null,ends_at:f.ends_at.value?new Date(f.ends_at.value).toISOString():null}}),
  set:async f=>{for(const i of f.querySelectorAll('input:not([disabled])')){const v=i.dataset.t==='b'?i.checked:i.dataset.t==='n'?+i.value:i.value;await upsert('site_settings','key',{key:i.name,value:v,updated_at:new Date().toISOString()})}},
  staff:f=>sure('Give '+f.email.value+' the '+f.role.value+' role?')&&upsert('staff','email',{email:f.email.value.trim().toLowerCase(),role:f.role.value,chat_name:f.chat_name.value.trim()||null})
