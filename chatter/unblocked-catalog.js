@@ -231,4 +231,10 @@ export const UNBLOCKED_GAMES=[{
   "physics"
  ],
  "controls": "Click or tap inside the container to drop fruit. Match two of the same fruit to merge them. New game restarts; your best score saves in this browser."
+},{
+ id:'balloon-bastion',title:'Balloon Bastion',category:'Strategy',players:'Single player',
+ description:'Defend a winding trail from waves of balloons using four upgradeable original towers.',
+ image:'../games/balloon-bastion/cover.svg',src:'../games/balloon-bastion/index.html?v=1',
+ tags:['balloon','bastion','tower','defense','strategy','waves','td'],
+ controls:'Pick a tower, then click or tap open ground to place it. Start waves, pop balloons, upgrade towers, and defend your portal. Keyboard: 1–4 to select towers, Space to start or pause, Esc to deselect. Progress autosaves between waves.'
 }];
