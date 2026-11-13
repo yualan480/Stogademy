@@ -396,28 +396,26 @@
     return p;
   }
 
-  // the MVP: the player with the most Orbits right now. The balance is everything earned minus everything spent,
-  // so spending Orbits lowers a player's place. The Orbit server works it out (orbit_mvp(), see orbit-mvp-setup.sql).
-  var mvpCache = null, orbitCfg = null;
-  function orbitConfig() { return orbitCfg || (orbitCfg = import('../chatter/config.js')); }
-  function mvp(fresh) {
-    if (mvpCache && !fresh && Date.now() - mvpCache.t < 60000) return Promise.resolve(mvpCache.v);
-    return orbitConfig().then(function (c) {
-      return fetch(c.SUPABASE_URL + '/rest/v1/rpc/orbit_mvp', {
-        method: 'POST',
-        headers: { apikey: c.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + c.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ p_limit: 10 })
-      });
+  // MVP points come from each player's best placement in every enabled cartridge.
+  var mvpCache = null;
+  function mvpPoints(fresh) {
+    if (mvpCache && !fresh && Date.now() - mvpCache.t < 60000) return Promise.resolve(mvpCache.rows);
+    return fetch(REST + '/player_mvp_points?select=key,name,total,games&order=total.desc,name.asc&limit=300', {
+      headers: headers({})
     }).then(function (r) {
-      if (!r.ok) throw new Error('bad status');
+      if (!r.ok) throw new Error('MVP rankings unavailable');
       return r.json();
     }).then(function (rows) {
-      var v = null;
+      mvpCache = { t: Date.now(), rows: rows };
+      return rows;
+    });
+  }
+  function mvp(fresh) {
+    return mvpPoints(fresh).then(function (rows) {
       for (var i = 0; i < rows.length; i++) {
-        if (isCleanName(rows[i].display_name)) { v = { name: rows[i].display_name, total: rows[i].total }; break; }
+        if (isCleanName(rows[i].name)) return { name: rows[i].name, total: rows[i].total };
       }
-      mvpCache = { t: Date.now(), v: v };
-      return v;
+      return null;
     });
   }
 
@@ -925,7 +923,7 @@
     // the public Supabase address + anon key, shared with Battleship's online matchmaking (Realtime)
     config: { url: HOST, key: KEY },
     getAccount: getAccount, freshToken: freshToken, signOut: signOut, signIn: signIn, finishSignIn: finishSignIn, providers: PROVIDERS, sync: sync,
-    formatScore: formatScore, getStreak: getStreak, markPlayed: markPlayed, submit: submit, save: save, track: track, mvp: mvp, top: top, syncAvatar: syncAvatar, isCleanName: isCleanName, getName: getName, games: GAMES,
+    formatScore: formatScore, getStreak: getStreak, markPlayed: markPlayed, submit: submit, save: save, track: track, mvp: mvp, mvpPoints: mvpPoints, top: top, syncAvatar: syncAvatar, isCleanName: isCleanName, getName: getName, games: GAMES,
     avatars: AVATAR_IDS.map(function (id) { return { id: id, name: SPRITES[id].name }; }),
     coins: coins, getAvatar: getAvatar, setAvatar: setAvatar, isValidAvatar: isValidAvatar, avatarEl: avatarEl, avatarName: avatarName,
     imageToAvatar: imageToAvatar, fileToAvatar: fileToAvatar
