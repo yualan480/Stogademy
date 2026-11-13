@@ -2,11 +2,11 @@
    Home page, announcements, events + calendar, whiteboards, AI (assistant, summaries, conversation starters), formatting toolbar.
    app.js hands over what this needs through initOrbit(ctx) and calls the hooks that come back. */
 
-import { startStars, startLogo } from './fx.js?v=3';
-import { createBackdrop } from './orbit-bg.js?v=3';
+import { startStars, startLogo } from './fx.js?v=4';
+import { createBackdrop } from './orbit-bg.js?v=4';
 import { ambient, cycleTime } from './ambient.js?v=6';
-import { createDrift } from './orbit-drift.js?v=1';
-import { mountFloaters } from './collectible-float.js?v=1';
+import { createDrift } from './orbit-drift.js?v=2';
+import { mountFloaters } from './collectible-float.js?v=2';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -234,6 +234,8 @@ export function initOrbit(c) {
     ];
     const inN = (S.incoming || []).length, oq0 = main.querySelector('#oq'), oqVal = oq0 ? oq0.value : '', oqFocus = !!oq0 && document.activeElement === oq0;
     const enterMs = Math.round(performance.now() - O.homeAt), enter = enterMs < 1500;   // fade-in only when you arrive, not on every live refresh
+    const oldStars = main.querySelector('.orbithome > .ostars');
+    const oldLogo = main.querySelector('.orbithome .ologo');
     main.innerHTML = `<div class="top otop${enter ? ' oenter' : ''}" style="--el:${enterMs}ms">${menuBtn()}<div class="osearchw"><label class="osearch">${ic('search', 18)}<input id="oq" type="text" placeholder="Search Orbit…" autocomplete="off" spellcheck="false" aria-label="Search Orbit"><kbd>Ctrl + K</kbd></label><div class="ores" id="ores" hidden></div></div><div class="otop-actions">
       <button class="otb osnd" type="button" aria-pressed="true" aria-label="Turn Orbit sound off" title="Sound on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="sw" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sw" d="M18.5 5.5a9 9 0 0 1 0 13"/><path class="sx" d="m16 9 5 6M21 9l-5 6"/></svg></button>
       <button class="otb omus" type="button" aria-pressed="true" aria-label="Turn Orbit music off" title="Music on"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path class="mx" d="M3 3l18 18"/></svg></button>
@@ -249,6 +251,9 @@ export function initOrbit(c) {
       <p class="omore"><span></span>More Connections <i>·</i> More Moments <i>·</i> One Orbit<span></span></p>
 
     </div>`;
+    // Reattach the existing canvas and orbiting planets, so realtime updates don't restart animations.
+    if (oldStars) main.querySelector('.orbithome > .ostars')?.replaceWith(oldStars);
+    if (oldLogo) main.querySelector('.orbithome .ologo')?.replaceWith(oldLogo);
     bindMenu(); startStars(main.querySelector('.ostars')); startLogo(main.querySelector('.ologo'));
     const vid = homeVideo(), appEl = document.getElementById('app');
     if (appEl && vid.parentNode !== appEl) appEl.insertBefore(vid, appEl.firstChild);   // the backdrop sits behind the whole window (sidebar included), so the sidebar can be see-through
