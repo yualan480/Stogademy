@@ -92,9 +92,9 @@ export function attachFx(side, main) {
 export function afterMain(main) { slideAll(main); revealScan(main); }
 
 /* ───────── home starfield: three depths of stars drifting at different speeds, plus a rare shooting star ───────── */
-const SF = { stars: null, t0: performance.now(), shoot: null, nextShoot: performance.now() + 7000, raf: 0, cv: null, last: 0 };
+const SF = { stars: null, t0: performance.now(), shoot: null, nextShoot: performance.now() + 7000, raf: 0, cv: null, last: 0, frame: null, ro: null };
 function makeStars() {
-  const n = 150, layers = [{ v: 4, r: [0.35, 0.7], a: [0.25, 0.5] }, { v: 9, r: [0.6, 1.1], a: [0.4, 0.75] }, { v: 17, r: [0.9, 1.6], a: [0.6, 1] }];
+  const n = 95, layers = [{ v: 4, r: [0.35, 0.7], a: [0.25, 0.5] }, { v: 9, r: [0.6, 1.1], a: [0.4, 0.75] }, { v: 17, r: [0.9, 1.6], a: [0.6, 1] }];
   return Array.from({ length: n }, (_, i) => {
     const L = layers[i % 3], rnd = (a, b) => a + Math.random() * (b - a);
     return { x: Math.random(), y: Math.random(), v: L.v * rnd(0.8, 1.25), r: rnd(...L.r), a: rnd(...L.a), tw: rnd(0.4, 1.6), ph: rnd(0, 6.28), hue: Math.random() < 0.18 ? 'warm' : Math.random() < 0.4 ? 'cool' : 'white' };
@@ -102,6 +102,7 @@ function makeStars() {
 }
 export function startStars(cv) {
   if (!cv) return;
+  if (SF.cv === cv && SF.ro) return; // keep the existing canvas and render loop across live home updates
   SF.ro?.disconnect(); SF.stars ||= makeStars(); SF.cv = cv;
   cancelAnimationFrame(SF.raf);
   const ctx = cv.getContext('2d');
@@ -109,8 +110,10 @@ export function startStars(cv) {
   fit(); const ro = new ResizeObserver(() => { fit(); frame(performance.now(), true); }); ro.observe(cv); SF.ro = ro;
   const col = { white: '255,255,255', cool: '170,205,255', warm: '255,225,190' };
   function frame(now, still) {
-    if (!cv.isConnected) { ro.disconnect(); return; }
-    if (!still && (document.hidden || now - SF.last < 33)) { SF.raf = requestAnimationFrame(frame); return; }   // ~30 fps is plenty for slow drifting stars and halves the work
+    SF.raf = 0;
+    if (!cv.isConnected) { ro.disconnect(); SF.ro = null; return; }
+    if (!still && document.hidden) return;
+    if (!still && now - SF.last < 50) { SF.raf = requestAnimationFrame(frame); return; }   // 20 fps keeps the drifting stars visible at half the render cost
     const dt = Math.min(0.1, (now - (SF.last || now)) / 1000); SF.last = now;
     const W = cv._w, H = cv._h; ctx.clearRect(0, 0, W, H);
     const t = (now - SF.t0) / 1000; let lastHue = '';
@@ -137,6 +140,7 @@ export function startStars(cv) {
     if (still || reduce()) return;
     SF.raf = requestAnimationFrame(frame);
   }
+  SF.frame = frame;
   if (reduce()) frame(performance.now(), true); else SF.raf = requestAnimationFrame(frame);
 }
 
@@ -147,18 +151,22 @@ const ringPt = t => ({ x: RING.cx + RING.a * Math.cos(t) * Math.cos(RING.th) - R
 const nearestT = (x, y) => { let best = 0, bd = 1e9; for (let i = 0; i < 720; i++) { const t = i / 720 * 6.2832, p = ringPt(t), d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < bd) { bd = d; best = t; } } return best; };
 const PLANETS = [{ t0: nearestT(523, 71), w: 0.36, size: 72 / IMG_W }, { t0: nearestT(113, 332), w: 0.5, size: 40 / IMG_W }];
 const smooth = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
-let logoRaf = 0, logoRO = null; const LOGO_T0 = performance.now();
+let logoRaf = 0, logoRO = null, logoWrap = null, logoFrame = null, logoLast = 0; const LOGO_T0 = performance.now();
 export function startLogo(wrap) {
   if (!wrap) return;
-  cancelAnimationFrame(logoRaf); logoRO?.disconnect();
+  if (logoWrap === wrap && logoRO) return; // preserve moving planets on live updates
+  cancelAnimationFrame(logoRaf); logoRO?.disconnect(); logoWrap = wrap; logoLast = 0;
   const els = [...wrap.querySelectorAll('.op')];
   let wpx = wrap.clientWidth || 300;
   const ro = new ResizeObserver(() => { wpx = wrap.clientWidth || wpx; sizeAll(); }); ro.observe(wrap); logoRO = ro;
   const sizeAll = () => els.forEach((el, i) => { el.style.width = (PLANETS[i].size * wpx).toFixed(1) + 'px'; });
   sizeAll();
   function frame(now) {
-    if (!wrap.isConnected) { ro.disconnect(); return; }
-    if(document.hidden){if(!reduce())logoRaf=requestAnimationFrame(frame);return;}
+    logoRaf = 0;
+    if (!wrap.isConnected) { ro.disconnect(); logoRO = null; return; }
+    if (document.hidden) return;
+    if (!reduce() && logoLast && now - logoLast < 33) { logoRaf = requestAnimationFrame(frame); return; }
+    logoLast = now;
     const t = (now - LOGO_T0) / 1000, hpx = wpx * IMG_H / IMG_W;
     els.forEach((el, i) => {
       const P = PLANETS[i], a = P.t0 + (reduce() ? 0 : P.w * t), p = ringPt(a), depth = Math.sin(a);
@@ -168,8 +176,16 @@ export function startLogo(wrap) {
     });
     if (!reduce()) logoRaf = requestAnimationFrame(frame);
   }
+  logoFrame = frame;
   frame(performance.now());
 }
+
+// Stop background animation loops when the tab is hidden; resume automatically when visible.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (SF.cv?.isConnected && SF.frame && !SF.raf && !reduce()) SF.raf = requestAnimationFrame(SF.frame);
+  if (logoWrap?.isConnected && logoFrame && !logoRaf && !reduce()) logoRaf = requestAnimationFrame(logoFrame);
+});
 
 /* ───────── click ripple: a soft ring spreads from wherever you click or tap ───────── */
 let rippleOn = false;
