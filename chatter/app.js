@@ -1017,7 +1017,7 @@ function renderSide() {
   const inFun = ['unblocked', 'gamer', 'shop', 'gamble', 'orbitcraft'].includes(S.view), funOpen = S.funOpen ?? inFun;
   const funNav = `<div class="nav-grp${funOpen ? ' open' : ''}"><button type="button" class="nav-i nav-grp-h${inFun && !funOpen ? ' on' : ''}" data-fun aria-expanded="${funOpen}" aria-controls="navfun">${ic('smile')}<span>Explore</span><span class="nav-chev" aria-hidden="true">${ic('chev', 16)}</span></button>
     <div class="nav-sub" id="navfun" role="group" aria-label="Explore"${funOpen ? '' : ' hidden'}>${nav('unblocked', 'Unblocked Games', 'compass')}${nav('gamer', 'Orbit Games', 'gamepad')}${nav('shop', 'Orbit Shop', 'shop')}${nav('gamble', 'Orbit Casino', 'dice')}${nav('orbitcraft', 'Orbitcraft', 'gamepad')}</div></div>`;
-  side.innerHTML = `<div class="brand"><a class="bwrap" href="./" aria-label="Refresh Orbit" title="Refresh Orbit"><img class="blogo" src="orbit-logo-wide.png" alt="Orbit" width="236" height="auto"><span class="sbmoon-orbits" aria-hidden="true"><i class="sbmoon sbmoon-a"></i><i class="sbmoon sbmoon-b"></i></span></a><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
+  side.innerHTML = `<div class="brand"><a class="bwrap sidebar-orbit-logo" href="./" aria-label="Refresh Orbit" title="Refresh Orbit"><span class="sbplanet" aria-hidden="true"><img src="orbit-logo-planet.png" alt="" width="660" height="444"><span class="sbmoon-orbits"><i class="sbmoon sbmoon-a"></i><i class="sbmoon sbmoon-b"></i></span></span><img class="sbword" src="orbit-wordmark.png" alt="Orbit" width="518" height="180"></a><button type="button" class="ib sidebar-close" data-sidebar-close aria-label="Close sidebar">${ic('x')}</button></div>
   <nav class="nav" aria-label="Orbit navigation">${nav('home', 'Home', 'home')}${nav('roles', 'Roles', 'tag')}${socialNav}${nav('events', 'Events', 'calendar')}${nav('tournaments', 'Tournaments', 'trophy')}${funNav}${nav('leaderboard', 'Orbit Leaderboard', 'trophy')}${nav('intelligence', 'Orbit Intelligence', 'crosshair')}${nav('ai', 'Ask Orbit AI', 'sparkle')}${S.chans.some(x => x.special === 'suggestions') ? '' : nav('suggestions', 'Suggestions', 'hash')}</nav>
   ${O.sideCal()}
   <div class="scroll">${S.view === 'dm' ? dmList() : socialList()}</div>
@@ -1547,8 +1547,36 @@ async function refreshProfileLastSeen(node, uid) {
 function profileModal(uid) {
   const p = prof(uid), isMe = uid === S.me.id, fr = S.friends.includes(uid), out = S.outgoing.some(r => r.receiver_id === uid), inc = S.incoming.some(r => r.sender_id === uid);
   const mem = S.members.find(m => m.user_id === uid), t = tmoUntil(mem);
-  modal(p.display_name, `<div style="display:flex;gap:12px;align-items:center">${av(p)}<div><b>@${esc(p.username)}</b><br><small class="muted">${esc(stText[statusOf(p)] || statusOf(p))}${p.custom_status ? ' · ' + esc(p.custom_status) : ''}</small></div></div><p data-profile-bio>${esc(p.bio) || '<span class="muted">No bio yet.</span>'}</p><p data-profile-last-online class="muted" style="margin-top:-6px;font-size:12px" aria-live="polite"></p>${crOf(uid).length ? `<div class="rpills" aria-label="Classes">${crOf(uid).map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('')}</div>` : isMe ? '<p class="muted">No classes picked yet.</p>' : ''}${mem && mem.role !== 'member' ? `<p class="muted">Role: ${roleBadge(uid)}</p>` : ''}${t ? `<p class="muted">Timed out until ${esc(t.toLocaleString())}</p>` : ''}`,
-    [{ label: 'Close', cls: 'ghost' }, ...(isMe ? [{ label: 'Edit roles', fn: () => { navTo('roles'); } }] : [{ label: 'Message', fn: () => { startDm(uid); } }, ...(fr || out || inc ? [] : [{ label: 'Add friend', cls: 'ghost', fn: () => sendFriendRequest(p.username) }]), ...modButtons(uid)])], bg => { SHOP.decorateProfile?.(bg, uid); refreshProfileLastSeen(bg.querySelector('[data-profile-last-online]'), uid); });
+  // Only the owner can manage staff roles; admin_set_role enforces this again in Postgres.
+  const canChangeRole = S.sv?.role === 'owner' && !isMe && !!mem && mem.role !== 'owner';
+  const staffRole = mem ? `<div class="profile-staff-role"><span>Staff role</span>${canChangeRole
+    ? `<select data-profile-staff-role aria-label="Change ${esc(p.display_name)}'s staff role">${roleOptions(mem.role)}</select>`
+    : (mem.role === 'member' ? '<span class="muted">Member</span>' : roleBadge(uid))}</div>` : '';
+  modal(p.display_name,
+    `<div style="display:flex;gap:12px;align-items:center">${av(p)}<div><b>@${esc(p.username)}</b><br><small class="muted">${esc(stText[statusOf(p)] || statusOf(p))}${p.custom_status ? ' · ' + esc(p.custom_status) : ''}</small></div></div><p data-profile-bio>${esc(p.bio) || '<span class="muted">No bio yet.</span>'}</p><p data-profile-last-online class="muted" style="margin-top:-6px;font-size:12px" aria-live="polite"></p>${crOf(uid).length ? `<div class="rpills" aria-label="Classes">${crOf(uid).map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('')}</div>` : isMe ? '<p class="muted">No classes picked yet.</p>' : ''}${staffRole}${t ? `<p class="muted">Timed out until ${esc(t.toLocaleString())}</p>` : ''}`,
+    [{ label: 'Close', cls: 'ghost' }, ...(isMe ? [{ label: 'Edit roles', fn: () => { navTo('roles'); } }] : [{ label: 'Message', fn: () => { startDm(uid); } }, ...(fr || out || inc ? [] : [{ label: 'Add friend', cls: 'ghost', fn: () => sendFriendRequest(p.username) }]), ...modButtons(uid)])],
+    bg => {
+      SHOP.decorateProfile?.(bg, uid);
+      refreshProfileLastSeen(bg.querySelector('[data-profile-last-online]'), uid);
+      const select = bg.querySelector('[data-profile-staff-role]');
+      if (!select) return;
+      select.onchange = () => {
+        const next = select.value, current = roleOf(uid);
+        select.value = current; // cancelling the confirmation should leave the role untouched
+        if (next === current || !['admin', 'moderator', 'support', 'member'].includes(next)) return;
+        confirmBox('Change staff role?', `Change ${p.display_name} from ${roleName(current)} to ${roleName(next)}? Their permissions will update immediately.`, 'Change role', async () => {
+          if (S.sv?.role !== 'owner') { toast('Only the owner can change staff roles.', true); return false; }
+          const { error } = await sb.rpc('admin_set_role', { p_target: uid, p_role: next });
+          if (error) { toast(error.message, true); return false; }
+          const target = S.members.find(m => m.user_id === uid);
+          if (target) target.role = next;
+          select.value = next;
+          renderMembers();
+          await loadMembers();
+          toast(`${p.display_name} is now ${roleName(next)}.`);
+        });
+      };
+    });
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
 function bindOrbitSearch(inp, out) {
