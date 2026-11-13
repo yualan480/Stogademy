@@ -1,4 +1,4 @@
-import {schoolSignupDetails,requireEmailConfirmation} from './school-signup.js?v=3';
+import {schoolSignupDetails} from './school-signup.js?v=4';
 import {startGoogleSignIn} from './oauth.js?v=2';
 import {shouldSendOnEnter} from './composer-input.js?v=1';
 import {setSidebarOpen,syncSidebar} from './phone-navigation.js?v=1';
@@ -394,10 +394,9 @@ function authView(mode = 'login') {
         } else {
           if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
           const details = schoolSignupDetails(email);
-          await requireEmailConfirmation(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-          const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { ...details.metadata, device_id: deviceId() }, emailRedirectTo: new URL('/', location.origin).href, captchaToken } });
+          const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { ...details.metadata, device_id: deviceId() }, captchaToken } });
           if (error) throw error;
-          if (!data.session) { er.style.color = 'var(--ok)'; er.textContent = 'Check your school inbox (and spam folder) for a confirmation link. Confirm your email, then return here to log in. If an account already exists, log in or reset your password.'; }
+          if (!data.session) { er.style.color = 'var(--ok)'; er.textContent = 'Could not start a session. If you already have an account, log in or reset your password; otherwise ask the site owner to check signup settings.'; }
         }
       }
     } catch (x) { er.style.color = ''; er.textContent = x.message || 'Something went wrong. Check your connection and try again.'; }
