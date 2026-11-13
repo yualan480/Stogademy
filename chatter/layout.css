@@ -50,3 +50,17 @@
 .side .brand .bwrap:focus-visible{outline:2px solid #8fe2ff;outline-offset:4px}
 /* Avoid blurring a constantly moving full-screen canvas under large panels. */
 .app:has(.orbithome) .side,.orbithome .oquick,.orbithome .owelcome{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+
+/* The logo stays still; two small moons orbit only while the refresh link is hovered. */
+.side .brand .bwrap{position:relative}
+.side .brand .sbmoon-orbits{position:absolute;left:19%;top:48%;width:0;height:0;pointer-events:none;opacity:0;transform:rotate(-21deg) scaleY(.68);transition:opacity .16s ease}
+.side .brand .sbmoon{position:absolute;left:-5px;top:-5px;display:block;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px #d5efff,0 0 9px #54c9ff;background:radial-gradient(circle at 30% 27%,#fff 0,#d2f7ff 24%,#5dbaff 62%,#5656d8 100%)}
+.side .brand .sbmoon-a{--moon-start:-52deg;--moon-radius:40px;--moon-speed:3.2s}
+.side .brand .sbmoon-b{--moon-start:153deg;--moon-radius:35px;--moon-speed:4.4s;width:7px;height:7px;left:-3.5px;top:-3.5px;background:radial-gradient(circle at 30% 25%,#fff 0,#b2edff 28%,#8274ff 75%,#3e4fa8 100%)}
+.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-orbits{opacity:1}
+.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon{animation:sidebar-moon-orbit var(--moon-speed) linear infinite}
+.side .brand .bwrap:is(:hover,:focus-visible) .sbmoon-b{animation-direction:reverse}
+@keyframes sidebar-moon-orbit{from{transform:rotate(var(--moon-start)) translateX(var(--moon-radius)) scaleY(1.47)}to{transform:rotate(calc(var(--moon-start) + 360deg)) translateX(var(--moon-radius)) scaleY(1.47)}}
+@media(max-width:800px){.side .brand .sbmoon-a{--moon-radius:34px}.side .brand .sbmoon-b{--moon-radius:29px}}
+@media(prefers-reduced-motion:reduce){html:not(.force-motion) .side .brand .sbmoon-orbits{display:none}}
