@@ -109,16 +109,18 @@ function place(f, w, h) {
   f.el.style.transform = `translate3d(${s.x}px,${y}px,0) rotate(${r}deg)`;
 }
 function frame(ts) {
-  raf = requestAnimationFrame(frame);
+  raf = 0;
   if (!layer || !layer.isConnected || !host || !host.isConnected) { stop(); return; }
   if (document.hidden) { last = 0; return; }
-  const dt = last ? Math.min(.05, (ts - last) / 1000) : 0; last = ts;
+  if (last && ts - last < 40) { raf = requestAnimationFrame(frame); return; } // 25 fps is enough for slow floaters
+  const dt = last ? Math.min(.08, (ts - last) / 1000) : 0; last = ts;
   const w = host.clientWidth, h = host.clientHeight;
   for (const f of list) {
     const s = f.s; s.t += dt; s.x += s.sp * dt;
     if (s.x > w + 60) { s.x = -60; s.yb = rnd(.12, .86); }   // left the right edge: come back in from the left at a new height
     place(f, w, h);
   }
+  raf = requestAnimationFrame(frame);
 }
 function pop(btn, id) {
   playSound(id);
@@ -128,11 +130,20 @@ function pop(btn, id) {
 
 /* panel = the .orbithome element; items = [{ id, name, glyph, c1, c2 }] (the member's own collectibles, equipped first) */
 export function mountFloaters(panel, items) {
+  if (!panel || !items || !items.length) { unmountFloaters(); return; }
+  const shown = items.slice(0, MAX), still = reduced();
+  const same = layer && shown.length === list.length && shown.every((it, i) => list[i].el.dataset.id === it.id);
+  if (same) { // live home updates keep the same moving elements instead of rebuilding them
+    host = panel;
+    panel.insertBefore(layer, panel.querySelector('.ostars') ? panel.querySelector('.ostars').nextSibling : panel.firstChild);
+    if (still) { stop(); list.forEach(f => place(f, panel.clientWidth, panel.clientHeight)); }
+    else if (!raf) { last = 0; raf = requestAnimationFrame(frame); }
+    return;
+  }
   stop(); if (layer && layer.parentNode) layer.remove();
   layer = null; host = panel; list = [];
-  if (!panel || !items || !items.length) return;
   ensureCss();
-  const w = panel.clientWidth || 900, h = panel.clientHeight || 600, still = reduced(), shown = items.slice(0, MAX);
+  const w = panel.clientWidth || 900, h = panel.clientHeight || 600;
   layer = document.createElement('div'); layer.className = 'cfloat'; layer.setAttribute('role', 'group'); layer.setAttribute('aria-label', 'Your collectibles');
   shown.forEach((it, i) => {
     let s = state.get(it.id);
@@ -149,3 +160,6 @@ export function mountFloaters(panel, items) {
   if (!still) raf = requestAnimationFrame(frame);
 }
 export function unmountFloaters() { stop(); if (layer && layer.parentNode) layer.remove(); layer = null; host = null; list = []; }
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && layer?.isConnected && host?.isConnected && !reduced() && !raf) { last = 0; raf = requestAnimationFrame(frame); }
+});
