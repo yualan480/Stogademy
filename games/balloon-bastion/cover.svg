@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">Balloon Bastion</title>
+  <desc id="desc">A glowing turret defending a winding starry trail from bright floating balloons.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07143d"/><stop offset=".55" stop-color="#125e86"/><stop offset="1" stop-color="#442c8d"/></linearGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#72d7de"/><stop offset="1" stop-color="#245778"/></linearGradient>
+    <radialGradient id="pink" cx=".25" cy=".2" r=".9"><stop stop-color="#fff"/><stop offset=".18" stop-color="#ffc0e9"/><stop offset="1" stop-color="#e94096"/></radialGradient>
+    <radialGradient id="gold" cx=".3" cy=".2" r=".9"><stop stop-color="#fff"/><stop offset=".25" stop-color="#ffeaaf"/><stop offset="1" stop-color="#ee9d2a"/></radialGradient>
+    <radialGradient id="cyan" cx=".3" cy=".2" r=".9"><stop stop-color="#fff"/><stop offset=".25" stop-color="#a1efff"/><stop offset="1" stop-color="#25a8d3"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="9" result="a"/><feMerge><feMergeNode in="a"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <g fill="#bceeff" opacity=".58"><circle cx="62" cy="49" r="2"/><circle cx="120" cy="116" r="1.4"/><circle cx="207" cy="38" r="2.2"/><circle cx="330" cy="85" r="1"/><circle cx="538" cy="53" r="2.3"/><circle cx="702" cy="70" r="1.7"/><circle cx="771" cy="181" r="2"/><circle cx="92" cy="390" r="1.2"/><circle cx="720" cy="448" r="1.5"/></g>
+  <path d="M-40 263 H180 Q215 263 215 297 V390 Q215 420 247 420 H515 Q545 420 545 390 V180 Q545 150 578 150 H840" fill="none" stroke="#081b3a" stroke-width="118" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-40 263 H180 Q215 263 215 297 V390 Q215 420 247 420 H515 Q545 420 545 390 V180 Q545 150 578 150 H840" fill="none" stroke="url(#trail)" stroke-width="94" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-40 263 H180 Q215 263 215 297 V390 Q215 420 247 420 H515 Q545 420 545 390 V180 Q545 150 578 150 H840" fill="none" stroke="#b0faff" stroke-width="3" stroke-dasharray="8 25" opacity=".7"/>
+  <g transform="translate(354 233)" filter="url(#glow)"><circle r="91" fill="#0a2147" stroke="#58e5ec" stroke-width="13"/><circle r="65" fill="#225f7f" stroke="#a0fff9" stroke-width="3"/><path d="M0-28 L131-67 L143-40 L15 15Z" fill="#98f8f3" stroke="#eaffff" stroke-width="8" stroke-linejoin="round"/><circle r="35" fill="#8ff8ff"/><circle r="19" fill="#19436c"/><path d="m-8 0 8-11 8 11-8 12z" fill="#cfffff"/></g>
+  <g transform="translate(640 120)"><ellipse cy="-10" rx="35" ry="44" fill="url(#pink)"/><path d="m-7 29 7 13 7-13" fill="#f080be"/><path d="M0 42 q-11 14 0 24" stroke="#fff" fill="none" opacity=".5"/></g>
+  <g transform="translate(706 225)"><ellipse cy="-10" rx="28" ry="37" fill="url(#gold)"/><path d="m-6 25 6 10 6-10" fill="#ffc66d"/><path d="M0 35 q10 12 0 23" stroke="#fff" fill="none" opacity=".5"/></g>
+  <g transform="translate(620 324)"><ellipse cy="-10" rx="31" ry="40" fill="url(#cyan)"/><path d="m-6 29 6 11 6-11" fill="#7de4f1"/><path d="M0 40 q-10 14 0 23" stroke="#fff" fill="none" opacity=".5"/></g>
+  <g text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-weight="900"><text x="400" y="450" font-size="65" letter-spacing="-3" stroke="#071637" stroke-width="13" paint-order="stroke" fill="#fff">BALLOON BASTION</text><text x="400" y="478" font-size="15" letter-spacing="6" fill="#b4f7ff">AN ORIGINAL ORBIT DEFENSE GAME</text></g>
+</svg>
