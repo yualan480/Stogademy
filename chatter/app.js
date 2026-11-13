@@ -8,7 +8,7 @@ import { initIntelligence } from './intelligence.js?v=1';
 if (/[?&]embed=social/.test(location.search)) document.documentElement.classList.add('embed');
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import * as CONFIG from './config.js';
-import { initOrbit } from './orbit.js?v=16';
+import { initOrbit } from './orbit.js?v=17';
 import { initCommunities } from './communities.js?v=3';
 /* Shop and voice typing are extras: if either file is missing or fails to load, Orbit still starts and just goes without it. */
 const { initShop } = await import('./shop.js?v=12').catch(e => (console.warn('Orbit Shop unavailable', e), {}));
