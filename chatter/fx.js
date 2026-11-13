@@ -181,11 +181,13 @@ export function startLogo(wrap) {
 }
 
 // Stop background animation loops when the tab is hidden; resume automatically when visible.
-document.addEventListener('visibilitychange', () => {
+const resumeHomeMotion = () => {
   if (document.hidden) return;
   if (SF.cv?.isConnected && SF.frame && !SF.raf && !reduce()) SF.raf = requestAnimationFrame(SF.frame);
   if (logoWrap?.isConnected && logoFrame && !logoRaf && !reduce()) logoRaf = requestAnimationFrame(logoFrame);
-});
+};
+document.addEventListener('visibilitychange', resumeHomeMotion);
+window.addEventListener('orbit-motion', resumeHomeMotion);
 
 /* ───────── click ripple: a soft ring spreads from wherever you click or tap ───────── */
 let rippleOn = false;
