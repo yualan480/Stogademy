@@ -1544,38 +1544,67 @@ async function refreshProfileLastSeen(node, uid) {
     renderProfileLastSeen(node, prof(uid));
   } catch { renderProfileLastSeen(node, prof(uid), true); }
 }
+
 function profileModal(uid) {
   const p = prof(uid), isMe = uid === S.me.id, fr = S.friends.includes(uid), out = S.outgoing.some(r => r.receiver_id === uid), inc = S.incoming.some(r => r.sender_id === uid);
   const mem = S.members.find(m => m.user_id === uid), t = tmoUntil(mem);
-  // Only the owner can manage staff roles; admin_set_role enforces this again in Postgres.
-  const canChangeRole = S.sv?.role === 'owner' && !isMe && !!mem && mem.role !== 'owner';
-  const staffRole = mem ? `<div class="profile-staff-role"><span>Staff role</span>${canChangeRole
-    ? `<select data-profile-staff-role aria-label="Change ${esc(p.display_name)}'s staff role">${roleOptions(mem.role)}</select>`
-    : (mem.role === 'member' ? '<span class="muted">Member</span>' : roleBadge(uid))}</div>` : '';
+  const classes = crOf(uid), canManageClasses = S.sv?.role === 'owner';
+  const classRoles = `<section class="profile-class-roles" aria-label="Class roles">
+    <div class="profile-class-head"><strong>Class roles</strong>${canManageClasses ? '<button type="button" class="btn sm ghost" data-profile-manage-classes>Manage</button>' : ''}</div>
+    ${classes.length ? `<div class="rpills">${classes.map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('')}</div>` : '<p class="muted">No class roles assigned.</p>'}
+  </section>`;
   modal(p.display_name,
-    `<div style="display:flex;gap:12px;align-items:center">${av(p)}<div><b>@${esc(p.username)}</b><br><small class="muted">${esc(stText[statusOf(p)] || statusOf(p))}${p.custom_status ? ' · ' + esc(p.custom_status) : ''}</small></div></div><p data-profile-bio>${esc(p.bio) || '<span class="muted">No bio yet.</span>'}</p><p data-profile-last-online class="muted" style="margin-top:-6px;font-size:12px" aria-live="polite"></p>${crOf(uid).length ? `<div class="rpills" aria-label="Classes">${crOf(uid).map(r => `<span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>`).join('')}</div>` : isMe ? '<p class="muted">No classes picked yet.</p>' : ''}${staffRole}${t ? `<p class="muted">Timed out until ${esc(t.toLocaleString())}</p>` : ''}`,
+    `<div style="display:flex;gap:12px;align-items:center">${av(p)}<div><b>@${esc(p.username)}</b><br><small class="muted">${esc(stText[statusOf(p)] || statusOf(p))}${p.custom_status ? ' · ' + esc(p.custom_status) : ''}</small></div></div><p data-profile-bio>${esc(p.bio) || '<span class="muted">No bio yet.</span>'}</p><p data-profile-last-online class="muted" style="margin-top:-6px;font-size:12px" aria-live="polite"></p>${classRoles}${t ? `<p class="muted">Timed out until ${esc(t.toLocaleString())}</p>` : ''}`,
     [{ label: 'Close', cls: 'ghost' }, ...(isMe ? [{ label: 'Edit roles', fn: () => { navTo('roles'); } }] : [{ label: 'Message', fn: () => { startDm(uid); } }, ...(fr || out || inc ? [] : [{ label: 'Add friend', cls: 'ghost', fn: () => sendFriendRequest(p.username) }]), ...modButtons(uid)])],
-    bg => {
+    (bg, close) => {
       SHOP.decorateProfile?.(bg, uid);
       refreshProfileLastSeen(bg.querySelector('[data-profile-last-online]'), uid);
-      const select = bg.querySelector('[data-profile-staff-role]');
-      if (!select) return;
-      select.onchange = () => {
-        const next = select.value, current = roleOf(uid);
-        select.value = current; // cancelling the confirmation should leave the role untouched
-        if (next === current || !['admin', 'moderator', 'support', 'member'].includes(next)) return;
-        confirmBox('Change staff role?', `Change ${p.display_name} from ${roleName(current)} to ${roleName(next)}? Their permissions will update immediately.`, 'Change role', async () => {
-          if (S.sv?.role !== 'owner') { toast('Only the owner can change staff roles.', true); return false; }
-          const { error } = await sb.rpc('admin_set_role', { p_target: uid, p_role: next });
-          if (error) { toast(error.message, true); return false; }
-          const target = S.members.find(m => m.user_id === uid);
-          if (target) target.role = next;
-          select.value = next;
-          renderMembers();
-          await loadMembers();
-          toast(`${p.display_name} is now ${roleName(next)}.`);
-        });
+      const manage = bg.querySelector('[data-profile-manage-classes]');
+      if (manage) manage.onclick = () => { close(); manageProfileClassRoles(uid); };
+    });
+}
+
+function manageProfileClassRoles(uid) {
+  // The UI is owner-only; the database RPC independently enforces owner access.
+  if (S.sv?.role !== 'owner') return toast('Only the owner can manage class roles.', true);
+  const p = prof(uid);
+  modal('Class roles · ' + p.display_name,
+    '<p class="muted">Check the classes this person should have. Each change saves immediately.</p><div class="profile-class-list" data-profile-class-list aria-live="polite"><p class="muted">Loading class roles…</p></div>',
+    [{ label: 'Back to profile', cls: 'ghost', fn: () => profileModal(uid) }],
+    async bg => {
+      const list = bg.querySelector('[data-profile-class-list]');
+      let busy = false;
+      const draw = () => {
+        if (!bg.isConnected) return;
+        if (S.crErr) { list.innerHTML = `<p class="muted">Could not load class roles: ${esc(S.crErr.message || S.crErr)}</p>`; return; }
+        if (!S.croles.length) { list.innerHTML = '<p class="muted">No class roles have been created yet.</p>'; return; }
+        list.innerHTML = S.croles.map(r => {
+          const checked = !!S.cmem.get(r.id)?.has(uid);
+          return `<label class="profile-class-item">
+            <input type="checkbox" data-profile-class-id="${esc(r.id)}" ${checked ? 'checked' : ''} aria-label="${esc(crLabel(r))}">
+            <span class="rpill"${crStyle(r)}>${esc(crLabel(r))}</span>
+            <span class="profile-class-status">${checked ? 'Assigned' : 'Not assigned'}</span>
+          </label>`;
+        }).join('');
       };
+      list.onchange = async e => {
+        const checkbox = e.target.closest('[data-profile-class-id]');
+        if (!checkbox || busy || S.sv?.role !== 'owner') return;
+        const role = S.croles.find(r => r.id === checkbox.dataset.profileClassId);
+        if (!role) return;
+        const add = checkbox.checked;
+        busy = true;
+        list.querySelectorAll('input').forEach(el => { el.disabled = true; });
+        const { error } = await sb.rpc('admin_set_class_role_member', { p_role: role.id, p_user: uid, p_on: add });
+        if (error) { toast(error.message, true); busy = false; draw(); return; }
+        await loadClassRoles();
+        busy = false;
+        draw(); // The server may also remove a mutually exclusive class role.
+        if (S.view === 'roles') renderMain();
+        toast(`${crLabel(role)} ${add ? 'assigned' : 'removed'}.`);
+      };
+      await loadClassRoles();
+      draw();
     });
 }
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && S.me) { e.preventDefault(); if (S.view !== 'home') navTo('home'); setTimeout(() => $('#oq')?.focus(), 60); } });
